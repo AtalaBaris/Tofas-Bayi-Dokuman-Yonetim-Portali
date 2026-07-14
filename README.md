@@ -1,26 +1,51 @@
-# 📁 Bayi Doküman Yönetimi Portalı
+# Bayi Doküman Yönetimi Portalı
 
-> Bayilere **marka bazlı** doküman, duyuru, eğitim ve pazarlama materyali sunan; içerik erişimlerini kayıt altına alan web portalı.
+<p align="center">
+  <strong>Bayilere marka bazlı doküman, duyuru, eğitim ve pazarlama materyali sunan;<br>
+  içerik erişimlerini kayıt altına alan web portalı</strong>
+</p>
+
+<p align="center">
+  <img alt="MVP" src="https://img.shields.io/badge/MVP-4--6%20hafta-0F2C4C?style=flat-square" />
+  <img alt="Frontend" src="https://img.shields.io/badge/Frontend-Angular-DD0031?style=flat-square" />
+  <img alt="Backend" src="https://img.shields.io/badge/Backend-ASP.NET%20Core-512BD4?style=flat-square" />
+  <img alt="DB" src="https://img.shields.io/badge/DB-PostgreSQL-336791?style=flat-square" />
+  <img alt="License" src="https://img.shields.io/badge/repo-public-success?style=flat-square" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/AtalaBaris/Tofas-Bayi-Dokuman-Yonetim-Portali"><strong>GitHub deposu</strong></a>
+  ·
+  <a href="#getting-started"><strong>Hızlı kurulum</strong></a>
+  ·
+  <a href="#kabul-kriterleri"><strong>Kabul kriterleri</strong></a>
+</p>
+
 ---
 
-## 📑 İçindekiler
+## İçindekiler
 
-1. [🚀 Geliştirici Kurulum Adımları (Getting Started)](#1-geliştirici-kurulum-adımları-getting-started)
-2. [🎯 Projenin Amacı ve Kapsamı](#2-projenin-amacı-ve-kapsamı)
-3. [👥 Kullanıcı Rolleri ve Temel Akış](#3-kullanıcı-rolleri-ve-temel-akış)
-4. [🖥️ Beklenen Ekranlar ve Form](#4-beklenen-ekranlar-ve-form)
-5. [📐 Gereksinim Analizi ve Kullanım Senaryoları](#5-gereksinim-analizi-ve-kullanım-senaryoları)
-6. [🏗️ Genel Mimari ve Repository Stratejisi](#6-genel-mimari-ve-repository-stratejisi)
-7. [📂 Detaylı Klasör Yapısı](#7-detaylı-klasör-yapısı)
-8. [🐳 Veritabanı ve Docker Mantığı](#8-veritabanı-ve-docker-mantığı)
-9. [🗄️ Veri Modeli ve REST API’ler](#9-veri-modeli-ve-rest-apiler)
-10. [🔐 Kritik İş Kuralları ve Güvenlik](#10-kritik-iş-kuralları-ve-güvenlik)
-11. [📅 Çalışma Planı, Teslimler ve Demo](#11-çalışma-planı-teslimler-ve-demo)
-12. [✅ MVP Kabul Kriterleri](#12-mvp-kabul-kriterleri)
-13. [🤝 Katkı ve Çalışma Notları](#13-katkı-ve-çalışma-notları)
+> Clone sonrası önce <a href="#getting-started"><b>§1 Getting Started</b></a> ile ortamı ayağa kaldır.
+
+| # | Bölüm | Ne bulursun? |
+|---|--------|--------------|
+| 1 | [Kurulum (Getting Started)](#getting-started) | Ön koşullar, DB, API, Angular |
+| 2 | [Amaç ve kapsam](#amac-kapsam) | MVP tanımı, kategoriler, teknolojiler |
+| 3 | [Roller ve akış](#roller-akis) | Kim ne yapar, kullanıcı hikâyeleri |
+| 4 | [Ekranlar ve form](#ekranlar-form) | 6 ekran + içerik formu alanları |
+| 5 | [Gereksinimler](#gereksinimler) | FR / NFR / UC / test checklist |
+| 6 | [Mimari](#mimari) | Monorepo, Clean Architecture |
+| 7 | [Klasör yapısı](#klasor-yapisi) | Backend & frontend ağaçları |
+| 8 | [Veritabanı & Docker](#docker-db) | Docker / lokal Postgres |
+| 9 | [Veri modeli & API](#veri-modeli-api) | Tablolar, ilişkiler, REST uçları |
+| 10 | [Güvenlik](#guvenlik) | Marka yetkisi, soft delete, DTO |
+| 11 | [Plan & teslim](#plan-teslim) | Takvim, demo senaryosu |
+| 12 | [Kabul kriterleri](#kabul-kriterleri) | MVP checklist |
+| 13 | [Katkı notları](#katki) | Dal stratejisi, hatırlatmalar |
 
 ---
 
+<a id="getting-started"></a>
 ## 🚀 1. Geliştirici Kurulum Adımları (Getting Started)
 
 Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. Sıra: araçları kur → repo’yu al → veritabanını hazırla → API → Angular.
@@ -315,6 +340,7 @@ cd frontend && npm install && ng serve
 
 ---
 
+<a id="amac-kapsam"></a>
 ## 🎯 2. Projenin Amacı ve Kapsamı
 
 ### 📌 Neden bu portal?
@@ -372,6 +398,7 @@ MVP’de içerikler şu üç kategori altında yönetilir:
 
 ---
 
+<a id="roller-akis"></a>
 ## 👥 3. Kullanıcı Rolleri ve Temel Akış
 
 > ⚠️ **Yetkilendirme kuralı:** Yetkilendirme **hem ekranda (Angular Guard)** hem de **backend (API)** tarafında uygulanmalıdır. Frontend yalnızca UX içindir; asıl güvenlik her zaman API’dedir.
@@ -407,10 +434,11 @@ Giriş → Yükleme → Hedefleme → Erişim → İzleme
 | US-05 | İçerik Yöneticisi | Hatalı / güncel olmayan içeriği arşivleyerek bayilerden gizlemek istiyorum. |
 | US-06 | Yönetici | Kullanıcı, bayi, marka ve kategori tanımlarını yönetmek istiyorum. |
 
-> Detaylı akışlar için [Gereksinim Analizi ve Kullanım Senaryoları](#5-gereksinim-analizi-ve-kullanım-senaryoları) bölümüne bakın.
+> Detaylı akışlar için [Gereksinim Analizi ve Kullanım Senaryoları](#gereksinimler) bölümüne bakın.
 
 ---
 
+<a id="ekranlar-form"></a>
 ## 🖥️ 4. Beklenen Ekranlar ve Form
 
 Tasarım **sade**, **mobil uyumlu** ve anlaşılır olmalıdır.
@@ -438,6 +466,7 @@ Tasarım **sade**, **mobil uyumlu** ve anlaşılır olmalıdır.
 
 ---
 
+<a id="gereksinimler"></a>
 ## 📐 5. Gereksinim Analizi ve Kullanım Senaryoları
 
 Bu bölüm MVP kapsamındaki **fonksiyonel (FR)** ve **fonksiyonel olmayan (NFR)** gereksinimleri ile yapılandırılmış kullanım senaryolarını tanımlar.
@@ -600,6 +629,7 @@ Manuel / Swagger / Postman ile doğrulanacak minimum set:
 
 ---
 
+<a id="mimari"></a>
 ## 🏗️ 6. Genel Mimari ve Repository Stratejisi
 
 > 💡 **Prensip:** Basit, okunabilir ve sürdürülebilir bir yapı yeterlidir; **gereksiz mimari karmaşıklık beklenmez.**
@@ -683,6 +713,7 @@ Route Guard ile sayfa erişimi kısıtlanır; **asıl güvenlik her zaman backen
 | 15 | ⏳ **UX** | Yükleme sırasında **ilerleme** ve anlaşılır hata mesajı gösterilmeli |
 ---
 
+<a id="klasor-yapisi"></a>
 ## 📂 7. Detaylı Klasör Yapısı
 
 Backend yapısı, iş kurallarının ve altyapı bağımlılıklarının birbirine karışmasını engellemek için **genişletilmiş Clean Architecture** ile granüler tutulur. Frontend’de ise **“her feature kendi içinde bağımsız yaşar”** prensibi benimsenir; her sayfanın `.ts` / `.html` / `.scss` dosyaları izole edilir.
@@ -817,6 +848,7 @@ frontend/
 
 ---
 
+<a id="docker-db"></a>
 ## 🐳 8. Veritabanı ve Docker Mantığı
 
 ### ✅ Ne Dockerize edilir? Ne edilmez?
@@ -868,11 +900,12 @@ volumes:
 
 > 🔐 Üretim şifresi / connection string’leri asla commit etmeyin. Yerel geliştirme için örnek değerler README ve `appsettings.Development.json` seviyesinde tutulabilir.
 
-> 💡 Docker şart değil: lokal Postgres ile de geliştirilebilir. Adımlar için [§1 Getting Started](#1-geliştirici-kurulum-adımları-getting-started) → Yol 2.
+> 💡 Docker şart değil: lokal Postgres ile de geliştirilebilir. Adımlar için [§1 Getting Started](#getting-started) → Yol 2.
 
 
 ---
 
+<a id="veri-modeli-api"></a>
 ## 🗄️ 9. Veri Modeli ve REST API’ler
 
 Aşağıdaki yapı yol göstericidir; ekip isimlendirmeleri değiştirebilir. İlişkisel model PostgreSQL üzerinde EF Core ile kurulur.
@@ -1060,6 +1093,7 @@ AccessLogs.MaterialId     → Materials.Id
 
 ---
 
+<a id="guvenlik"></a>
 ## 🔐 10. Kritik İş Kuralları ve Güvenlik
 
 ### 10.1 Marka eşleşme kuralı
@@ -1126,6 +1160,7 @@ Dosyanın kendisi sunucuda **yapılandırılabilir bir klasörde** saklanır; Po
 > Route Guard frontend’de UX içindir; **asıl yetki backend’dedir.**
 ---
 
+<a id="plan-teslim"></a>
 ## 📅 11. Çalışma Planı, Teslimler ve Demo
 
 Süreler öneridir; ekip büyüklüğüne ve staj süresine göre ayarlanabilir (**hedef: 4–6 hafta**).
@@ -1157,6 +1192,7 @@ Süreler öneridir; ekip büyüklüğüne ve staj süresine göre ayarlanabilir 
 
 ---
 
+<a id="kabul-kriterleri"></a>
 ## ✅ 12. MVP Kabul Kriterleri
 
 Minimum kabul için aşağıdakilerin tamamı sağlanmalıdır:
@@ -1174,6 +1210,7 @@ Minimum kabul için aşağıdakilerin tamamı sağlanmalıdır:
 
 ---
 
+<a id="katki"></a>
 ## 🤝 13. Katkı ve Çalışma Notları
 
 ### 🌿 Dal önerisi
@@ -1195,6 +1232,7 @@ Minimum kabul için aşağıdakilerin tamamı sağlanmalıdır:
 
 ---
 
+<a id="iletisim"></a>
 ## 📞 İletişim / Sahiplik
 
 | Alan | Sorumluluk (örnek) |
