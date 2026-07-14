@@ -1,0 +1,25 @@
+/* Global stiller ve CSS değişkenleri — tüm uygulamaya uygulanır. */
+:root {
+  --color-bg: #f4f6f8;
+  --color-text: #1c2430;
+  --color-primary: #0f2c4c;
+  --color-accent: #c48a2a;
+  --font-sans: "Segoe UI", Tahoma, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.app-shell {
+  min-height: 100vh;
+}

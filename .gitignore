@@ -1,0 +1,63 @@
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# IDE / editor
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.code-workspace
+
+# Keep shared VS Code recommendations under frontend (optional)
+.vscode/
+!frontend/.vscode/
+!frontend/.vscode/extensions.json
+!frontend/.vscode/tasks.json
+!frontend/.vscode/launch.json
+
+# .NET
+**/bin/
+**/obj/
+**/out/
+*.dll
+*.pdb
+*.cache
+*.log
+TestResults/
+*.nupkg
+*.staticwebassets.runtime.json
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+npm-debug.log*
+yarn-error.log*
+yarn.lock
+pnpm-lock.yaml
+
+# Env / secrets (gerçek production secret commit etme)
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+**/appsettings.Production.json
+**/secrets.json
+**/Properties/PublishProfiles/
+
+# Local file uploads
+**/uploads/
+**/Storage/Files/
+
+# Docker overrides
+docker-compose.override.yml
+*.override.yml
+
+# Misc
+*.tmp
+coverage/

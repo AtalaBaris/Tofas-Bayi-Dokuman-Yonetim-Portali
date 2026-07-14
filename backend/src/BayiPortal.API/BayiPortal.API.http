@@ -1,0 +1,8 @@
+@BayiPortal.API_HostAddress = https://localhost:7085
+
+### Health — API ayakta mı?
+GET {{BayiPortal.API_HostAddress}}/api/health
+Accept: application/json
+
+###
+# Auth ve materials uçları eklendikçe buraya örnek istekler yazılacak.
