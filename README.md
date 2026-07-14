@@ -27,7 +27,6 @@
 
 ## İçindekiler
 
-Clone sonrası önce <a href="#getting-started"><b>§1 Getting Started</b></a> ile ortamı ayağa kaldır.
 
 | # | Bölüm | Ne bulursun? |
 |:---:|:---|:---|
