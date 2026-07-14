@@ -27,7 +27,6 @@
 
 ## İçindekiler
 
-
 | # | Bölüm | Ne bulursun? |
 |:---:|:---|:---|
 | **1** | [Kurulum (Getting Started)](#getting-started) | Ön koşullar, DB, API, Angular |
@@ -51,9 +50,10 @@
 <a id="getting-started"></a>
 ## 🚀 1. Geliştirici Kurulum Adımları (Getting Started)
 
-Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. Sıra: araçları kur → repo’yu al → veritabanını hazırla → API → Angular.
+Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. 
+Sıra: araçları kur → repo’yu al → veritabanını hazırla → API → Angular.
 
-### 🧭 Büyük resim
+## ❗ API ve Angular **Docker’a konmaz**. Docker **sadece PostgreSQL** içindir.
 
 | Parça | Nerede çalışır? | Adres |
 |-------|------------------|--------|
@@ -61,18 +61,15 @@ Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. Sı
 | Backend API | Lokal `dotnet run` | `https://localhost:7085` (Swagger: `/swagger`) |
 | Frontend | Lokal `ng serve` | `http://localhost:4200` |
 
-> ❗ API ve Angular **Docker’a konmaz**. Docker **sadece PostgreSQL** içindir.
 
 ---
 
-### 0️⃣ Bilgisayara kurulacaklar (ön koşullar)
+### 0️⃣ Bilgisayara kurulacaklar 
 
 Aşağıdakileri **bir kez** kur. Zaten varsa “kontrol” komutlarıyla doğrula.
 
 #### A) Git
 
-- macOS: genelde Xcode Command Line Tools ile gelir  
-  `xcode-select --install`
 - Kontrol: `git --version`
 
 #### B) .NET SDK (**9.x** — bu repo `net9.0`)
@@ -119,26 +116,13 @@ npm install -g @angular/cli
 ng version
 ```
 
-#### F) PostgreSQL — iki yoldan **birini** seç
+#### F) PostgreSQL — 
 
-| Yol | Ne zaman? |
-|-----|-----------|
-| **Yol 1 — Docker Desktop** | Docker’ı sorunsuz kullanabiliyorsan (önerilen ekip standardı) |
-| **Yol 2 — Lokal Postgres (Homebrew)** | Mac’te zaten Postgres varsa **veya** Docker Hub yavaş/timeout veriyorsa |
-
-**Yol 1 — Docker Desktop**
+**Docker Desktop**
 
 1. https://www.docker.com/products/docker-desktop/ → Mac için indir, kur, **Docker’ı aç** (balina ikonu çalışır olmalı)  
 2. Kontrol: `docker --version` ve `docker compose version`  
 3. Not: Bilgisayarında Homebrew Postgres **5432**’yi dolduruyorsa Compose **5433** portunu kullanır (aşağıda).
-
-**Yol 2 — Lokal PostgreSQL (Homebrew, macOS)**
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-psql --version
-```
 
 ---
 
@@ -165,7 +149,7 @@ docker ps
 # bayi-portal-db görünmeli
 ```
 
-Compose, Postgres’i host’ta **5433** portuna map’ler (5432 çoğu Mac’te dolu olduğu için).
+Compose, Postgres’i host’ta **5433** portuna map’ler
 
 Connection string (**Docker kullanıyorsan Port=5433**):
 
@@ -184,41 +168,7 @@ docker compose down
 # docker compose down -v
 ```
 
-> Docker Hub’dan `TLS handshake timeout` alırsan: ağ/VPN’i değiştirip tekrar `docker compose up -d` dene **veya Yol 2’ye geç**.
-
-#### Yol 2 — Lokal Postgres ile (Docker şart değil)
-
-Homebrew Postgres zaten `5432`’de çalışıyorsa `bayi` kullanıcısı ve DB’yi oluştur:
-
-```bash
-psql -h localhost -p 5432 -d postgres <<'SQL'
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bayi') THEN
-    CREATE ROLE bayi LOGIN PASSWORD 'bayi123';
-  ELSE
-    ALTER ROLE bayi WITH LOGIN PASSWORD 'bayi123';
-  END IF;
-END
-$$;
-
-SELECT 'CREATE DATABASE "BayiPortalDb" OWNER bayi'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'BayiPortalDb')\gexec
-
-GRANT ALL PRIVILEGES ON DATABASE "BayiPortalDb" TO bayi;
-SQL
-
-psql -h localhost -p 5432 -d BayiPortalDb <<'SQL'
-GRANT ALL ON SCHEMA public TO bayi;
-ALTER SCHEMA public OWNER TO bayi;
-SQL
-```
-
-Connection string (**lokal Postgres → Port=5432**):
-
-```json
-"DefaultConnection": "Host=localhost;Port=5432;Database=BayiPortalDb;Username=bayi;Password=bayi123"
-```
+> Docker Hub’dan `TLS handshake timeout` alırsan: ağ/VPN’i değiştirip tekrar `docker compose up -d` dene
 
 ---
 
@@ -276,8 +226,6 @@ ng serve
 ```ts
 apiUrl: 'https://localhost:7085/api'
 ```
-
-API farklı portta açılırsa **bu dosyayı** güncelle.
 
 ---
 
