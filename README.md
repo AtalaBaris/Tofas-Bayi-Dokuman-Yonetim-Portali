@@ -1183,17 +1183,6 @@ Minimum kabul için aşağıdakilerin tamamı sağlanmalıdır:
 
 ---
 
-<a id="iletisim"></a>
-## 📞 İletişim / Sahiplik
-
-| Alan | Sorumluluk (örnek) |
-|------|---------------------|
-| Backend / API | Ekip içinde belirlenecek |
-| Frontend / Angular | Ekip içinde belirlenecek |
-| DB / Migration / Seed | Ekip içinde belirlenecek |
-
----
-
 <div align="center">
 
 **Bayi Doküman Yönetimi Portalı — MVP**  
