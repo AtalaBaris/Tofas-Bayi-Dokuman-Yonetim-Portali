@@ -25,7 +25,6 @@
 
 ## İçindekiler
 
-> Clone sonrası önce <a href="#getting-started"><b>§1 Getting Started</b></a> ile ortamı ayağa kaldır.
 
 | # | Bölüm | Ne bulursun? |
 |---|--------|--------------|
@@ -50,7 +49,7 @@
 
 Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. Sıra: araçları kur → repo’yu al → veritabanını hazırla → API → Angular.
 
-### 🧭 Büyük resim (ne çalışacak?)
+### 🧭 Büyük resim
 
 | Parça | Nerede çalışır? | Adres |
 |-------|------------------|--------|
@@ -58,7 +57,7 @@ Bu bölüm **hiçbir şey kurulu olmayan** bir makine için yazılmıştır. Sı
 | Backend API | Lokal `dotnet run` | `https://localhost:7085` (Swagger: `/swagger`) |
 | Frontend | Lokal `ng serve` | `http://localhost:4200` |
 
-> ❗ API ve Angular **Docker’a konmaz**. Docker (istersen) **sadece PostgreSQL** içindir.
+> ❗ API ve Angular **Docker’a konmaz**. Docker **sadece PostgreSQL** içindir.
 
 ---
 
