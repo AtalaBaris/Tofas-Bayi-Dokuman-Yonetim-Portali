@@ -117,7 +117,7 @@ psql --version
 ### ① Repoyu klonlama
 
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/AtalaBaris/Tofas-Bayi-Dokuman-Yonetim-Portali.git
 cd BayiDokumanYonetimPortali
 ```
 
