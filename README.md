@@ -23,24 +23,29 @@
 
 ---
 
+<div align="center">
+
 ## İçindekiler
 
+Clone sonrası önce <a href="#getting-started"><b>§1 Getting Started</b></a> ile ortamı ayağa kaldır.
 
 | # | Bölüm | Ne bulursun? |
-|---|--------|--------------|
-| 1 | [Kurulum (Getting Started)](#getting-started) | Ön koşullar, DB, API, Angular |
-| 2 | [Amaç ve kapsam](#amac-kapsam) | MVP tanımı, kategoriler, teknolojiler |
-| 3 | [Roller ve akış](#roller-akis) | Kim ne yapar, kullanıcı hikâyeleri |
-| 4 | [Ekranlar ve form](#ekranlar-form) | 6 ekran + içerik formu alanları |
-| 5 | [Gereksinimler](#gereksinimler) | FR / NFR / UC / test checklist |
-| 6 | [Mimari](#mimari) | Monorepo, Clean Architecture |
-| 7 | [Klasör yapısı](#klasor-yapisi) | Backend & frontend ağaçları |
-| 8 | [Veritabanı & Docker](#docker-db) | Docker / lokal Postgres |
-| 9 | [Veri modeli & API](#veri-modeli-api) | Tablolar, ilişkiler, REST uçları |
-| 10 | [Güvenlik](#guvenlik) | Marka yetkisi, soft delete, DTO |
-| 11 | [Plan & teslim](#plan-teslim) | Takvim, demo senaryosu |
-| 12 | [Kabul kriterleri](#kabul-kriterleri) | MVP checklist |
-| 13 | [Katkı notları](#katki) | Dal stratejisi, hatırlatmalar |
+|:---:|:---|:---|
+| **1** | [Kurulum (Getting Started)](#getting-started) | Ön koşullar, DB, API, Angular |
+| **2** | [Amaç ve kapsam](#amac-kapsam) | MVP tanımı, kategoriler, teknolojiler |
+| **3** | [Roller ve akış](#roller-akis) | Kim ne yapar, kullanıcı hikâyeleri |
+| **4** | [Ekranlar ve form](#ekranlar-form) | 6 ekran + içerik formu alanları |
+| **5** | [Gereksinimler](#gereksinimler) | FR / NFR / UC / test checklist |
+| **6** | [Mimari](#mimari) | Monorepo, Clean Architecture |
+| **7** | [Klasör yapısı](#klasor-yapisi) | Backend & frontend ağaçları |
+| **8** | [Veritabanı & Docker](#docker-db) | Docker / lokal Postgres |
+| **9** | [Veri modeli & API](#veri-modeli-api) | Tablolar, ilişkiler, REST uçları |
+| **10** | [Güvenlik](#guvenlik) | Marka yetkisi, soft delete, DTO |
+| **11** | [Plan & teslim](#plan-teslim) | Takvim, demo senaryosu |
+| **12** | [Kabul kriterleri](#kabul-kriterleri) | MVP checklist |
+| **13** | [Katkı notları](#katki) | Dal stratejisi, hatırlatmalar |
+
+</div>
 
 ---
 
