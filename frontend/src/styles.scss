@@ -1,10 +1,88 @@
-/* Global stiller ve CSS değişkenleri — tüm uygulamaya uygulanır. */
+/* Global stiller ve tasarım token'ları — tüm uygulamaya uygulanır. */
 :root {
-  --color-bg: #f4f6f8;
-  --color-text: #1c2430;
-  --color-primary: #0f2c4c;
-  --color-accent: #c48a2a;
-  --font-sans: "Segoe UI", Tahoma, sans-serif;
+  /* Brand / surface (bordo palet) */
+  --color-outline: #897172;
+  --color-surface: #fff8f7;
+  --color-on-secondary: #ffffff;
+  --color-error: #ba1a1a;
+  --color-inverse-on-surface: #f8efee;
+  --color-background: #fff8f7;
+  --color-tertiary-fixed: #ffdadb;
+  --color-error-container: #ffdad6;
+  --color-outline-variant: #dcc0c1;
+  --color-on-primary-fixed-variant: #812533;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-tertiary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-secondary: #934750;
+  --color-primary: #540115;
+  --color-on-tertiary-fixed-variant: #861e31;
+  --color-primary-fixed-dim: #ffb2b7;
+  --color-tertiary: #540015;
+  --color-surface-tint: #a03d49;
+  --color-on-primary-container: #f9828d;
+  --color-surface-container: #f5eceb;
+  --color-surface-bright: #fff8f7;
+  --color-primary-container: #721a29;
+  --color-secondary-container: #fd9ea7;
+  --color-on-tertiary-fixed: #40000e;
+  --color-on-surface-variant: #554243;
+  --color-on-surface: #1f1b1b;
+  --color-secondary-fixed: #ffdadb;
+  --color-on-primary: #ffffff;
+  --color-on-secondary-container: #78323c;
+  --color-tertiary-container: #771127;
+  --color-surface-variant: #eae0e0;
+  --color-inverse-primary: #ffb2b7;
+  --color-on-primary-fixed: #40000e;
+  --color-tertiary-fixed-dim: #ffb2b7;
+  --color-on-secondary-fixed-variant: #753039;
+  --color-on-tertiary-container: #ff7e8c;
+  --color-surface-container-highest: #eae0e0;
+  --color-on-error-container: #93000a;
+  --color-surface-container-high: #f0e6e5;
+  --color-surface-container-low: #fbf1f1;
+  --color-on-background: #1f1b1b;
+  --color-on-secondary-fixed: #3d0511;
+  --color-primary-fixed: #ffdadb;
+  --color-secondary-fixed-dim: #ffb2b8;
+  --color-surface-dim: #e1d8d7;
+  --color-inverse-surface: #342f2f;
+
+  /* Spacing */
+  --space-base: 8px;
+  --space-gutter: 16px;
+  --space-margin-mobile: 16px;
+  --space-margin-desktop: 32px;
+  --layout-max-width: 1200px;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: "Lexend", "Public Sans", system-ui, sans-serif;
+  --font-size-label-sm: 11px;
+  --line-height-label-sm: 16px;
+  --font-size-body-md: 14px;
+  --line-height-body-md: 20px;
+  --font-size-label-lg: 14px;
+  --line-height-label-lg: 20px;
+  --font-size-body-lg: 16px;
+  --line-height-body-lg: 24px;
+  --font-size-headline-md: 24px;
+  --line-height-headline-md: 32px;
+  --font-size-headline-lg-mobile: 26px;
+  --line-height-headline-lg-mobile: 32px;
+  --font-size-headline-lg: 32px;
+  --line-height-headline-lg: 40px;
+
+  /* Geriye dönük kısa alias'lar */
+  --color-bg: var(--color-background);
+  --color-text: var(--color-on-surface);
+  --color-accent: var(--color-secondary);
 }
 
 *,
@@ -16,10 +94,27 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  color: var(--color-text);
-  background: var(--color-bg);
+  color: var(--color-on-surface);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
 }
 
 .app-shell {
   min-height: 100vh;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
 }
