@@ -1,0 +1,127 @@
+<!-- Yönetim paneli girişi: içerik yönetimi ve erişim kayıtları. -->
+<div class="login-page">
+  <aside class="login-page__hero" aria-hidden="true" @heroEnter>
+    <div class="login-page__hero-overlay"></div>
+    <img
+      class="login-page__hero-image"
+      alt=""
+      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg-5WanwwSHcEZxG5dRtHI00Zzc4LME4iFp0y3ep3sk5dtaa79KkNlHZESabg1w5ji_CGEXHWRTwld9jl9WMpBzooZCkpm_cB41VNxMaLhLowsK90pm9dKowu0tg-YrJOXc4kINz6UTcDQUDwCL9oUWwRN8GG5OJG7GYgCG1vSOJTzX2GUpBGnfr1wDd9sHZUW_cHA2G6MGxSEtJITH3ZZAxwWI_3AELpbBku9jX12ptxaFJyrw_ed"
+    />
+    <div class="login-page__hero-brand">
+      <div class="login-page__brand-icon">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+      </div>
+      <h2 class="login-page__brand-name">Tofaş Bayi Döküman Portalı</h2>
+      <p class="login-page__brand-tagline">
+        Bayi dokümanlarını güvenle yönetin; erişimleri tek yerden izleyin.
+      </p>
+    </div>
+  </aside>
+
+  <section class="login-page__panel" @panelEnter>
+    <div class="login-page__form-wrap">
+      <header class="login-page__header">
+        <h1 class="login-page__title">Yönetim Paneli</h1>
+        <p class="login-page__subtitle">
+          İçerik yönetimi ve erişim kayıtları için yetkili personel girişi.
+        </p>
+      </header>
+
+      @if (errorMessage()) {
+        <div class="login-page__alert" role="alert" @alertEnter>
+          <span class="material-symbols-outlined login-page__alert-icon">error</span>
+          <p>{{ errorMessage() }}</p>
+        </div>
+      }
+
+      <form class="login-page__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="login-page__field">
+          <label class="login-page__label" for="admin-email">Kullanıcı Adı / E-posta</label>
+          <div class="login-page__input-wrap">
+            <span class="material-symbols-outlined login-page__input-icon">person</span>
+            <input
+              id="admin-email"
+              class="login-page__input"
+              [class.login-page__input--error]="!!emailError() || !!errorMessage()"
+              type="email"
+              formControlName="email"
+              placeholder="admin@sistem.com"
+              autocomplete="username"
+              [attr.aria-invalid]="!!emailError()"
+              [attr.aria-describedby]="emailError() ? 'admin-email-error' : null"
+            />
+          </div>
+          @if (emailError(); as msg) {
+            <p class="login-page__field-error" id="admin-email-error" role="alert">{{ msg }}</p>
+          }
+        </div>
+
+        <div class="login-page__field">
+          <label class="login-page__label" for="admin-password">Şifre</label>
+          <div class="login-page__input-wrap">
+            <span class="material-symbols-outlined login-page__input-icon">lock</span>
+            <input
+              id="admin-password"
+              class="login-page__input login-page__input--password"
+              [class.login-page__input--error]="!!passwordError() || !!errorMessage()"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              [attr.aria-invalid]="!!passwordError()"
+              [attr.aria-describedby]="passwordError() ? 'admin-password-error' : null"
+            />
+            <button
+              type="button"
+              class="login-page__toggle-password"
+              (click)="togglePassword()"
+              [attr.aria-label]="showPassword() ? 'Şifreyi gizle' : 'Şifreyi göster'"
+              [attr.aria-pressed]="showPassword()"
+            >
+              <span class="material-symbols-outlined">
+                {{ showPassword() ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
+          @if (passwordError(); as msg) {
+            <p class="login-page__field-error" id="admin-password-error" role="alert">{{ msg }}</p>
+          }
+        </div>
+
+        <label class="login-page__remember">
+          <input type="checkbox" formControlName="rememberMe" />
+          <span>Beni hatırla</span>
+        </label>
+
+        <button
+          class="login-page__submit"
+          type="submit"
+          [disabled]="loading()"
+        >
+          <span class="login-page__submit-text" [class.login-page__submit-text--hidden]="loading()">
+            Giriş Yap
+          </span>
+          @if (loading()) {
+            <span class="login-page__spinner" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+                <path
+                  fill="currentColor"
+                  opacity="0.75"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </span>
+          }
+        </button>
+      </form>
+
+      <footer class="login-page__footer">
+        <a class="login-page__footer-link" routerLink="/login">
+          <span class="material-symbols-outlined">storefront</span>
+          Bayi Girişi
+        </a>
+      </footer>
+    </div>
+  </section>
+</div>
