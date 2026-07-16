@@ -1,81 +1,168 @@
 // Geliştirme ortamı için örnek başlangıç verisi (README'deki örnek kullanıcılarla birebir).
+// Idempotent: eksik bayi/marka/kategori/kullanıcıyı tamamlar; seed kullanıcı şifrelerini README ile senkron tutar.
 using BayiPortal.Core.Entities;
 using BayiPortal.Infrastructure.Data.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BayiPortal.Infrastructure.Data;
 
 public static class SeedData
 {
-    public static async Task EnsureSeedDataAsync(ApplicationDbContext dbContext, IPasswordHasher<User> passwordHasher)
+    public static async Task EnsureSeedDataAsync(
+        ApplicationDbContext dbContext,
+        IPasswordHasher<User> passwordHasher,
+        ILogger? logger = null)
     {
-        if (await dbContext.Users.AnyAsync())
+        var dealerA = await EnsureDealerAsync(dbContext, "BAYI-A", "Bayi A");
+        var dealerB = await EnsureDealerAsync(dbContext, "BAYI-B", "Bayi B");
+
+        var brandA = await EnsureBrandAsync(dbContext, "MRK-A", "Marka A");
+        var brandB = await EnsureBrandAsync(dbContext, "MRK-B", "Marka B");
+
+        await EnsureCategoryAsync(dbContext, "Pazarlama Materyalleri", "Billboard, broşür, sosyal medya içerikleri");
+        await EnsureCategoryAsync(dbContext, "Genel Duyuru", "Kampanya ve operasyon duyuruları");
+        await EnsureCategoryAsync(dbContext, "Eğitim Dokümanı", "Uygulama ve süreç eğitim materyalleri");
+
+        await EnsureDealerBrandAsync(dbContext, dealerA, brandA);
+        await EnsureDealerBrandAsync(dbContext, dealerB, brandB);
+
+        await EnsureUserAsync(
+            dbContext,
+            passwordHasher,
+            email: "admin@bayiportal.local",
+            name: "Yönetici",
+            role: "Admin",
+            password: "Admin123!",
+            dealer: null);
+
+        await EnsureUserAsync(
+            dbContext,
+            passwordHasher,
+            email: "editor@bayiportal.local",
+            name: "İçerik Yöneticisi",
+            role: "ContentManager",
+            password: "Editor123!",
+            dealer: null);
+
+        await EnsureUserAsync(
+            dbContext,
+            passwordHasher,
+            email: "bayi.a@bayiportal.local",
+            name: "Bayi Kullanıcısı A",
+            role: "DealerUser",
+            password: "Bayi123!",
+            dealer: dealerA);
+
+        await EnsureUserAsync(
+            dbContext,
+            passwordHasher,
+            email: "bayi.b@bayiportal.local",
+            name: "Bayi Kullanıcısı B",
+            role: "DealerUser",
+            password: "Bayi123!",
+            dealer: dealerB);
+
+        await dbContext.SaveChangesAsync();
+        logger?.LogInformation(
+            "Seed hazır. Bayi giriş: bayi.a@bayiportal.local / Bayi123! | Admin: admin@bayiportal.local / Admin123!");
+    }
+
+    private static async Task<Dealer> EnsureDealerAsync(ApplicationDbContext db, string code, string name)
+    {
+        var existing = await db.Dealers.FirstOrDefaultAsync(d => d.Code == code);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var dealer = new Dealer { Name = name, Code = code, IsActive = true };
+        db.Dealers.Add(dealer);
+        return dealer;
+    }
+
+    private static async Task<Brand> EnsureBrandAsync(ApplicationDbContext db, string code, string name)
+    {
+        var existing = await db.Brands.FirstOrDefaultAsync(b => b.Code == code);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var brand = new Brand { Name = name, Code = code, IsActive = true };
+        db.Brands.Add(brand);
+        return brand;
+    }
+
+    private static async Task EnsureCategoryAsync(ApplicationDbContext db, string name, string description)
+    {
+        if (await db.Categories.AnyAsync(c => c.Name == name))
         {
             return;
         }
 
-        var dealerA = new Dealer { Name = "Bayi A", Code = "BAYI-A", IsActive = true };
-        var dealerB = new Dealer { Name = "Bayi B", Code = "BAYI-B", IsActive = true };
-
-        var brandA = new Brand { Name = "Marka A", Code = "MRK-A", IsActive = true };
-        var brandB = new Brand { Name = "Marka B", Code = "MRK-B", IsActive = true };
-
-        var categoryMarketing = new Category
+        db.Categories.Add(new Category
         {
-            Name = "Pazarlama Materyalleri",
-            Description = "Billboard, broşür, sosyal medya içerikleri",
+            Name = name,
+            Description = description,
             IsActive = true
-        };
-        var categoryAnnouncement = new Category
+        });
+    }
+
+    private static async Task EnsureDealerBrandAsync(ApplicationDbContext db, Dealer dealer, Brand brand)
+    {
+        // Yeni entity'lerde Id henüz 0 olabilir; navigation ile kontrol et.
+        if (dealer.Id != 0 && brand.Id != 0)
         {
-            Name = "Genel Duyuru",
-            Description = "Kampanya ve operasyon duyuruları",
-            IsActive = true
-        };
-        var categoryTraining = new Category
+            var exists = await db.DealerBrands.AnyAsync(dbItem =>
+                dbItem.DealerId == dealer.Id && dbItem.BrandId == brand.Id);
+            if (exists)
+            {
+                return;
+            }
+        }
+        else if (db.ChangeTracker.Entries<DealerBrand>().Any(e =>
+                     e.Entity.Dealer == dealer && e.Entity.Brand == brand))
         {
-            Name = "Eğitim Dokümanı",
-            Description = "Uygulama ve süreç eğitim materyalleri",
-            IsActive = true
-        };
+            return;
+        }
 
-        dbContext.Dealers.AddRange(dealerA, dealerB);
-        dbContext.Brands.AddRange(brandA, brandB);
-        dbContext.Categories.AddRange(categoryMarketing, categoryAnnouncement, categoryTraining);
+        db.DealerBrands.Add(new DealerBrand { Dealer = dealer, Brand = brand });
+    }
 
-        dbContext.DealerBrands.AddRange(
-            new DealerBrand { Dealer = dealerA, Brand = brandA },
-            new DealerBrand { Dealer = dealerB, Brand = brandB });
+    private static async Task EnsureUserAsync(
+        ApplicationDbContext db,
+        IPasswordHasher<User> passwordHasher,
+        string email,
+        string name,
+        string role,
+        string password,
+        Dealer? dealer)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalized);
 
-        var admin = new User { Name = "Yönetici", Email = "admin@bayiportal.local", Role = "Admin", IsActive = true };
-        admin.PasswordHash = passwordHasher.HashPassword(admin, "Admin123!");
-
-        var editor = new User { Name = "İçerik Yöneticisi", Email = "editor@bayiportal.local", Role = "ContentManager", IsActive = true };
-        editor.PasswordHash = passwordHasher.HashPassword(editor, "Editor123!");
-
-        var bayiUserA = new User
+        if (user is null)
         {
-            Name = "Bayi Kullanıcısı A",
-            Email = "bayi.a@bayiportal.local",
-            Role = "DealerUser",
-            IsActive = true,
-            Dealer = dealerA
-        };
-        bayiUserA.PasswordHash = passwordHasher.HashPassword(bayiUserA, "Bayi123!");
+            user = new User
+            {
+                Name = name,
+                Email = normalized,
+                Role = role,
+                IsActive = true,
+                Dealer = dealer
+            };
+            user.PasswordHash = passwordHasher.HashPassword(user, password);
+            db.Users.Add(user);
+            return;
+        }
 
-        var bayiUserB = new User
-        {
-            Name = "Bayi Kullanıcısı B",
-            Email = "bayi.b@bayiportal.local",
-            Role = "DealerUser",
-            IsActive = true,
-            Dealer = dealerB
-        };
-        bayiUserB.PasswordHash = passwordHasher.HashPassword(bayiUserB, "Bayi123!");
-
-        dbContext.Users.AddRange(admin, editor, bayiUserA, bayiUserB);
-
-        await dbContext.SaveChangesAsync();
+        // Demo hesap: şifre README ile her Development start'ta senkron (giriş bozulmasın).
+        user.Name = name;
+        user.Role = role;
+        user.IsActive = true;
+        user.Dealer = dealer;
+        user.PasswordHash = passwordHasher.HashPassword(user, password);
     }
 }
