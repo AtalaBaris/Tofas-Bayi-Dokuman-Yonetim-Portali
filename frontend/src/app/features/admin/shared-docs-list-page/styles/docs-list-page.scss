@@ -1,0 +1,106 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.docs-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: var(--color-surface-container);
+}
+
+.docs-page__toolbar {
+  flex-shrink: 0;
+  padding: 2rem var(--space-margin-mobile) 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  @media (min-width: 768px) {
+    padding-left: var(--space-margin-desktop);
+    padding-right: var(--space-margin-desktop);
+  }
+}
+
+.docs-page__toolbar-inner {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+}
+
+.docs-page__list {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--color-surface-container);
+  padding: var(--space-margin-mobile);
+  position: relative;
+
+  @media (min-width: 768px) {
+    padding: var(--space-margin-desktop);
+  }
+}
+
+.docs-page__list-inner {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 6rem;
+}
+
+.docs-page__empty {
+  margin: 2rem 0;
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-lg);
+}
+
+.docs-page__paging {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 1rem 0 0.5rem;
+  font-size: var(--font-size-body-md);
+  color: var(--color-on-surface-variant);
+}
+
+.docs-page__paging-status {
+  font-size: 12px;
+}
+
+.docs-page__paging-btn {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  background: var(--color-surface-container-lowest);
+  font-family: inherit;
+  font-size: var(--font-size-label-lg);
+  font-weight: 600;
+  color: var(--color-primary-container);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface);
+  }
+}
+
+.docs-page__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  border: none;
+  padding: 0;
+  /* blur yok — backdrop-filter kasılmaya yol açıyordu */
+  background: rgb(31 27 27 / 35%);
+  cursor: pointer;
+}

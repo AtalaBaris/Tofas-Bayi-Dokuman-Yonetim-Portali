@@ -10,15 +10,30 @@ export const ADMIN_ROUTES: Routes = [
       import('./login/components/admin-login/admin-login').then((m) => m.AdminLogin),
   },
   {
-    path: 'access-logs',
-    canActivate: [adminAuthGuard, adminRoleGuard(['Admin'])],
-    loadComponent: () =>
-      import('./access-logs/access-logs').then((m) => m.AccessLogs),
-  },
-  {
-    path: 'materials/new',
+    path: '',
     canActivate: [adminAuthGuard, adminRoleGuard(['Admin', 'ContentManager'])],
     loadComponent: () =>
-      import('../materials/material-form/material-form').then((m) => m.MaterialForm),
+      import('../../shared/components/admin-shell/admin-shell').then((m) => m.AdminShell),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'documents' },
+      {
+        path: 'documents',
+        loadComponent: () =>
+          import('./shared-docs-list-page/components/docs-list-page/docs-list-page').then(
+            (m) => m.DocsListPage
+          ),
+      },
+      {
+        path: 'access-logs',
+        canActivate: [adminRoleGuard(['Admin'])],
+        loadComponent: () =>
+          import('./access-logs/access-logs').then((m) => m.AccessLogs),
+      },
+      {
+        path: 'materials/new',
+        loadComponent: () =>
+          import('../materials/material-form/material-form').then((m) => m.MaterialForm),
+      },
+    ],
   },
 ];

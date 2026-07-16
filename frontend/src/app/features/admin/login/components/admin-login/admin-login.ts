@@ -61,7 +61,7 @@ export class AdminLogin {
     this.auth.login({ email, password }, { portal: 'admin', rememberMe }).subscribe({
       next: () => {
         this.loading.set(false);
-        void this.router.navigateByUrl('/admin/access-logs');
+        void this.router.navigateByUrl('/admin/documents');
       },
       error: () => {
         this.loading.set(false);

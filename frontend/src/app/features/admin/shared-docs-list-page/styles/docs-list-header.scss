@@ -1,0 +1,25 @@
+.docs-header {
+  margin-bottom: 1.5rem;
+}
+
+.docs-header__title {
+  margin: 0 0 0.5rem;
+  font-size: var(--font-size-headline-lg-mobile);
+  line-height: var(--line-height-headline-lg-mobile);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-on-surface);
+
+  @media (min-width: 768px) {
+    font-size: var(--font-size-headline-lg);
+    line-height: var(--line-height-headline-lg);
+    letter-spacing: -0.02em;
+  }
+}
+
+.docs-header__subtitle {
+  margin: 0;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+  color: var(--color-on-surface-variant);
+}

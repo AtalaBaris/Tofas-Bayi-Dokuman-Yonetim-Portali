@@ -1,0 +1,122 @@
+<aside class="docs-drawer" aria-label="Doküman detayı">
+  <div class="docs-drawer__header">
+    <div class="docs-drawer__heading">
+      <div
+        class="docs-drawer__icon"
+        [class.docs-drawer__icon--pdf]="doc().fileKind === 'pdf'"
+        [class.docs-drawer__icon--video]="doc().fileKind === 'video'"
+      >
+        <span class="material-symbols-outlined">{{ iconFor(doc().fileKind) }}</span>
+      </div>
+      <div>
+        <h2 class="docs-drawer__title">{{ doc().title }}</h2>
+        <div class="docs-drawer__tags">
+          @for (brand of doc().brands; track brand.label) {
+            <span class="docs-drawer__tag" [attr.data-tone]="brand.tone">{{ brand.label }}</span>
+          }
+          <span class="docs-drawer__tag docs-drawer__tag--muted">{{ doc().category }}</span>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="docs-drawer__close" aria-label="Kapat" (click)="closed.emit()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <div class="docs-drawer__body">
+    <section class="docs-drawer__section">
+      <h3 class="docs-drawer__section-title">Doküman Açıklaması</h3>
+      <div class="docs-drawer__description">
+        <p>{{ doc().description }}</p>
+      </div>
+    </section>
+
+    <section class="docs-drawer__section">
+      <h3 class="docs-drawer__section-title">Doküman Detayları</h3>
+      <div class="docs-drawer__grid">
+        <div class="docs-drawer__card">
+          <div class="docs-drawer__card-label">Yükleyen</div>
+          <div class="docs-drawer__card-value">
+            <span class="material-symbols-outlined">person</span>
+            {{ doc().uploader }}
+          </div>
+        </div>
+        <div class="docs-drawer__card">
+          <div class="docs-drawer__card-label">Yüklenme Tarihi</div>
+          <div class="docs-drawer__card-value">{{ doc().uploadedAt }}</div>
+        </div>
+        <div class="docs-drawer__card">
+          <div class="docs-drawer__card-label">Bitiş Tarihi</div>
+          <div class="docs-drawer__card-value">
+            {{ doc().expiresAt ? doc().expiresAt : 'Belirtilmedi' }}
+          </div>
+        </div>
+        <div class="docs-drawer__card">
+          <div class="docs-drawer__card-label">Dosya Boyutu</div>
+          <div class="docs-drawer__card-value">{{ doc().fileSizeDetail }}</div>
+        </div>
+        <div class="docs-drawer__card">
+          <div class="docs-drawer__card-label">Sürüm</div>
+          <div class="docs-drawer__card-value">{{ doc().version }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="docs-drawer__section">
+      <div class="docs-drawer__section-head">
+        <h3 class="docs-drawer__section-title docs-drawer__section-title--flush">
+          Son Bayi Görüntülemeleri
+        </h3>
+        <a class="docs-drawer__link" href="#" (click)="$event.preventDefault()">Tüm Kayıtları Gör</a>
+      </div>
+      <div class="docs-drawer__viewers">
+        @for (viewer of viewers(); track viewer.id) {
+          <div class="docs-drawer__viewer">
+            <div class="docs-drawer__viewer-left">
+              @if (viewer.avatarUrl) {
+                <img class="docs-drawer__avatar" [src]="viewer.avatarUrl" [alt]="viewer.name" />
+              } @else {
+                <div class="docs-drawer__avatar docs-drawer__avatar--initials">
+                  {{ viewer.initials }}
+                </div>
+              }
+              <div>
+                <div class="docs-drawer__viewer-name">{{ viewer.name }}</div>
+                <div class="docs-drawer__viewer-dealer">{{ viewer.dealer }}</div>
+              </div>
+            </div>
+            <div class="docs-drawer__viewer-when">{{ viewer.whenLabel }}</div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="docs-drawer__footer">
+    <section class="docs-drawer__file">
+      <h3 class="docs-drawer__section-title">Ekli Dosya</h3>
+      <div class="docs-drawer__file-card">
+        <div class="docs-drawer__file-info">
+          <div
+            class="docs-drawer__file-icon"
+            [class.docs-drawer__icon--pdf]="doc().fileKind === 'pdf'"
+          >
+            <span class="material-symbols-outlined">{{ iconFor(doc().fileKind) }}</span>
+          </div>
+          <div class="docs-drawer__file-text">
+            <div class="docs-drawer__file-name">{{ doc().fileName }}</div>
+            <div class="docs-drawer__file-size">{{ doc().sizeLabel }}</div>
+          </div>
+        </div>
+        <button type="button" class="docs-drawer__download" aria-label="İndir">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+    </section>
+
+    <button type="button" class="docs-drawer__archive" (click)="archive.emit(doc())">
+      <span class="material-symbols-outlined">archive</span>
+      Dokümanı Arşivle
+    </button>
+  </div>
+</aside>

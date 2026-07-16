@@ -103,6 +103,11 @@ body {
   min-height: 100vh;
 }
 
+::selection {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary);
+}
+
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
   font-weight: normal;
