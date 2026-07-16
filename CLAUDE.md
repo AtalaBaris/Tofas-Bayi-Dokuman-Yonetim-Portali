@@ -71,11 +71,13 @@ BayiPortal.API            → Controller, Middleware, DI wiring (Program.cs ince
 
 ### Frontend: feature-module (standalone component) yapısı
 
-Angular 20 standalone API kullanılıyor (NgModule yok); route'lar `app.routes.ts` içinde `loadComponent` ile lazy-load ediliyor. `core/` (guard, interceptor, servis, model — tek seferlik altyapı) / `features/{auth,materials,admin}` (sayfa bileşenleri) / `shared/components` (file-upload, navbar, loader) ayrımı korunmalı; yeni bir ekran eklerken doğru feature klasörüne, ortak UI parçası eklerken `shared/components`'a konmalı.
+Angular 20 standalone API kullanılıyor (NgModule yok); route'lar `app.routes.ts` içinde `loadComponent`/`loadChildren` ile lazy-load ediliyor. `core/` (guard, interceptor, servis, model — tek seferlik altyapı) / `features/{bayi,materials,admin}` (sayfa bileşenleri) / `shared/components` ayrımı korunmalı.
+
+**Login iki ayrı portal olarak kurgulanmış** (tek ortak login ekranı değil): `features/bayi/login/components/bayi-login/` (route: `/login`) ve `features/admin/login/components/admin-login/` (route: `/admin/login`, `admin.routes.ts` üzerinden `loadChildren`). Admin alanının kendi guard'ları var: `features/admin/guards/admin.guards.ts` → `adminAuthGuard`, `adminRoleGuard`. `core/guards/role.guard.ts` bu yüzden **artık kullanılmıyor** (dead code, silinmeyi bekliyor) — kafa karıştırmasın diye yeni kod bu dosyaya referans vermemeli, `adminRoleGuard`'a bakın.
 
 ### Kritik iş kuralı: marka eşleşmesi (birden fazla dosyayı etkiler)
 
-Bayi kullanıcısının bir içeriği görmesi/indirmesi için `DealerBrands(bayi) ∩ MaterialBrands(içerik) ≠ ∅` olmalı. Bu kural **hem** Angular route guard'da (UX için, `role.guard.ts`) **hem de** her ilgili backend endpoint'inde (asıl güvenlik) ayrı ayrı uygulanmalı — biri diğerinin yerine geçmez. Yetkisiz erişimde içerik response body'sinde **hiç dönmemeli** (401/403), sadece liste dışı bırakmak yetmez.
+Bayi kullanıcısının bir içeriği görmesi/indirmesi için `DealerBrands(bayi) ∩ MaterialBrands(içerik) ≠ ∅` olmalı. Bu kural **hem** Angular route guard'da (UX için, `adminRoleGuard`/`authGuard`) **hem de** her ilgili backend endpoint'inde (asıl güvenlik) ayrı ayrı uygulanmalı — biri diğerinin yerine geçmez. Yetkisiz erişimde içerik response body'sinde **hiç dönmemeli** (401/403), sadece liste dışı bırakmak yetmez.
 
 ### Diğer tekrarlayan kurallar (kod yazarken hatırlanmalı)
 
@@ -86,12 +88,13 @@ Bayi kullanıcısının bir içeriği görmesi/indirmesi için `DealerBrands(bay
 
 ## Şu anki iskelet durumu (önemli — kod yokmuş gibi varsayıp yeniden yazmayın, ama var sanıp da güvenmeyin)
 
-Repo şu an **erken iskelet** aşamasında; README'deki hedef mimariyle karışmasın diye net olsun:
+Repo `Develop` dalında (GitHub'daki gerçek entegrasyon dalı, **büyük D** — bkz. `TODO.md`'deki branch stratejisi notu). Backend hâlâ erken iskelet, frontend'in login kısmı ise beklenenden ileride:
 
-- Backend'de sadece `HealthController` var. Auth/Materials/Brands/Dealers/Categories/AccessLogs controller'ları, Application katmanındaki servis/DTO/validator/mapping dosyaları **henüz yazılmadı** (klasörler var, içleri boş).
-- JWT paketi (`Microsoft.AspNetCore.Authentication.JwtBearer`) ve `Jwt` config'i (`appsettings.json`) referanslı ama `Program.cs`'te `AddAuthentication`/`UseAuthentication` **henüz bağlanmadı** — `app.UseAuthorization()` çağrılıyor ama authentication scheme'i yok.
-- Frontend `AuthService.login()` gerçek bir API çağrısı yapmıyor; sahte bir `dev-token` ile her zaman başarılı dönen bir **placeholder** (kod içindeki yorum: "Placeholder until Auth API is implemented"). `jwt.interceptor.ts` ve `auth.guard.ts` gerçek implementasyon ama arkasında gerçek bir auth API'si yok.
+- **Backend'de sadece `HealthController` var.** Auth/Materials/Brands/Dealers/Categories/AccessLogs controller'ları, Application katmanındaki servis/DTO/validator/mapping dosyaları **henüz yazılmadı** (klasörler var, içleri boş).
+- JWT paketi (`Microsoft.AspNetCore.Authentication.JwtBearer`) ve `Jwt` config'i (`appsettings.json`) referanslı ama `Program.cs`'te `AddAuthentication`/`UseAuthentication` **henüz bağlanmadı**.
+- **Frontend'de login ekranları (bayi + admin, ayrı ayrı) gerçek anlamda tamamlanmış** — Reactive Forms, validasyon, şifre göster/gizle, animasyonlar (bkz. `features/bayi/login/`, `features/admin/login/`). Ama `AuthService.login()` hâlâ **placeholder**: gerçek bir API çağrısı yapmıyor, `LoginOptions.portal` parametresine göre (`'admin'` → `Admin`, aksi halde `DealerUser`) sahte bir rol atayıp sahte `dev-token` döndürüyor. Formlar/guard'lar gerçek, arkalarında gerçek bir auth API'si yok.
 - Seed veri / migration seeder yok — `Users` tablosu boş, dolayısıyla gerçek bir login akışı (backend bağlansa bile) örnek kullanıcılarla çalışmaz.
+- `Materials`/`AccessLogs` ekranları (`material-list`, `material-detail`, `material-form`, `access-logs`) hâlâ tamamen boş component stub'ları — login ekranlarındaki gibi bir emek henüz onlara gitmedi.
 - EF Core migration'ı tek: `InitialCreate` (tüm tabloları oluşturur).
 
-Yeni bir feature'a başlamadan önce ilgili controller/service/component'in gerçekten var mı yoksa sadece README'de mi tarif edilmiş olduğunu kontrol edin.
+Yeni bir feature'a başlamadan önce ilgili controller/service/component'in gerçekten var mı yoksa sadece README'de mi tarif edilmiş olduğunu kontrol edin. Güncel "ne yapılmalı" sırası için `TODO.md`'ye bakın.
