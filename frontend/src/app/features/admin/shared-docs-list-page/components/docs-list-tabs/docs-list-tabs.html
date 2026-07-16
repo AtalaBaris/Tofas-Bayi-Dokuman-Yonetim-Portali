@@ -1,0 +1,14 @@
+<div class="docs-tabs" role="tablist">
+  @for (tab of tabs; track tab.id) {
+    <button
+      type="button"
+      class="docs-tabs__tab"
+      role="tab"
+      [class.docs-tabs__tab--active]="active() === tab.id"
+      [attr.aria-selected]="active() === tab.id"
+      (click)="tabChange.emit(tab.id)"
+    >
+      {{ tab.label }}
+    </button>
+  }
+</div>

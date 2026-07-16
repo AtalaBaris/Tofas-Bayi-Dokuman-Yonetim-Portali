@@ -1,0 +1,68 @@
+<div class="docs-filters">
+  <div class="docs-filters__search">
+    <span class="material-symbols-outlined docs-filters__search-icon">search</span>
+    <input
+      class="docs-filters__input"
+      type="search"
+      placeholder="Dokümanlarda ara..."
+      [ngModel]="search()"
+      (ngModelChange)="searchChange.emit($event)"
+    />
+  </div>
+
+  <div class="docs-filters__selects">
+    <div class="docs-filters__select-wrap">
+      <select
+        class="docs-filters__select"
+        [ngModel]="category()"
+        (ngModelChange)="categoryChange.emit($event)"
+      >
+        <option value="">Kategori</option>
+        <option value="Pazarlama">Pazarlama</option>
+        <option value="Satış">Satış</option>
+        <option value="Teknik">Teknik</option>
+        <option value="Kurumsal">Kurumsal</option>
+        <option value="Strateji">Strateji</option>
+        <option value="Hukuk">Hukuk</option>
+      </select>
+      <span class="material-symbols-outlined docs-filters__caret">arrow_drop_down</span>
+    </div>
+
+    <div class="docs-filters__brand">
+      <button
+        type="button"
+        class="docs-filters__brand-trigger"
+        [class.docs-filters__brand-trigger--active]="brands().length > 0"
+        [attr.aria-expanded]="brandMenuOpen()"
+        (click)="toggleBrandMenu(); $event.stopPropagation()"
+      >
+        <span>{{ brandTriggerLabel() }}</span>
+        <span class="material-symbols-outlined">arrow_drop_down</span>
+      </button>
+
+      @if (brandMenuOpen()) {
+        <div class="docs-filters__brand-menu" role="listbox" aria-multiselectable="true">
+          <div class="docs-filters__brand-menu-head">
+            <span>Marka seç</span>
+            @if (brands().length > 0) {
+              <button type="button" class="docs-filters__brand-clear" (click)="clearBrands()">
+                Temizle
+              </button>
+            }
+          </div>
+          @for (option of brandOptions; track option) {
+            <label class="docs-filters__brand-option">
+              <input
+                type="checkbox"
+                [checked]="isBrandSelected(option)"
+                (change)="toggleBrand(option, $any($event.target).checked)"
+                (click)="$event.stopPropagation()"
+              />
+              <span>{{ option }}</span>
+            </label>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

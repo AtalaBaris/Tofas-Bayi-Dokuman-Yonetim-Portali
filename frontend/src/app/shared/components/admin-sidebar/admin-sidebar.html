@@ -1,0 +1,54 @@
+<aside
+  class="admin-sidebar"
+  [class.admin-sidebar--mobile-open]="mobileOpen()"
+  aria-label="Yönetim menüsü"
+>
+  <div class="admin-sidebar__brand">
+    <div class="admin-sidebar__logo" aria-hidden="true">
+      <span class="material-symbols-outlined">shield</span>
+    </div>
+    <div>
+      <div class="admin-sidebar__brand-title">Bayi Portalı</div>
+      <div class="admin-sidebar__brand-sub">Doküman Yönetimi</div>
+    </div>
+  </div>
+
+  <div class="admin-sidebar__cta">
+    <a
+      class="admin-sidebar__upload"
+      routerLink="/admin/materials/new"
+      (click)="onNavClick()"
+    >
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">add</span>
+      Yeni Yükle
+    </a>
+  </div>
+
+  <nav class="admin-sidebar__nav">
+    @for (item of navItems; track item.label) {
+      @if (item.link) {
+        <a
+          class="admin-sidebar__link"
+          [routerLink]="item.link"
+          routerLinkActive="admin-sidebar__link--active"
+          (click)="onNavClick()"
+        >
+          <span class="material-symbols-outlined">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      } @else {
+        <span class="admin-sidebar__link admin-sidebar__link--disabled" title="Yakında">
+          <span class="material-symbols-outlined">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </span>
+      }
+    }
+  </nav>
+
+  <div class="admin-sidebar__footer">
+    <button type="button" class="admin-sidebar__link admin-sidebar__logout" (click)="logout()">
+      <span class="material-symbols-outlined">logout</span>
+      <span>Çıkış Yap</span>
+    </button>
+  </div>
+</aside>

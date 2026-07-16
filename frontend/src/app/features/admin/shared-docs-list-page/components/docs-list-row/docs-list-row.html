@@ -1,0 +1,81 @@
+<article
+  class="docs-row"
+  [class.docs-row--selected]="selected()"
+  [class.docs-row--active]="doc().status === 'active'"
+  [class.docs-row--draft]="doc().status === 'draft'"
+  [class.docs-row--archived]="doc().status === 'archived'"
+  (click)="select.emit(doc())"
+  (keydown.enter)="select.emit(doc())"
+  tabindex="0"
+  role="button"
+  [attr.aria-pressed]="selected()"
+>
+  <div class="docs-row__accent" aria-hidden="true"></div>
+
+  <div class="docs-row__main">
+    <div
+      class="docs-row__icon"
+      [class.docs-row__icon--pdf]="doc().fileKind === 'pdf'"
+      [class.docs-row__icon--video]="doc().fileKind === 'video'"
+    >
+      <span class="material-symbols-outlined">{{ iconFor(doc().fileKind) }}</span>
+    </div>
+
+    <div class="docs-row__body">
+      <div class="docs-row__title-row">
+        <h3 class="docs-row__title">{{ doc().title }}</h3>
+        <span class="docs-row__status" [attr.data-status]="doc().status">
+          {{ statusLabel() }}
+        </span>
+      </div>
+      <div class="docs-row__meta">
+        <span>{{ doc().dateLabel }}</span>
+        <span class="docs-row__dot" aria-hidden="true"></span>
+        <span>{{ doc().category }}</span>
+        <span class="docs-row__dot" aria-hidden="true"></span>
+        <span>{{ doc().sizeLabel }}</span>
+        <span class="docs-row__dot" aria-hidden="true"></span>
+        <div class="docs-row__brands">
+          @for (brand of doc().brands; track brand.label) {
+            <span class="docs-row__brand" [attr.data-tone]="brand.tone">{{ brand.label }}</span>
+          }
+        </div>
+        @if (remainingLabel(); as remaining) {
+          <span class="docs-row__dot" aria-hidden="true"></span>
+          <span
+            class="docs-row__remaining"
+            [class.docs-row__remaining--urgent]="remaining === 'Bugün son gün' || remaining === '1 gün kaldı'"
+            [class.docs-row__remaining--expired]="remaining === 'Süresi doldu'"
+          >
+            {{ remaining }}
+          </span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="docs-row__stats">
+    <div
+      class="docs-row__views"
+      [class.docs-row__views--high]="percent() >= 75"
+    >
+      <span
+        class="docs-row__views-icon"
+        [attr.data-tooltip]="coverageLabel()"
+        [attr.aria-label]="coverageLabel()"
+        role="img"
+      >
+        <span class="material-symbols-outlined">visibility</span>
+      </span>
+      <span class="docs-row__percent">%{{ percent() }}</span>
+    </div>
+    <button
+      type="button"
+      class="docs-row__more"
+      aria-label="Diğer işlemler"
+      (click)="$event.stopPropagation()"
+    >
+      <span class="material-symbols-outlined">more_vert</span>
+    </button>
+  </div>
+</article>

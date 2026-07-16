@@ -1,0 +1,35 @@
+<!-- Admin paneli kabuğu: sidebar tüm yönetim sayfalarında ortak. -->
+<div class="admin-shell">
+  <app-admin-sidebar
+    class="admin-shell__sidebar"
+    [mobileOpen]="mobileNavOpen()"
+    (closed)="closeMobileNav()"
+  />
+
+  @if (mobileNavOpen()) {
+    <button
+      type="button"
+      class="admin-shell__backdrop"
+      aria-label="Menüyü kapat"
+      (click)="closeMobileNav()"
+    ></button>
+  }
+
+  <div class="admin-shell__main">
+    <header class="admin-shell__mobile-bar">
+      <div class="admin-shell__mobile-title">Bayi Portalı</div>
+      <button
+        type="button"
+        class="admin-shell__menu-btn"
+        aria-label="Menüyü aç"
+        (click)="toggleMobileNav()"
+      >
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </header>
+
+    <div class="admin-shell__content">
+      <router-outlet />
+    </div>
+  </div>
+</div>
