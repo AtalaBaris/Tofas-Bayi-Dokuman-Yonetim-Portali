@@ -36,6 +36,7 @@ public sealed class GlobalExceptionMiddleware
         {
             MaterialNotFoundException => (HttpStatusCode.NotFound, "İstenen içerik bulunamadı."),
             ForbiddenAccessException => (HttpStatusCode.Forbidden, "Bu işlem için yetkiniz yok."),
+            InvalidCredentialsException invalidCredentialsEx => (HttpStatusCode.Unauthorized, invalidCredentialsEx.Message),
             DomainException domainEx => (HttpStatusCode.BadRequest, domainEx.Message),
             _ => (HttpStatusCode.InternalServerError, "Beklenmeyen bir hata oluştu.")
         };

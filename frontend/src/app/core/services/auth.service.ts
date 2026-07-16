@@ -1,7 +1,8 @@
-/** Giriş/çıkış, token saklama ve currentUser sinyali. Auth API bağlanınca burası doldurulur. */
-import { Injectable, signal } from '@angular/core';
-import { Observable, of, tap } from 'rxjs';
+/** Giriş/çıkış, token saklama ve currentUser sinyali. */
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import type { User } from '../models/user.interface';
+import { ApiService } from './api.service';
 
 export interface LoginRequest {
   email: string;
@@ -14,7 +15,7 @@ export interface LoginResponse {
 }
 
 export interface LoginOptions {
-  /** Hangi portal girişi — placeholder rol ataması için (Auth API gelince kalkar). */
+  /** Hangi portaldan giriş yapıldığı — şu an sadece bilgi amaçlı, backend rolü belirler. */
   portal?: 'bayi' | 'admin';
   /** true → localStorage (sekme kapanınca kalır); false → sessionStorage. */
   rememberMe?: boolean;
@@ -22,26 +23,13 @@ export interface LoginOptions {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly api = inject(ApiService);
   private readonly tokenKey = 'bayi_portal_token';
   private readonly userKey = 'bayi_portal_user';
   readonly currentUser = signal<User | null>(this.readStoredUser());
 
   login(request: LoginRequest, options?: LoginOptions): Observable<LoginResponse> {
-    // Placeholder until Auth API is implemented
-    const role: User['role'] =
-      options?.portal === 'admin' ? 'Admin' : 'DealerUser';
-
-    const response: LoginResponse = {
-      token: 'dev-token',
-      user: {
-        id: 0,
-        name: options?.portal === 'admin' ? 'Dev Admin' : 'Dev User',
-        email: request.email,
-        role,
-      },
-    };
-
-    return of(response).pipe(
+    return this.api.post<LoginResponse>('/auth/login', request).pipe(
       tap((res) => {
         this.persistSession(res.token, res.user, options?.rememberMe !== false);
         this.currentUser.set(res.user);
