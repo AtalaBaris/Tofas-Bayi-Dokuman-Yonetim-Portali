@@ -24,6 +24,14 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'login-activity',
+        canActivate: [adminRoleGuard(['Admin', 'ContentManager'])],
+        loadComponent: () =>
+          import('./login-activity/components/login-activity-page/login-activity-page').then(
+            (m) => m.LoginActivityPage
+          ),
+      },
+      {
         path: 'access-logs',
         canActivate: [adminRoleGuard(['Admin'])],
         loadComponent: () =>

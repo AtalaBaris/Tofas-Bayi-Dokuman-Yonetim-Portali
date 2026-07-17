@@ -87,6 +87,16 @@
 
     <a
       class="admin-sidebar__link"
+      routerLink="/admin/login-activity"
+      routerLinkActive="admin-sidebar__link--active"
+      (click)="onNavClick()"
+    >
+      <span class="material-symbols-outlined">login</span>
+      <span>Giriş Kayıtları</span>
+    </a>
+
+    <a
+      class="admin-sidebar__link"
       routerLink="/admin/access-logs"
       routerLinkActive="admin-sidebar__link--active"
       (click)="onNavClick()"
