@@ -4,16 +4,17 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface AccessLog {
-  id: string;
+  id: number;
   userName: string;
   userRole: string;
-  userType: 'Yönetici' | 'İçerik Yöneticisi' | 'Bayi Kullanıcısı';
+  userType: string;
   action: string;
   description: string;
-  loginStatus: 'Başarılı' | 'Başarısız' | 'N/A';
+  loginStatus: 'Başarılı' | 'Başarısız' | 'N/A' | string;
   date: string;
   time: string;
   ipAddress: string;
+  userAgent?: string | null;
 }
 
 export interface AccessLogListResponse {
@@ -23,21 +24,23 @@ export interface AccessLogListResponse {
   pageSize: number;
 }
 
+export interface AccessLogQuery {
+  keyword?: string;
+  role?: string;
+  action?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AccessLogService {
   private readonly api = inject(ApiService);
-  private readonly http = inject(HttpClient); // standard HttpClient for constructing params if needed
+  private readonly http = inject(HttpClient);
 
-  getLogs(query: {
-    keyword?: string;
-    role?: string;
-    action?: string;
-    status?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    pageSize?: number;
-  }): Observable<AccessLogListResponse> {
+  getLogs(query: AccessLogQuery): Observable<AccessLogListResponse> {
     let params = new HttpParams();
 
     if (query.keyword) params = params.set('keyword', query.keyword);
@@ -49,7 +52,6 @@ export class AccessLogService {
     if (query.page) params = params.set('page', query.page.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
 
-    // Call API using http client or custom path
     return this.http.get<AccessLogListResponse>(`${this.api.baseUrl}/access-logs`, { params });
   }
 

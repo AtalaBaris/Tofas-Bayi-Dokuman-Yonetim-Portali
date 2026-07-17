@@ -40,7 +40,7 @@ admin/
 | `/admin/definitions/dealers` | Private — Admin |
 | `/admin/definitions/brands` | Private — Admin |
 | `/admin/definitions/categories` | Private — Admin |
-| `/admin/login-activity` | Private — Admin, ContentManager |
-| `/admin/access-logs` | Private — Admin |
+| `/admin/login-activity` | Private — Admin |
+| `/admin/access-logs` | Private — Admin (Döküman İşlem Kaydı) |
 
 Shared layout: `shared/components/admin-shell` + `admin-sidebar`

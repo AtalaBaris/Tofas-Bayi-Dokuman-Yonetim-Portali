@@ -30,8 +30,6 @@ export class AccessLogs {
   readonly loading = signal(false);
 
   readonly actionsList = [
-    'Giriş',
-    'Çıkış',
     'Döküman Görüntüleme',
     'Döküman İndirme',
     'Döküman Yükleme',
@@ -46,7 +44,7 @@ export class AccessLogs {
     'Bayi Silme',
     'Kullanıcı Oluşturuldu',
     'Kullanıcı Güncellendi',
-    'Şifre Değiştirildi'
+    'Şifre Değiştirildi',
   ];
 
   constructor() {

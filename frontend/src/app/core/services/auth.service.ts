@@ -1,8 +1,9 @@
 /** Giriş/çıkış, token saklama ve currentUser sinyali. */
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import type { User } from '../models/user.interface';
 import { ApiService } from './api.service';
+import { AccessLogService } from './access-log.service';
 
 export interface LoginRequest {
   email: string;
@@ -24,6 +25,7 @@ export interface LoginOptions {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = inject(ApiService);
+  private readonly accessLogs = inject(AccessLogService);
   private readonly tokenKey = 'bayi_portal_token';
   private readonly userKey = 'bayi_portal_user';
   readonly currentUser = signal<User | null>(this.readStoredUser());
@@ -37,12 +39,19 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    sessionStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.userKey);
-    this.currentUser.set(null);
+  /** Önce backend'e çıkış kaydı düşer, sonra yerel oturumu temizler. */
+  logout(): Observable<void> {
+    const hasToken = !!this.getToken();
+    const clear$ = of(void 0).pipe(tap(() => this.clearLocalSession()));
+
+    if (!hasToken) {
+      return clear$;
+    }
+
+    return this.accessLogs.logLogout().pipe(
+      catchError(() => of(void 0)),
+      switchMap(() => clear$)
+    );
   }
 
   getToken(): string | null {
@@ -51,6 +60,14 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  private clearLocalSession(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+    sessionStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.userKey);
+    this.currentUser.set(null);
   }
 
   private persistSession(token: string, user: User, rememberMe: boolean): void {

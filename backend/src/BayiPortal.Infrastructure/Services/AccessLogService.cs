@@ -88,10 +88,19 @@ public class AccessLogService : IAccessLogService
             dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == query.Role);
         }
 
-        // Action filter
+        // Action filter — tek değer veya virgülle ayrılmış liste (örn. "Giriş,Çıkış")
         if (!string.IsNullOrWhiteSpace(query.Action))
         {
-            dbQuery = dbQuery.Where(x => x.Action == query.Action);
+            var actions = query.Action
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (actions.Length == 1)
+            {
+                dbQuery = dbQuery.Where(x => x.Action == actions[0]);
+            }
+            else
+            {
+                dbQuery = dbQuery.Where(x => actions.Contains(x.Action));
+            }
         }
 
         // Status filter
