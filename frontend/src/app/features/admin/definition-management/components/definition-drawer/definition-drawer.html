@@ -1,0 +1,122 @@
+<aside class="definition-drawer" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+  <header class="definition-drawer__header">
+    <h2>{{ title() }}</h2>
+    <button type="button" aria-label="Kapat" (click)="closed.emit()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </header>
+
+  <div class="definition-drawer__body">
+    @if (section() === 'users') {
+      <label>
+        <span>Ad Soyad <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: Ali Veli"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>E-posta <span class="definition-drawer__required">*</span></span>
+        <input
+          type="email"
+          placeholder="ornek@sirket.com"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+        />
+      </label>
+      <label>
+        <span>Şifre <span class="definition-drawer__required">*</span></span>
+        <input
+          type="password"
+          placeholder="••••••••"
+          autocomplete="new-password"
+          [class.definition-drawer__invalid]="!!passwordError()"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event); showErrors.set(false)"
+        />
+      </label>
+      <label>
+        <span>Şifre Tekrar <span class="definition-drawer__required">*</span></span>
+        <input
+          type="password"
+          placeholder="Şifreyi tekrar giriniz"
+          autocomplete="new-password"
+          [class.definition-drawer__invalid]="!!passwordError()"
+          [ngModel]="passwordConfirm()"
+          (ngModelChange)="passwordConfirm.set($event); showErrors.set(false)"
+        />
+        @if (passwordError(); as error) {
+          <small class="definition-drawer__error">{{ error }}</small>
+        } @else if (password() && passwordConfirm() && passwordsMatch()) {
+          <small class="definition-drawer__ok">Şifreler eşleşiyor.</small>
+        }
+      </label>
+      <label>
+        <span>Rol <span class="definition-drawer__required">*</span></span>
+        <select [ngModel]="role()" (ngModelChange)="role.set($event)">
+          <option value="" disabled>Rol Seçiniz</option>
+          <option value="admin">Sistem Yöneticisi</option>
+          <option value="content">İçerik Yöneticisi</option>
+          <option value="dealer">Bayi Yöneticisi</option>
+          <option value="sales">Satış Temsilcisi</option>
+        </select>
+      </label>
+      <label>
+        <span>Bağlı Olduğu Bayi</span>
+        <select [ngModel]="dealer()" (ngModelChange)="dealer.set($event)">
+          <option value="" disabled>Bayi Seçiniz</option>
+          <option value="1">Marmara Otomotiv</option>
+          <option value="2">Ege Motorlu Araçlar</option>
+          <option value="3">İç Anadolu Distribütör</option>
+        </select>
+        <small>Sadece bayi rollerinde seçilmelidir.</small>
+      </label>
+    } @else {
+      <label>
+        <span>{{ simpleNameLabel() }} <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Ad giriniz"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>Açıklama</span>
+        <textarea
+          rows="4"
+          placeholder="Kısa açıklama giriniz"
+          [ngModel]="detail()"
+          (ngModelChange)="detail.set($event)"
+        ></textarea>
+      </label>
+    }
+
+    <div class="definition-drawer__status">
+      <span>Durum <span class="definition-drawer__required">*</span></span>
+      <div class="definition-drawer__status-toggle" role="group" aria-label="Durum">
+        <button
+          type="button"
+          [class.definition-drawer__status-btn--active]="active()"
+          (click)="setActive(true)"
+        >
+          Aktif
+        </button>
+        <button
+          type="button"
+          [class.definition-drawer__status-btn--active]="!active()"
+          (click)="setActive(false)"
+        >
+          Pasif
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="definition-drawer__footer">
+    <button type="button" class="definition-drawer__cancel" (click)="closed.emit()">İptal</button>
+    <button type="button" class="definition-drawer__save" (click)="save()">Kaydet</button>
+  </footer>
+</aside>
