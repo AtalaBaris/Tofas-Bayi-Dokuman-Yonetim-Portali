@@ -16,7 +16,7 @@
   <div class="admin-sidebar__cta">
     <a
       class="admin-sidebar__upload"
-      routerLink="/admin/materials/new"
+      routerLink="/admin/documents/new"
       (click)="onNavClick()"
     >
       <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">add</span>
@@ -43,6 +43,67 @@
         </span>
       }
     }
+
+    <div class="admin-sidebar__group">
+      <button
+        type="button"
+        class="admin-sidebar__link admin-sidebar__group-trigger"
+        [class.admin-sidebar__link--active]="usersMenuOpen()"
+        [attr.aria-expanded]="usersMenuOpen()"
+        aria-controls="admin-users-submenu"
+        (click)="toggleUsersMenu()"
+      >
+        <span class="material-symbols-outlined">group</span>
+        <span>Kullanıcılar</span>
+        <span
+          class="material-symbols-outlined admin-sidebar__chevron"
+          [class.admin-sidebar__chevron--open]="usersMenuOpen()"
+        >expand_more</span>
+      </button>
+
+      @if (usersMenuOpen()) {
+        <div id="admin-users-submenu" class="admin-sidebar__submenu">
+          <a
+            class="admin-sidebar__sublink"
+            routerLink="/admin/definitions/dealers"
+            routerLinkActive="admin-sidebar__sublink--active"
+            (click)="onNavClick()"
+          >Bayiler</a>
+          <a
+            class="admin-sidebar__sublink"
+            routerLink="/admin/definitions/brands"
+            routerLinkActive="admin-sidebar__sublink--active"
+            (click)="onNavClick()"
+          >Markalar</a>
+          <a
+            class="admin-sidebar__sublink"
+            routerLink="/admin/definitions/categories"
+            routerLinkActive="admin-sidebar__sublink--active"
+            (click)="onNavClick()"
+          >Kategoriler</a>
+        </div>
+      }
+    </div>
+
+    <a
+      class="admin-sidebar__link"
+      routerLink="/admin/login-activity"
+      routerLinkActive="admin-sidebar__link--active"
+      (click)="onNavClick()"
+    >
+      <span class="material-symbols-outlined">login</span>
+      <span>Giriş Kayıtları</span>
+    </a>
+
+    <a
+      class="admin-sidebar__link"
+      routerLink="/admin/access-logs"
+      routerLinkActive="admin-sidebar__link--active"
+      (click)="onNavClick()"
+    >
+      <span class="material-symbols-outlined">terminal</span>
+      <span>Sistem Kayıtları</span>
+    </a>
   </nav>
 
   <div class="admin-sidebar__footer">

@@ -24,15 +24,44 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'login-activity',
+        canActivate: [adminRoleGuard(['Admin', 'ContentManager'])],
+        loadComponent: () =>
+          import('./login-activity/components/login-activity-page/login-activity-page').then(
+            (m) => m.LoginActivityPage
+          ),
+      },
+      {
         path: 'access-logs',
         canActivate: [adminRoleGuard(['Admin'])],
         loadComponent: () =>
           import('./access-logs/access-logs').then((m) => m.AccessLogs),
       },
       {
-        path: 'materials/new',
+        path: 'definitions',
+        canActivate: [adminRoleGuard(['Admin'])],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'users' },
+          {
+            path: ':section',
+            loadComponent: () =>
+              import(
+                './definition-management/components/definition-management-page/definition-management-page'
+              ).then((m) => m.DefinitionManagementPage),
+          },
+        ],
+      },
+      {
+        path: 'documents/new',
         loadComponent: () =>
-          import('../materials/material-form/material-form').then((m) => m.MaterialForm),
+          import('./add-document/components/add-document-page/add-document-page').then(
+            (m) => m.AddDocumentPage
+          ),
+      },
+      {
+        path: 'materials/new',
+        redirectTo: 'documents/new',
+        pathMatch: 'full',
       },
     ],
   },

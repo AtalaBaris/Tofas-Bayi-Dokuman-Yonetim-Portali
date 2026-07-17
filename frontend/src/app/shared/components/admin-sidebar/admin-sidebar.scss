@@ -159,6 +159,57 @@
   }
 }
 
+.admin-sidebar__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar__group-trigger {
+  .admin-sidebar__chevron {
+    margin-left: auto;
+    font-size: 1.25rem;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover .admin-sidebar__chevron {
+    transform: none;
+  }
+}
+
+.admin-sidebar__chevron--open {
+  transform: rotate(180deg) !important;
+}
+
+.admin-sidebar__submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0.125rem 0.5rem 0.25rem 2.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid color-mix(in srgb, var(--color-on-primary) 28%, transparent);
+}
+
+.admin-sidebar__sublink {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: color-mix(in srgb, var(--color-on-primary) 82%, transparent);
+  font-size: var(--font-size-body-md);
+  line-height: var(--line-height-body-md);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-on-primary) 10%, transparent);
+    color: var(--color-on-primary);
+  }
+
+  &--active {
+    background: color-mix(in srgb, var(--color-on-primary) 16%, transparent);
+    color: var(--color-on-primary);
+    font-weight: 600;
+  }
+}
+
 .admin-sidebar__footer {
   margin-top: auto;
   padding: 1rem 1rem 0;

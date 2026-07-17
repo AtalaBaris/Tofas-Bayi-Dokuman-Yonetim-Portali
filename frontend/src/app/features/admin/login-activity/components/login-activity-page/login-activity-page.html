@@ -1,0 +1,115 @@
+<div class="login-activity">
+  <header class="login-activity__header">
+    <div>
+      <span class="login-activity__eyebrow">Güvenlik</span>
+      <h1>Giriş Kayıtları</h1>
+      <p>Başarılı ve başarısız oturum açma denemelerini IP bilgisiyle inceleyin.</p>
+    </div>
+  </header>
+
+  <main class="login-activity__content">
+    <section class="login-activity__stats">
+      <div class="login-activity__stat login-activity__stat--success">
+        <span class="material-symbols-outlined">check_circle</span>
+        <div>
+          <strong>{{ successCount() }}</strong>
+          <span>Başarılı giriş</span>
+        </div>
+      </div>
+      <div class="login-activity__stat login-activity__stat--failure">
+        <span class="material-symbols-outlined">cancel</span>
+        <div>
+          <strong>{{ failureCount() }}</strong>
+          <span>Başarısız deneme</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-activity__panel">
+      <div class="login-activity__toolbar">
+        <div class="login-activity__search">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="search"
+            placeholder="E-posta veya IP ara..."
+            [value]="search()"
+            (input)="search.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="login-activity__filters" role="group" aria-label="Durum filtresi">
+          <button
+            type="button"
+            [class.login-activity__filter--active]="statusFilter() === 'all'"
+            (click)="setFilter('all')"
+          >
+            Tümü
+          </button>
+          <button
+            type="button"
+            [class.login-activity__filter--active]="statusFilter() === 'success'"
+            (click)="setFilter('success')"
+          >
+            Başarılı
+          </button>
+          <button
+            type="button"
+            [class.login-activity__filter--active]="statusFilter() === 'failure'"
+            (click)="setFilter('failure')"
+          >
+            Başarısız
+          </button>
+        </div>
+      </div>
+
+      <div class="login-activity__scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>E-posta</th>
+              <th>Durum</th>
+              <th>IP Adresi</th>
+              <th>Portal</th>
+              <th>Cihaz</th>
+              <th>Açıklama</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <td>{{ formatDate(row.occurredAt) }}</td>
+                <td>
+                  <strong>{{ row.email }}</strong>
+                </td>
+                <td>
+                  <span
+                    class="login-activity__badge"
+                    [class.login-activity__badge--success]="row.status === 'success'"
+                    [class.login-activity__badge--failure]="row.status === 'failure'"
+                  >
+                    {{ statusLabel(row.status) }}
+                  </span>
+                </td>
+                <td class="login-activity__mono">{{ row.ipAddress }}</td>
+                <td>{{ portalLabel(row.portal) }}</td>
+                <td class="login-activity__muted">{{ row.userAgent }}</td>
+                <td class="login-activity__muted">
+                  {{ row.failureReason || '—' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="login-activity__empty">Kayıt bulunamadı.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="login-activity__footer">
+        <span>Toplam {{ rows().length }} kayıt gösteriliyor</span>
+      </footer>
+    </section>
+  </main>
+</div>

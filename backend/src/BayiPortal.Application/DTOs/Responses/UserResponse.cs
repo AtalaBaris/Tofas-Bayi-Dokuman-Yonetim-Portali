@@ -7,4 +7,6 @@ public class UserResponse
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public int? DealerId { get; set; }
+    public string? DealerName { get; set; }
+    public bool IsActive { get; set; }
 }

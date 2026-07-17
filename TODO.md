@@ -64,12 +64,32 @@ farklı çıktı, aşağıda düzeltildi).
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
 - **Sistem Erişim Kayıtları (Access Logs) Entegrasyonu** (frontend + backend, 2026-07-17): `AccessLog` entitesi ve veritabanı şeması güncellenerek ilişkiler opsiyonel hale getirildi. Başarılı/başarısız giriş denemeleri, çıkış işlemleri, döküman görüntüleme, indirme, yükleme, güncelleme ve arşivleme hareketleri veritabanına kaydedilmeye başlandı. `AccessLogsController` (`GET /api/access-logs` filtreleme/sayfalama ve `POST /api/access-logs/logout` çıkış loglama) yazıldı. Frontend tarafındaki `/admin/access-logs` arayüzü mock veriden kurtarılarak gerçek API servisine bağlandı; sunucu taraflı arama, rol, işlem, durum ve tarih aralığı filtreleri ile dinamik sayfalama entegre edildi.
+- **Tanım Yönetimi backend** (PR #6, `feature-backend-tanim-yonetimi` → `Develop`,
+  `40a0b79` ile merge oldu, 2026-07-17): `DealersController`/`BrandsController`/
+  `CategoriesController`/`UsersController` — hepsi `[Authorize(Roles = "Admin")]`,
+  `GET` (list/by-id), `POST`, `PUT`, `DELETE` (soft delete → `IsActive = false`,
+  hard delete yok). `DealerService`/`BrandService`/`CategoryService`/`UserService`
+  + yeni `DealerRepository`/`BrandRepository`/`CategoryRepository`, `UserRepository`
+  CRUD metotlarıyla genişletildi. Validasyon: benzersiz `Dealer.Code`/`Brand.Code`,
+  benzersiz `User.Email`, geçersiz `RoleType`, `DealerUser` rolü için `DealerId`
+  zorunlu ve var olmalı — hepsi `Core.Exceptions.ValidationException` ile 400 döner.
+  `Dealer` create/update `BrandIds` alır ve `DealerBrand` eşlemesini `Material`'ın
+  `MaterialBrands`'i yönettiği desenle aynı şekilde yönetir. 4 yeni
+  `{Entity}NotFoundException` (`Dealer`/`Brand`/`Category`/`User`)
+  `GlobalExceptionMiddleware`'de 404'e bağlandı. `dotnet build` temiz, canlı sunucuya
+  karşı curl ile tüm CRUD + validasyon + 401/403/404 senaryoları doğrulandı; ayrıca
+  bu dal Materials dosyalarına dokunmadığı için `MaterialsController` üzerindeki
+  marka-eşleşme kuralı ve 401/403 ayrımı da regresyon kontrolü olarak yeniden
+  doğrulandı (etkilenmemiş). **Frontend tarafı bu dalda yok** — ayrı bir ekip
+  arkadaşı üzerinde çalışıyor.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
 - `feature-backend-girisLog` — bir takım arkadaşı bu dalda çalışıyor (muhtemelen
   madde `6`, AccessLogs). Materials PR'ı bilerek `AccessLogs`'a yazma mantığına
   dokunmadı ki bu dalla çakışma olmasın.
+- `feature-backend-tanim-yonetimi` — backend'i PR #6 ile `Develop`'a merge oldu
+  (yukarıya bkz.). Frontend tarafı ayrı bir ekip arkadaşında, henüz ayrı bir dal.
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
@@ -88,7 +108,8 @@ farklı çıktı, aşağıda düzeltildi).
 2. feature-backend-authorization ──┐
         │                          │  (ikisi de sadece 1'e bağımlı,
         ▼                          │   birbirlerine bağımlı değiller)
-3. feature-*-tanim-yonetimi ───────┤
+✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
+                                   │    frontend hâlâ ayrı ekip arkadaşında, ayrı dal)
                                    │
 ✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
@@ -161,21 +182,27 @@ aynı isteği doğrudan API'ye atınca 403 dönüyor.
 
 ---
 
-## 3. `feature-*-tanim-yonetimi`
+## 3. `feature-*-tanim-yonetimi` — backend tamamlandı ve `Develop`'a merge oldu
 
 **Bağımlılık:** yalnızca 1. **Paralel çalışılabilir:** 2, 4 ile birlikte.
 
 **Neden gerekli:** PDF'in zorunlu ekran #5'i (Tanım Yönetimi) frontend'de hiç yok —
 seed'le gelen sabit veri yeterli değil, yönetici bunları ekleyip düzenleyebilmeli.
 
-- Backend: `DealersController`, `BrandsController`, `CategoriesController`,
-  `UsersController` (CRUD, `Admin` rolüyle korumalı)
-- Frontend: Yeni bir tanım yönetimi ekranı (`features/admin` altına, mevcut
+- ✅ Backend: `feature-backend-tanim-yonetimi` dalında tamamlandı ve PR #6 ile
+  `Develop`'a merge oldu (2026-07-17). `DealersController`, `BrandsController`,
+  `CategoriesController`, `UsersController` — CRUD, `Admin` rolüyle korumalı,
+  soft delete (`IsActive`). Validasyon + marka/bayi eşleme kuralları dahil
+  (yukarıdaki "Mevcut durum özeti"ne bkz.). `dotnet build` temiz, curl ile
+  canlı doğrulandı.
+- ❌ Frontend: Yeni bir tanım yönetimi ekranı (`features/admin` altına, mevcut
   `admin.routes.ts`'e yeni route olarak eklenir) — kullanıcı/bayi/marka/kategori
-  listeleme/ekleme/düzenleme
+  listeleme/ekleme/düzenleme. Bir ekip arkadaşı bu ekran üzerinde çalışıyor;
+  backend artık hazır olduğu için gerçek API'ye bağlanabilir.
 
 **Bitti sayılır:** Yönetici yeni bir bayi + marka + kategori ekleyip bir kullanıcıyı
-bir bayiye atayabiliyor.
+bir bayiye atayabiliyor. (Backend tarafı bu kriteri karşılıyor — frontend
+bağlanınca uçtan uca tamamlanmış olacak.)
 
 ---
 
