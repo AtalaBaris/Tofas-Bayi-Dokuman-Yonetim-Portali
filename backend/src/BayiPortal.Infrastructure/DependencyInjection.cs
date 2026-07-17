@@ -28,9 +28,11 @@ public static class DependencyInjection
 
         services.AddSingleton<IFileStorageService>(_ => new FileStorageService(absoluteStorageRoot));
 
+        services.AddHttpContextAccessor();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IMaterialRepository, MaterialRepository>();
+        services.AddScoped<IAccessLogService, AccessLogService>();
 
         return services;
     }

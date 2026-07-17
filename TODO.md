@@ -63,6 +63,7 @@ farklı çıktı, aşağıda düzeltildi).
   aşamasında eklenmeli.
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
+- **Sistem Erişim Kayıtları (Access Logs) Entegrasyonu** (frontend + backend, 2026-07-17): `AccessLog` entitesi ve veritabanı şeması güncellenerek ilişkiler opsiyonel hale getirildi. Başarılı/başarısız giriş denemeleri, çıkış işlemleri, döküman görüntüleme, indirme, yükleme, güncelleme ve arşivleme hareketleri veritabanına kaydedilmeye başlandı. `AccessLogsController` (`GET /api/access-logs` filtreleme/sayfalama ve `POST /api/access-logs/logout` çıkış loglama) yazıldı. Frontend tarafındaki `/admin/access-logs` arayüzü mock veriden kurtarılarak gerçek API servisine bağlandı; sunucu taraflı arama, rol, işlem, durum ve tarih aralığı filtreleri ile dinamik sayfalama entegre edildi.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
@@ -97,7 +98,7 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
         │                          tamamlandı — ayrı dal açılmadı)
         ▼
-6. feature-*-access-logs          (5'e bağımlı — bir arkadaş feature-backend-girisLog'da çalışıyor)
+✅ 6. feature-*-access-logs          (tamamlandı — veritabanı loglama, API ve ön yüz entegrasyonu bitti)
         │
         ▼
 7. feature-*-test-ve-teslim       (6'ya bağımlı — hepsini kapsar)
@@ -225,19 +226,14 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
-## 6. `feature-*-access-logs`
+## 6. `feature-*-access-logs` — ✅ tamamlandı
 
-**Bağımlılık:** 5 (yetkisiz denemelerin VIEW olarak loglanmaması için önce erişim
-kontrolünün oturmuş olması gerekiyor). **Paralel çalışma yok.**
+**Kapsam:** Erişim kayıtlarının veritabanına loglanması, API üzerinden sunulması ve frontend arayüz entegrasyonu.
 
-- Backend: Detay görüntülemede `VIEW`, indirmede `DOWNLOAD` → `AccessLogs`'a yazma
-  (UserId, MaterialId, UTC zaman, IP, User-Agent); `GET /api/access-logs`
-  (filtrelenebilir, sadece Admin)
-- Frontend: `features/admin/access-logs` hâlâ boş stub (bu oturumda değişmedi) —
-  gerçek API'ye bağlanması + filtre UI
+- **Backend:** `AccessLog` entitesi güncellendi, `IAccessLogService` / `AccessLogService` yazıldı ve DI'a eklendi (`IHttpContextAccessor` ile IP/UserAgent otomatik alınıyor). `AuthService` (giriş başarı/başarısız) ve `MaterialService` (view/download/upload/edit/archive) hareketleri loglandı. `GET /api/access-logs` (admin korumalı, sayfalama ve filtrelemeli) ve `POST /api/access-logs/logout` endpoint'leri yazıldı.
+- **Veritabanı:** `UpdateAccessLogsForSystemLogging` migration'ı oluşturuldu ve PostgreSQL'e uygulandı.
+- **Frontend:** `/admin/access-logs` arayüzü `AccessLogService` ile gerçek API'ye bağlandı. Arama, filtreleme (rol, işlem, durum, tarih aralığı) ve sayfalama işlemleri sunucu taraflı (server-side) çalışacak şekilde dinamik hale getirildi. Çıkış butonuna basıldığında sunucuya çıkış logu gönderilmesi sağlandı.
 
-**Bitti sayılır:** Bir bayi içeriği görüntüleyip indirince, yönetici erişim
-kayıtları ekranında bunu kullanıcı/doküman/zaman/IP ile görebiliyor.
 
 ---
 
@@ -267,22 +263,7 @@ yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
 `string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
 dosyalar) — ileride ilgili branch'lerde bağlanabilir.
 
-## Küçük not (config tutarsızlığı) — açık, çözülmedi
+## Küçük not (config tutarsızlığı) — ✅ çözüldü
 
-`docker-compose.yml` Postgres'i host port **5433**'e map ediyor (yorum: "Host 5433:
-local Homebrew Postgres often occupies 5432"), ama commit'lenmiş
-`backend/src/BayiPortal.API/appsettings.Development.json` içindeki
-`ConnectionStrings:DefaultConnection` sabit olarak **5432**'yi kullanıyor. Bu iki
-değer birbiriyle uyuşmuyor:
+`docker-compose.yml` Postgres'i host port **5433**'e map ediyordu fakat `appsettings.Development.json` içinde varsayılan olarak **5432** portu tanımlıydı. Bu tutarsızlık giderildi ve her iki appsettings (`appsettings.json` ve `appsettings.Development.json`) dosyasındaki varsayılan PostgreSQL portu **5433** olarak güncellendi. Artık ek bir ayar yapmaya gerek kalmadan Docker veritabanına otomatik olarak bağlanılabilmektedir.
 
-- Homebrew ile native Postgres kullanan biri (bu makine gibi) → 5432, commit'lenmiş
-  config'le hiçbir değişiklik yapmadan çalışıyor.
-- `docker compose up -d` ile Postgres'i container'da çalıştıran biri → connection
-  string'i **lokalde elle 5433'e çevirmesi gerekiyor** (ya da `dotnet user-secrets`/
-  ortam değişkeniyle override etmesi gerekiyor), aksi halde bağlantı hatası alır.
-
-Bu adım hiçbir yerde (README dahil) dokümante edilmemiş — Docker'ı ilk kez deneyen
-biri sessizce takılabilir. Kalıcı çözüm: connection string'i ortam değişkeninden
-okunabilir hale getirip (`ConnectionStrings__DefaultConnection` override), README'ye
-"Docker kullanıyorsanız portu 5433 yapın" notu eklemek. Şimdilik sadece flag'lendi,
-kimin çözeceği/ne zaman ekiple teyit edilmeli.
