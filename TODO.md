@@ -54,8 +54,8 @@ farklı çıktı, aşağıda düzeltildi).
   Uçtan uca test edildi (curl): rol kısıtları, marka kesişimi, 401/403/404 senaryoları.
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
-  - **2026-07-17 code review sonrası iki düzeltme eklendi (aynı PR/branch'e, henüz ayrı
-    commit olarak push edilmedi):**
+  - **2026-07-17 code review sonrası iki düzeltme eklendi ve `feature-backend-materials`
+    dalına push edildi (`f7d103a`), PR #3 kapsamına dahil:**
     - `ExpiresAt` artık gerçekten uygulanıyor: `MaterialService.GetAuthorizedMaterialAsync`
       süresi geçmiş (`ExpiresAt <= UtcNow`) içerikte de `ForbiddenAccessException` (403)
       fırlatıyor; `GetListAsync` bayi kullanıcısı için `excludeExpired: true` ile listeden
