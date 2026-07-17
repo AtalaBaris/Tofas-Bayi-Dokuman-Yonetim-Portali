@@ -26,8 +26,9 @@ public sealed class MaterialService : IMaterialService
     {
         IReadOnlyCollection<int>? restrictToBrandIds = null;
         var status = query.Status;
+        var isDealerUser = requestingUser.Role == DealerUserRole;
 
-        if (requestingUser.Role == DealerUserRole)
+        if (isDealerUser)
         {
             restrictToBrandIds = await GetDealerBrandIdsOrThrowAsync(requestingUser, cancellationToken);
             // Bayi kullanıcısı yalnızca yayınlanmış içeriği görebilir; status filtresi görmezden gelinir.
@@ -35,7 +36,8 @@ public sealed class MaterialService : IMaterialService
         }
 
         var materials = await _materialRepository.GetListAsync(
-            query.CategoryId, query.BrandId, query.Keyword, status, restrictToBrandIds, cancellationToken);
+            query.CategoryId, query.BrandId, query.Keyword, status, restrictToBrandIds,
+            excludeExpired: isDealerUser, cancellationToken);
 
         return materials.Select(ToResponse).ToList();
     }
@@ -51,6 +53,8 @@ public sealed class MaterialService : IMaterialService
         CreateMaterialRequest request, Stream fileContent, string originalFileName, string mimeType, long fileSize,
         RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
+        await ValidateAsync(request.Title, request.Description, request.CategoryId, request.BrandIds, cancellationToken);
+
         var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(fileContent, originalFileName, cancellationToken);
 
         var material = new Material
@@ -83,6 +87,8 @@ public sealed class MaterialService : IMaterialService
     public async Task<MaterialResponse> UpdateAsync(
         int id, UpdateMaterialRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
+        await ValidateAsync(request.Title, request.Description, request.CategoryId, request.BrandIds, cancellationToken);
+
         var material = await _materialRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new MaterialNotFoundException(id);
 
@@ -133,14 +139,57 @@ public sealed class MaterialService : IMaterialService
         {
             var dealerBrandIds = await GetDealerBrandIdsOrThrowAsync(requestingUser, cancellationToken);
             var hasMatchingBrand = material.MaterialBrands.Any(mb => dealerBrandIds.Contains(mb.BrandId));
+            var isExpired = material.ExpiresAt.HasValue && material.ExpiresAt.Value <= DateTime.UtcNow;
 
-            if (material.Status != MaterialStatus.Active || !hasMatchingBrand)
+            if (material.Status != MaterialStatus.Active || isExpired || !hasMatchingBrand)
             {
                 throw new ForbiddenAccessException();
             }
         }
 
         return material;
+    }
+
+    private async Task ValidateAsync(
+        string title, string description, int categoryId, List<int> brandIds, CancellationToken cancellationToken)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            errors.Add("Başlık zorunludur.");
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            errors.Add("Açıklama zorunludur.");
+        }
+
+        var distinctBrandIds = brandIds.Distinct().ToList();
+        if (distinctBrandIds.Count == 0)
+        {
+            errors.Add("En az bir marka seçilmelidir.");
+        }
+
+        if (!await _materialRepository.CategoryExistsAsync(categoryId, cancellationToken))
+        {
+            errors.Add("Seçilen kategori bulunamadı.");
+        }
+
+        if (distinctBrandIds.Count > 0)
+        {
+            var existingBrandIds = await _materialRepository.GetExistingBrandIdsAsync(distinctBrandIds, cancellationToken);
+            var missingBrandIds = distinctBrandIds.Except(existingBrandIds).ToList();
+            if (missingBrandIds.Count > 0)
+            {
+                errors.Add($"Geçersiz marka id'leri: {string.Join(", ", missingBrandIds)}.");
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(string.Join(" ", errors));
+        }
     }
 
     private async Task<IReadOnlyCollection<int>> GetDealerBrandIdsOrThrowAsync(

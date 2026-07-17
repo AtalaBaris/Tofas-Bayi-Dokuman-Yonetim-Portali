@@ -29,6 +29,7 @@ public sealed class MaterialRepository : IMaterialRepository
         string? keyword,
         string? status,
         IReadOnlyCollection<int>? restrictToBrandIds,
+        bool excludeExpired,
         CancellationToken cancellationToken = default)
     {
         var query = BaseQuery();
@@ -59,6 +60,12 @@ public sealed class MaterialRepository : IMaterialRepository
             query = query.Where(m => m.MaterialBrands.Any(mb => restrictToBrandIds.Contains(mb.BrandId)));
         }
 
+        if (excludeExpired)
+        {
+            var now = DateTime.UtcNow;
+            query = query.Where(m => m.ExpiresAt == null || m.ExpiresAt > now);
+        }
+
         return await query.OrderByDescending(m => m.PublishedAt).ToListAsync(cancellationToken);
     }
 
@@ -66,6 +73,16 @@ public sealed class MaterialRepository : IMaterialRepository
         await _dbContext.DealerBrands
             .Where(db => db.DealerId == dealerId)
             .Select(db => db.BrandId)
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> CategoryExistsAsync(int categoryId, CancellationToken cancellationToken = default) =>
+        _dbContext.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken);
+
+    public async Task<IReadOnlyCollection<int>> GetExistingBrandIdsAsync(
+        IReadOnlyCollection<int> brandIds, CancellationToken cancellationToken = default) =>
+        await _dbContext.Brands
+            .Where(b => brandIds.Contains(b.Id))
+            .Select(b => b.Id)
             .ToListAsync(cancellationToken);
 
     public void Add(Material material) => _dbContext.Materials.Add(material);

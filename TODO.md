@@ -45,8 +45,8 @@ farklı çıktı, aşağıda düzeltildi).
 ### 🔄 Şu anda incelemede (PR açık)
 
 - **Materials backend** (`feature-backend-materials`, PR #3 → `Develop`, henüz
-  merge edilmedi): `MaterialsController` (list/get/download herkese açık,
-  create/update/archive yalnızca Admin/ContentManager), `MaterialService`,
+  merge edilmedi): `MaterialsController` (list/get/download tümü `[Authorize]`,
+  create/update/archive ayrıca Admin/ContentManager rolüyle kısıtlı), `MaterialService`,
   `MaterialRepository`. **Kritik marka-eşleşme kuralı
   (`DealerBrands ∩ MaterialBrands ≠ ∅`) bu PR'da doğrudan uygulandı** — aşağıdaki
   madde `5`'i fiilen kapsıyor, o yüzden `5` artık ayrı bir dal gerektirmeyebilir
@@ -54,6 +54,27 @@ farklı çıktı, aşağıda düzeltildi).
   Uçtan uca test edildi (curl): rol kısıtları, marka kesişimi, 401/403/404 senaryoları.
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
+  - **2026-07-17 code review sonrası iki düzeltme eklendi (aynı PR/branch'e, henüz ayrı
+    commit olarak push edilmedi):**
+    - `ExpiresAt` artık gerçekten uygulanıyor: `MaterialService.GetAuthorizedMaterialAsync`
+      süresi geçmiş (`ExpiresAt <= UtcNow`) içerikte de `ForbiddenAccessException` (403)
+      fırlatıyor; `GetListAsync` bayi kullanıcısı için `excludeExpired: true` ile listeden
+      de düşürüyor. Admin/ContentManager bu filtreden muaf (yönetim ekranında süresi geçmiş
+      içeriği de görebilmeli). curl ile doğrulandı: süresi geçmiş içerik bayi listesinde
+      görünmüyor, direkt id ile GET/download 403, admin GET ile hâlâ görülebiliyor.
+    - Create/Update için temel girdi doğrulaması eklendi (`MaterialService.ValidateAsync`
+      + yeni `Core.Exceptions.ValidationException` → 400, `GlobalExceptionMiddleware`'deki
+      genel `DomainException` case'i üzerinden otomatik yakalanıyor, switch'e yeni satır
+      gerekmedi): boş Title/Description, en az bir marka zorunluluğu, var olmayan
+      `CategoryId`/`BrandIds` artık `IMaterialRepository.CategoryExistsAsync` /
+      `GetExistingBrandIdsAsync` ile DB'ye karşı doğrulanıp anlaşılır mesajla 400
+      dönüyor (önceden FK ihlali ham 500'e düşüyordu). curl ile doğrulandı.
+    - **Hâlâ eksik (bu PR'a dahil edilmedi, ayrı takip gerekiyor):** dosya
+      türü/boyutu doğrulaması — `POST /api/materials` hâlâ herhangi bir uzantı/MIME/boyut
+      sınırı olmadan dosyayı kabul edip diske yazıyor. PDF'in "Hatalı dosya türü/boyutu ...
+      anlaşılır mesaj" kabul kriterini (madde 23) karşılamıyor. `feature-backend-materials`
+      içinde küçük bir takip commit'i olarak ya da `7. feature-*-test-ve-teslim`
+      aşamasında ele alınabilir.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 

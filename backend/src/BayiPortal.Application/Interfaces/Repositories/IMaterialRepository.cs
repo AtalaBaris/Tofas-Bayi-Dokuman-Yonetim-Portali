@@ -12,9 +12,14 @@ public interface IMaterialRepository
         string? keyword,
         string? status,
         IReadOnlyCollection<int>? restrictToBrandIds,
+        bool excludeExpired,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<int>> GetDealerBrandIdsAsync(int dealerId, CancellationToken cancellationToken = default);
+
+    Task<bool> CategoryExistsAsync(int categoryId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<int>> GetExistingBrandIdsAsync(IReadOnlyCollection<int> brandIds, CancellationToken cancellationToken = default);
 
     void Add(Material material);
 
