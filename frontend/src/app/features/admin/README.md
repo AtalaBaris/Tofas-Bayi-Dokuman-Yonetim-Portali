@@ -17,12 +17,16 @@ admin/
 │   ├── styles/
 │   ├── animations/
 │   └── models/
+├── login-activity/             # Başarılı / başarısız giriş kayıtları
+│   ├── components/
+│   ├── styles/
+│   └── models/
 ├── definition-management/      # Kullanıcı, bayi, marka ve kategori tanımları
 │   ├── components/
 │   ├── styles/
 │   ├── animations/
 │   └── models/
-└── access-logs/
+└── access-logs/                # Doküman VIEW/DOWNLOAD kayıtları (ayrı)
 ```
 
 | URL | Erişim |
@@ -36,6 +40,7 @@ admin/
 | `/admin/definitions/dealers` | Private — Admin |
 | `/admin/definitions/brands` | Private — Admin |
 | `/admin/definitions/categories` | Private — Admin |
+| `/admin/login-activity` | Private — Admin, ContentManager |
 | `/admin/access-logs` | Private — Admin |
 
 Shared layout: `shared/components/admin-shell` + `admin-sidebar`
