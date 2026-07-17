@@ -41,40 +41,28 @@ farklı çıktı, aşağıda düzeltildi).
   `admin-sidebar` layout, arama/kategori/marka/durum filtreleri, detay çekmecesi —
   kaliteli bir uygulama ama **hâlâ mock veri** (`MOCK_DOCUMENTS`, 60 kayıt) üzerinde
   çalışıyor, gerçek API'ye bağlı değil.
-
-### 🔄 Şu anda incelemede (PR açık)
-
-- **Materials backend** (`feature-backend-materials`, PR #3 → `Develop`, henüz
-  merge edilmedi): `MaterialsController` (list/get/download tümü `[Authorize]`,
-  create/update/archive ayrıca Admin/ContentManager rolüyle kısıtlı), `MaterialService`,
-  `MaterialRepository`. **Kritik marka-eşleşme kuralı
+- **Materials backend** (PR #3, `feature-backend-materials` → `Develop`,
+  `ad2f374` ile merge oldu, 2026-07-17): `MaterialsController` (list/get/download
+  tümü `[Authorize]`, create/update/archive ayrıca Admin/ContentManager rolüyle
+  kısıtlı), `MaterialService`, `MaterialRepository`. **Kritik marka-eşleşme kuralı
   (`DealerBrands ∩ MaterialBrands ≠ ∅`) bu PR'da doğrudan uygulandı** — aşağıdaki
-  madde `5`'i fiilen kapsıyor, o yüzden `5` artık ayrı bir dal gerektirmeyebilir
-  (bkz. madde 5'teki not). `MaterialStatus` enum'u `Material.Status`'e bağlandı.
-  Uçtan uca test edildi (curl): rol kısıtları, marka kesişimi, 401/403/404 senaryoları.
+  madde `5`'i fiilen kapsıyor, ayrı bir dal açılmadı. `MaterialStatus` enum'u
+  `Material.Status`'e bağlandı. Merge öncesi code review'da bulunan iki eksik de
+  aynı PR'a eklendi (`f7d103a`): `ExpiresAt` artık `GetAuthorizedMaterialAsync` ve
+  `GetListAsync`'de gerçekten uygulanıyor (süresi geçmiş içerik bayi kullanıcısından
+  403/liste dışı, Admin/ContentManager muaf) ve Create/Update artık temel girdi
+  doğrulaması yapıyor (boş Title/Description, en az bir marka, var olmayan
+  CategoryId/BrandIds → yeni `Core.Exceptions.ValidationException` ile 400).
+  Tüm senaryolar merge öncesi curl ile uçtan uca doğrulandı: rol kısıtları, marka
+  kesişimi, 401/403/404, expiry, validasyon.
+  **Hâlâ eksik (bu PR'a dahil edilmedi, ayrı takip gerekiyor):** dosya türü/boyutu
+  doğrulaması — `POST /api/materials` hâlâ herhangi bir uzantı/MIME/boyut sınırı
+  olmadan dosyayı kabul edip diske yazıyor. PDF'in "Hatalı dosya türü/boyutu ...
+  anlaşılır mesaj" kabul kriterini (madde 23) karşılamıyor; `4. feature-backend-materials`
+  altına küçük bir takip commit'i olarak ya da `7. feature-*-test-ve-teslim`
+  aşamasında eklenmeli.
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
-  - **2026-07-17 code review sonrası iki düzeltme eklendi ve `feature-backend-materials`
-    dalına push edildi (`f7d103a`), PR #3 kapsamına dahil:**
-    - `ExpiresAt` artık gerçekten uygulanıyor: `MaterialService.GetAuthorizedMaterialAsync`
-      süresi geçmiş (`ExpiresAt <= UtcNow`) içerikte de `ForbiddenAccessException` (403)
-      fırlatıyor; `GetListAsync` bayi kullanıcısı için `excludeExpired: true` ile listeden
-      de düşürüyor. Admin/ContentManager bu filtreden muaf (yönetim ekranında süresi geçmiş
-      içeriği de görebilmeli). curl ile doğrulandı: süresi geçmiş içerik bayi listesinde
-      görünmüyor, direkt id ile GET/download 403, admin GET ile hâlâ görülebiliyor.
-    - Create/Update için temel girdi doğrulaması eklendi (`MaterialService.ValidateAsync`
-      + yeni `Core.Exceptions.ValidationException` → 400, `GlobalExceptionMiddleware`'deki
-      genel `DomainException` case'i üzerinden otomatik yakalanıyor, switch'e yeni satır
-      gerekmedi): boş Title/Description, en az bir marka zorunluluğu, var olmayan
-      `CategoryId`/`BrandIds` artık `IMaterialRepository.CategoryExistsAsync` /
-      `GetExistingBrandIdsAsync` ile DB'ye karşı doğrulanıp anlaşılır mesajla 400
-      dönüyor (önceden FK ihlali ham 500'e düşüyordu). curl ile doğrulandı.
-    - **Hâlâ eksik (bu PR'a dahil edilmedi, ayrı takip gerekiyor):** dosya
-      türü/boyutu doğrulaması — `POST /api/materials` hâlâ herhangi bir uzantı/MIME/boyut
-      sınırı olmadan dosyayı kabul edip diske yazıyor. PDF'in "Hatalı dosya türü/boyutu ...
-      anlaşılır mesaj" kabul kriterini (madde 23) karşılamıyor. `feature-backend-materials`
-      içinde küçük bir takip commit'i olarak ya da `7. feature-*-test-ve-teslim`
-      aşamasında ele alınabilir.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
@@ -101,12 +89,13 @@ farklı çıktı, aşağıda düzeltildi).
         ▼                          │   birbirlerine bağımlı değiller)
 3. feature-*-tanim-yonetimi ───────┤
                                    │
-🔄 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
-   + feature-backend-materials ────┘   (backend PR #3'te, marka kesişim kuralı DAHİL)
-        │
+✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
+   + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
+        │                               kuralı + expiry + validasyon DAHİL; frontend
+        │                               hâlâ mock veride, bağlama işi ayrı kalıyor)
         ▼
-5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
-        │                          tamamlandı — ayrı dal gerekmeyebilir, teyit edin)
+✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
+        │                          tamamlandı — ayrı dal açılmadı)
         ▼
 6. feature-*-access-logs          (5'e bağımlı — bir arkadaş feature-backend-girisLog'da çalışıyor)
         │
@@ -189,21 +178,25 @@ bir bayiye atayabiliyor.
 
 ---
 
-## 4. `feature-frontend-paylasilan-dokuman-listesi` (merge oldu) + `feature-backend-materials`
+## 4. `feature-frontend-paylasilan-dokuman-listesi` (merge oldu) + `feature-backend-materials` (merge oldu)
 
 **Bağımlılık:** yalnızca 1 (seed'deki Brand/Category verisi yeterli). **Paralel
 çalışılabilir:** 2, 3 ile birlikte.
 
-- ✅ Backend: `MaterialsController` yazıldı (PR #3, henüz merge edilmedi) —
-  `GET/POST/PUT/DELETE /api/materials`, `GET /api/materials/{id}/download`,
+- ✅ Backend: `MaterialsController` yazıldı ve merge oldu (PR #3 → `Develop`,
+  `ad2f374`) — `GET/POST/PUT/DELETE /api/materials`, `GET /api/materials/{id}/download`,
   kategori/marka/anahtar kelime/status filtresi, `IFileStorageService` ile dosya
   kaydı, arşivleme (`DELETE` → soft delete). Marka kesişim kuralı da bu PR'da
-  (bkz. madde 5). `dotnet-ef` migration gerekmedi.
+  (bkz. madde 5). `ExpiresAt` uygulanıyor, Create/Update girdi doğrulaması var
+  (bkz. yukarıdaki "Mevcut durum özeti"). `dotnet-ef` migration gerekmedi.
 - ❌ Frontend: `features/admin/shared-docs-list-page/` (madde başındaki dal ile
   merge oldu) hâlâ `MOCK_DOCUMENTS` üzerinde çalışıyor, gerçek
   `GET /api/materials`'a bağlı değil. Eski `material-form`/`material-list`/
-  `material-detail` stub'ları da hâlâ boş. Materials PR'ı merge olduktan sonra bu
-  ekranı gerçek API'ye bağlamak ayrı bir küçük iş olarak kalıyor.
+  `material-detail` stub'ları da hâlâ boş. Materials backend'i merge olduğuna göre
+  bu ekranı gerçek API'ye bağlamak artık **sıradaki iş** — ayrı bir küçük
+  `feature-frontend-*` dalı olarak açılabilir.
+- ⚠️ Takip: dosya türü/boyutu doğrulaması backend'de hâlâ yok (yukarıda
+  detaylandırıldı).
 
 **Bitti sayılır:** İçerik yöneticisi iki markaya açık bir eğitim dokümanı
 yükleyebiliyor; liste filtrelenebiliyor. (Backend tarafı bu kriteri karşılıyor,
@@ -211,7 +204,7 @@ curl ile doğrulandı — frontend bağlanınca uçtan uca tamamlanmış olacak.
 
 ---
 
-## 5. `feature-*-bayi-marka-erisimi` — materials için PR #3 ile fiilen tamamlandı
+## 5. `feature-*-bayi-marka-erisimi` — materials için PR #3 ile fiilen tamamlandı (merge oldu)
 
 **Neden kritik:** Projenin en önemli iş kuralı: `DealerBrands ∩ MaterialBrands ≠ ∅`.
 
