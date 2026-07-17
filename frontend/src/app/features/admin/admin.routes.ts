@@ -30,6 +30,20 @@ export const ADMIN_ROUTES: Routes = [
           import('./access-logs/access-logs').then((m) => m.AccessLogs),
       },
       {
+        path: 'definitions',
+        canActivate: [adminRoleGuard(['Admin'])],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'users' },
+          {
+            path: ':section',
+            loadComponent: () =>
+              import(
+                './definition-management/components/definition-management-page/definition-management-page'
+              ).then((m) => m.DefinitionManagementPage),
+          },
+        ],
+      },
+      {
         path: 'documents/new',
         loadComponent: () =>
           import('./add-document/components/add-document-page/add-document-page').then(
