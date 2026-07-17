@@ -1,0 +1,19 @@
+<div class="add-actions">
+  <button
+    type="button"
+    class="add-actions__draft"
+    [disabled]="saving()"
+    (click)="saveDraft.emit()"
+  >
+    Taslak Olarak Kaydet
+  </button>
+  <button
+    type="button"
+    class="add-actions__save"
+    [disabled]="saving()"
+    (click)="save.emit()"
+  >
+    <span class="material-symbols-outlined">save</span>
+    Kaydet
+  </button>
+</div>

@@ -30,9 +30,16 @@ export const ADMIN_ROUTES: Routes = [
           import('./access-logs/access-logs').then((m) => m.AccessLogs),
       },
       {
-        path: 'materials/new',
+        path: 'documents/new',
         loadComponent: () =>
-          import('../materials/material-form/material-form').then((m) => m.MaterialForm),
+          import('./add-document/components/add-document-page/add-document-page').then(
+            (m) => m.AddDocumentPage
+          ),
+      },
+      {
+        path: 'materials/new',
+        redirectTo: 'documents/new',
+        pathMatch: 'full',
       },
     ],
   },

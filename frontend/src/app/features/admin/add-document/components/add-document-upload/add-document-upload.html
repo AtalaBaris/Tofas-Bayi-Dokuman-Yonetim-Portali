@@ -1,0 +1,57 @@
+<div class="add-doc__card">
+  <h2 class="add-doc__card-title">Dosya Yükleme</h2>
+
+  <div
+    class="add-upload__drop"
+    [class.add-upload__drop--active]="dragOver()"
+    role="button"
+    tabindex="0"
+    (click)="openPicker()"
+    (keydown.enter)="openPicker()"
+    (keydown.space)="$event.preventDefault(); openPicker()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <div class="add-upload__icon-wrap" aria-hidden="true">
+      <span class="material-symbols-outlined">cloud_upload</span>
+    </div>
+    <h3 class="add-upload__title">Dosyaları buraya sürükleyin veya seçin</h3>
+    <p class="add-upload__hint">PDF, MP4, JPG kabul edilir</p>
+    <button type="button" class="add-upload__browse" (click)="openPicker(); $event.stopPropagation()">
+      Dosya Seç
+    </button>
+    <input
+      #fileInput
+      class="add-upload__input"
+      type="file"
+      accept=".pdf,.mp4,.jpg,.jpeg,.png,application/pdf,video/mp4,image/jpeg,image/png"
+      (change)="onFilePicked($event)"
+    />
+  </div>
+
+  @if (file(); as selected) {
+    <div class="add-upload__file">
+      <span class="material-symbols-outlined add-upload__file-icon">
+        @switch (selected.kind) {
+          @case ('pdf') { picture_as_pdf }
+          @case ('video') { movie }
+          @case ('image') { image }
+          @default { attach_file }
+        }
+      </span>
+      <div class="add-upload__file-meta">
+        <p class="add-upload__file-name">{{ selected.name }}</p>
+        <p class="add-upload__file-size">{{ selected.sizeLabel }}</p>
+      </div>
+      <button
+        type="button"
+        class="add-upload__remove"
+        aria-label="Dosyayı kaldır"
+        (click)="clearFile($event)"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+  }
+</div>
