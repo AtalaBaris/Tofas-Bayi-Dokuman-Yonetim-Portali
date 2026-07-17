@@ -1,10 +1,10 @@
 /** Her HTTP isteğine Authorization: Bearer <token> ekler. */
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { AuthService } from '../services/auth.service';
+import { readStoredToken } from '../auth-storage';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = inject(AuthService).getToken();
+  // AuthService inject etme — HttpClient ↔ AuthService döngüsel bağımlılığını önler.
+  const token = readStoredToken();
   if (!token) {
     return next(req);
   }
@@ -12,8 +12,8 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   return next(
     req.clone({
       setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
   );
 };

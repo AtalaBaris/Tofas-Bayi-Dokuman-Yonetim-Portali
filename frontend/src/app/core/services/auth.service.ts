@@ -1,7 +1,13 @@
 /** Giriş/çıkış, token saklama ve currentUser sinyali. */
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, Injector, inject, signal } from '@angular/core';
 import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import type { User } from '../models/user.interface';
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  clearStoredSession,
+  readStoredToken,
+} from '../auth-storage';
 import { ApiService } from './api.service';
 import { AccessLogService } from './access-log.service';
 
@@ -25,9 +31,8 @@ export interface LoginOptions {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = inject(ApiService);
-  private readonly accessLogs = inject(AccessLogService);
-  private readonly tokenKey = 'bayi_portal_token';
-  private readonly userKey = 'bayi_portal_user';
+  /** Lazy: AuthService ↔ HttpClient döngüsünü kurulumda tetiklemesin. */
+  private readonly injector = inject(Injector);
   readonly currentUser = signal<User | null>(this.readStoredUser());
 
   login(request: LoginRequest, options?: LoginOptions): Observable<LoginResponse> {
@@ -48,14 +53,14 @@ export class AuthService {
       return clear$;
     }
 
-    return this.accessLogs.logLogout().pipe(
+    return this.injector.get(AccessLogService).logLogout().pipe(
       catchError(() => of(void 0)),
       switchMap(() => clear$)
     );
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey) ?? sessionStorage.getItem(this.tokenKey);
+    return readStoredToken();
   }
 
   isAuthenticated(): boolean {
@@ -63,10 +68,7 @@ export class AuthService {
   }
 
   private clearLocalSession(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    sessionStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.userKey);
+    clearStoredSession();
     this.currentUser.set(null);
   }
 
@@ -74,15 +76,15 @@ export class AuthService {
     const primary = rememberMe ? localStorage : sessionStorage;
     const secondary = rememberMe ? sessionStorage : localStorage;
 
-    secondary.removeItem(this.tokenKey);
-    secondary.removeItem(this.userKey);
-    primary.setItem(this.tokenKey, token);
-    primary.setItem(this.userKey, JSON.stringify(user));
+    secondary.removeItem(AUTH_TOKEN_KEY);
+    secondary.removeItem(AUTH_USER_KEY);
+    primary.setItem(AUTH_TOKEN_KEY, token);
+    primary.setItem(AUTH_USER_KEY, JSON.stringify(user));
   }
 
   private readStoredUser(): User | null {
     const raw =
-      localStorage.getItem(this.userKey) ?? sessionStorage.getItem(this.userKey);
+      localStorage.getItem(AUTH_USER_KEY) ?? sessionStorage.getItem(AUTH_USER_KEY);
     if (!raw) {
       return null;
     }

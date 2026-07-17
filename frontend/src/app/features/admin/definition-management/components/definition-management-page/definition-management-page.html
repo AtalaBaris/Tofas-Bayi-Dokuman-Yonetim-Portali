@@ -8,6 +8,13 @@
   </header>
 
   <main class="definitions-page__content">
+    @if (listError()) {
+      <p class="definitions-page__error">{{ listError() }}</p>
+    }
+    @if (loading()) {
+      <p class="definitions-page__loading">Yükleniyor…</p>
+    }
+
     <app-definition-table
       [section]="section()"
       [users]="users()"
@@ -33,6 +40,11 @@
     <div @drawer>
       <app-definition-drawer
         [section]="section()"
+        [editTarget]="editTarget()"
+        [dealers]="dealerOptions()"
+        [brands]="brandOptions()"
+        [saving]="saving()"
+        [formError]="formError()"
         (closed)="closeDrawer()"
         (saved)="saveDefinition($event)"
       />
@@ -43,7 +55,7 @@
     [open]="confirmOpen()"
     [title]="confirmTitle()"
     [message]="confirmMessage()"
-    confirmLabel="Sil"
+    confirmLabel="Pasife Al"
     cancelLabel="Vazgeç"
     [danger]="true"
     (confirmed)="confirmDelete()"

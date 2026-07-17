@@ -1,17 +1,39 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DEFINITION_LABELS, type DefinitionSection } from '../../models/definition-management.model';
+import type { BrandDto, DealerDto } from '../../../../../core/models/definition.models';
+import {
+  DEFINITION_LABELS,
+  ROLE_OPTIONS,
+  type DefinitionSection,
+  type DefinitionUser,
+  type SimpleDefinitionItem,
+} from '../../models/definition-management.model';
 
 export interface DefinitionDrawerSavePayload {
   section: DefinitionSection;
+  id: number | null;
   name: string;
   email: string;
   password: string;
   role: string;
-  dealer: string;
-  detail: string;
+  dealerId: number | null;
+  code: string;
+  description: string;
+  brandIds: number[];
   active: boolean;
 }
+
+export type DefinitionEditTarget =
+  | { kind: 'user'; item: DefinitionUser }
+  | { kind: 'item'; item: SimpleDefinitionItem }
+  | null;
 
 @Component({
   selector: 'app-definition-drawer',
@@ -21,6 +43,12 @@ export interface DefinitionDrawerSavePayload {
 })
 export class DefinitionDrawer {
   readonly section = input.required<DefinitionSection>();
+  readonly editTarget = input<DefinitionEditTarget>(null);
+  readonly dealers = input<DealerDto[]>([]);
+  readonly brands = input<BrandDto[]>([]);
+  readonly saving = input(false);
+  readonly formError = input<string | null>(null);
+
   readonly closed = output<void>();
   readonly saved = output<DefinitionDrawerSavePayload>();
 
@@ -29,10 +57,15 @@ export class DefinitionDrawer {
   readonly password = signal('');
   readonly passwordConfirm = signal('');
   readonly role = signal('');
-  readonly dealer = signal('');
-  readonly detail = signal('');
+  readonly dealerId = signal<number | null>(null);
+  readonly code = signal('');
+  readonly description = signal('');
+  readonly brandIds = signal<number[]>([]);
   readonly active = signal(true);
   readonly showErrors = signal(false);
+
+  readonly roleOptions = ROLE_OPTIONS;
+  readonly isEdit = computed(() => this.editTarget() !== null);
 
   readonly passwordsMatch = computed(() => {
     const password = this.password();
@@ -44,7 +77,7 @@ export class DefinitionDrawer {
   });
 
   readonly passwordError = computed(() => {
-    if (!this.showErrors()) {
+    if (this.isEdit() || !this.showErrors()) {
       return null;
     }
     if (!this.password().trim()) {
@@ -59,14 +92,52 @@ export class DefinitionDrawer {
     return null;
   });
 
+  constructor() {
+    effect(() => {
+      const target = this.editTarget();
+      const section = this.section();
+      this.showErrors.set(false);
+      this.password.set('');
+      this.passwordConfirm.set('');
+
+      if (!target) {
+        this.name.set('');
+        this.email.set('');
+        this.role.set('');
+        this.dealerId.set(null);
+        this.code.set('');
+        this.description.set('');
+        this.brandIds.set([]);
+        this.active.set(true);
+        return;
+      }
+
+      if (target.kind === 'user') {
+        this.name.set(target.item.name);
+        this.email.set(target.item.email);
+        this.role.set(target.item.role);
+        this.dealerId.set(target.item.dealerId);
+        this.active.set(target.item.active);
+        return;
+      }
+
+      this.name.set(target.item.name);
+      this.active.set(target.item.active);
+      this.code.set(target.item.code ?? '');
+      this.description.set(target.item.description ?? (section === 'categories' ? target.item.detail : ''));
+      this.brandIds.set([...(target.item.brandIds ?? [])]);
+    });
+  }
+
   title(): string {
-    const singular: Record<DefinitionSection, string> = {
-      users: 'Yeni Kullanıcı Ekle',
-      dealers: 'Yeni Bayi Ekle',
-      brands: 'Yeni Marka Ekle',
-      categories: 'Yeni Kategori Ekle',
+    const edit = this.isEdit();
+    const labels: Record<DefinitionSection, [string, string]> = {
+      users: ['Yeni Kullanıcı Ekle', 'Kullanıcıyı Düzenle'],
+      dealers: ['Yeni Bayi Ekle', 'Bayiyi Düzenle'],
+      brands: ['Yeni Marka Ekle', 'Markayı Düzenle'],
+      categories: ['Yeni Kategori Ekle', 'Kategoriyi Düzenle'],
     };
-    return singular[this.section()];
+    return labels[this.section()][edit ? 1 : 0];
   }
 
   simpleNameLabel(): string {
@@ -77,31 +148,59 @@ export class DefinitionDrawer {
     this.active.set(value);
   }
 
+  toggleBrand(id: number, checked: boolean): void {
+    this.brandIds.update((list) =>
+      checked ? [...new Set([...list, id])] : list.filter((x) => x !== id)
+    );
+  }
+
+  isBrandSelected(id: number): boolean {
+    return this.brandIds().includes(id);
+  }
+
+  onDealerChange(raw: string): void {
+    this.dealerId.set(raw ? Number(raw) : null);
+  }
+
   save(): void {
     this.showErrors.set(true);
+    const section = this.section();
+    const edit = this.isEdit();
 
-    if (this.section() === 'users') {
-      if (
-        !this.name().trim() ||
-        !this.email().trim() ||
-        !this.role().trim() ||
-        !this.passwordsMatch() ||
-        !this.password().trim()
-      ) {
+    if (section === 'users') {
+      if (!this.name().trim() || !this.role().trim()) {
+        return;
+      }
+      if (!edit && (!this.email().trim() || !!this.passwordError())) {
+        return;
+      }
+      if (this.role() === 'DealerUser' && !this.dealerId()) {
+        return;
+      }
+    } else if (section === 'dealers') {
+      if (!this.name().trim() || !this.code().trim()) {
+        return;
+      }
+    } else if (section === 'brands') {
+      if (!this.name().trim() || !this.code().trim()) {
         return;
       }
     } else if (!this.name().trim()) {
       return;
     }
 
+    const target = this.editTarget();
     this.saved.emit({
-      section: this.section(),
+      section,
+      id: target?.item.id ?? null,
       name: this.name().trim(),
       email: this.email().trim(),
       password: this.password(),
       role: this.role(),
-      dealer: this.dealer(),
-      detail: this.detail().trim(),
+      dealerId: this.role() === 'DealerUser' ? this.dealerId() : null,
+      code: this.code().trim(),
+      description: this.description().trim(),
+      brandIds: [...this.brandIds()],
       active: this.active(),
     });
   }
