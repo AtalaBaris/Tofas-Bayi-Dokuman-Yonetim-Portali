@@ -252,3 +252,23 @@ Benzer bir tutarsızlık hâlâ duruyor: `User.Role` da tanımlı `RoleType` enu
 yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
 `string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
 dosyalar) — ileride ilgili branch'lerde bağlanabilir.
+
+## Küçük not (config tutarsızlığı) — açık, çözülmedi
+
+`docker-compose.yml` Postgres'i host port **5433**'e map ediyor (yorum: "Host 5433:
+local Homebrew Postgres often occupies 5432"), ama commit'lenmiş
+`backend/src/BayiPortal.API/appsettings.Development.json` içindeki
+`ConnectionStrings:DefaultConnection` sabit olarak **5432**'yi kullanıyor. Bu iki
+değer birbiriyle uyuşmuyor:
+
+- Homebrew ile native Postgres kullanan biri (bu makine gibi) → 5432, commit'lenmiş
+  config'le hiçbir değişiklik yapmadan çalışıyor.
+- `docker compose up -d` ile Postgres'i container'da çalıştıran biri → connection
+  string'i **lokalde elle 5433'e çevirmesi gerekiyor** (ya da `dotnet user-secrets`/
+  ortam değişkeniyle override etmesi gerekiyor), aksi halde bağlantı hatası alır.
+
+Bu adım hiçbir yerde (README dahil) dokümante edilmemiş — Docker'ı ilk kez deneyen
+biri sessizce takılabilir. Kalıcı çözüm: connection string'i ortam değişkeninden
+okunabilir hale getirip (`ConnectionStrings__DefaultConnection` override), README'ye
+"Docker kullanıyorsanız portu 5433 yapın" notu eklemek. Şimdilik sadece flag'lendi,
+kimin çözeceği/ne zaman ekiple teyit edilmeli.
