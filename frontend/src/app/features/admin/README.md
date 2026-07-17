@@ -12,6 +12,11 @@ admin/
 │   ├── styles/
 │   ├── animations/
 │   └── models/
+├── add-document/               # Yeni içerik ekleme
+│   ├── components/
+│   ├── styles/
+│   ├── animations/
+│   └── models/
 └── access-logs/
 ```
 
@@ -20,7 +25,8 @@ admin/
 | `/admin` | → `/admin/login` |
 | `/admin/login` | Public |
 | `/admin/documents` | Private — Admin, ContentManager |
+| `/admin/documents/new` | Private — Admin, ContentManager |
+| `/admin/materials/new` | → `/admin/documents/new` |
 | `/admin/access-logs` | Private — Admin |
-| `/admin/materials/new` | Private — Admin, ContentManager |
 
 Shared layout: `shared/components/admin-shell` + `admin-sidebar`

@@ -1,0 +1,42 @@
+<!-- Yeni içerik ekleme: bento form + sabit aksiyon çubuğu (shell sidebar ayrı). -->
+<div class="add-doc" @pageEnter>
+  <div class="add-doc__scroll">
+    <div class="add-doc__inner">
+      <app-add-document-header (libraryClick)="goToLibrary()" />
+
+      <div class="add-doc__grid">
+        <div class="add-doc__main">
+          <app-add-document-basic
+            [title]="title()"
+            [description]="description()"
+            [showErrors]="showErrors()"
+            (titleChange)="title.set($event)"
+            (descriptionChange)="description.set($event)"
+          />
+          <app-add-document-upload [file]="file()" (fileChange)="file.set($event)" />
+        </div>
+
+        <div class="add-doc__side">
+          <app-add-document-meta
+            [category]="category()"
+            [brands]="brands()"
+            [publishedAt]="publishedAt()"
+            [expiresAt]="expiresAt()"
+            [status]="status()"
+            (categoryChange)="category.set($event)"
+            (brandsChange)="brands.set($event)"
+            (publishedAtChange)="publishedAt.set($event)"
+            (expiresAtChange)="expiresAt.set($event)"
+            (statusChange)="status.set($event)"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-add-document-actions
+    [saving]="saving()"
+    (saveDraft)="saveDraft()"
+    (save)="save()"
+  />
+</div>
