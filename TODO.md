@@ -105,7 +105,7 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 1. feature-backend-auth        (merge oldu — JWT + seed + login endpoint çalışıyor)
         │
         ▼
-2. feature-backend-authorization ──┐
+✅ 2. feature-backend-authorization ──┐
         │                          │  (ikisi de sadece 1'e bağımlı,
         ▼                          │   birbirlerine bağımlı değiller)
 ✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
@@ -165,20 +165,37 @@ yanlış şifre anlaşılır hata veriyor.
 
 ---
 
-## 2. `feature-backend-authorization`
+## 2. `feature-backend-authorization` — ✅ tamamlandı (ayrı dal açılmadı, doğrulama yapıldı 2026-07-17)
 
-**Bağımlılık:** yalnızca 1. **Paralel çalışılabilir:** 3, 4 ile birlikte.
+**Bağımlılık:** yalnızca 1.
 
-- Backend: `[Authorize(Roles = "...")]` politikaları; `401` (token yok/geçersiz) vs
-  `403` (rol yetersiz) ayrımının doğru çalıştığının doğrulanması
-  (`GlobalExceptionMiddleware` zaten `ForbiddenAccessException`'ı 403'e çeviriyor,
-  endpoint'lerin bu exception'ı gerçekten fırlatması lazım)
-- Frontend: `adminRoleGuard`/`authGuard` zaten gerçek JWT tabanlı `currentUser()`
-  claim'lerini okuyor (1 tamamlanınca otomatik doğru çalışacak) — ek iş büyük
-  ihtimalle gerekmeyecek, sadece doğrulama
+Rol bazlı yetkilendirme, diğer backend PR'ları ilerlerken (Materials PR #3,
+Tanım Yönetimi PR #6, Access Logs PR #9) her controller'a kendi `[Authorize(...)]`
+attribute'larıyla zaten eklenmiş — ayrı bir dal gerekmedi. Bu madde kapsamında
+sadece uçtan uca doğrulama yapıldı (lokal API'ye admin/editor/bayi.a
+kullanıcılarıyla gerçek JWT alınıp curl ile test edildi):
 
-**Bitti sayılır:** Bayi kullanıcısı `/admin` altına girmeye çalışınca yönlendiriliyor;
-aynı isteği doğrudan API'ye atınca 403 dönüyor.
+- **401 (token yok/geçersiz):** `/api/materials`, `/api/dealers`, `/api/access-logs`
+  token'sız veya bozuk token'la istendiğinde 401 dönüyor — doğrulandı.
+- **403 (rol yetersiz):** `DealerUser` (bayi.a) token'ıyla `Admin`-only endpoint'lere
+  (`/api/dealers`, `/api/brands`, `/api/categories`, `/api/users`, `/api/access-logs`)
+  ve materials create'e (`ManagerRoles`) istek atıldığında 403 dönüyor;
+  `ContentManager` (editor) token'ıyla `/api/dealers` yine 403 — doğrulandı.
+- **Materyal marka/durum eşleşmesi (madde 5 ile kesişen kısım):** `DealerUser`
+  aynı markadan ama `Archived` bir materyale (`GET /api/materials/{id}`) 403
+  alıyor, `Admin` aynı isteği 200 ile görüyor — `GlobalExceptionMiddleware`'in
+  `ForbiddenAccessException` → 403 dönüşümü hâlâ doğru çalışıyor.
+- **Frontend:** `adminRoleGuard`/`adminAuthGuard`
+  (`frontend/src/app/features/admin/guards/admin.guards.ts`) gerçek login
+  response'undan gelen `currentUser().role`'ü okuyor (JWT claim decode değil,
+  backend zaten aynı kuralı bağımsız uyguluyor); `admin.routes.ts` tüm `/admin`
+  alt ağacını `['Admin','ContentManager']` ile, Tanım Yönetimi gibi bazı alt
+  route'ları ek olarak `['Admin']` ile kısıtlıyor — kod incelemesiyle doğrulandı,
+  ek iş gerekmedi.
+
+**Bitti sayılır:** ✅ Bayi kullanıcısı `/admin` altına girmeye çalışınca
+yönlendiriliyor (guard); aynı isteği doğrudan API'ye atınca 403 dönüyor (yukarıda
+curl ile doğrulandı).
 
 ---
 
@@ -290,7 +307,7 @@ yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
 `string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
 dosyalar) — ileride ilgili branch'lerde bağlanabilir.
 
-## Küçük not (config tutarsızlığı) — ✅ çözüldü
+## Küçük not (config tutarsızlığı) — ⚠️ Docker için çözüldü, native Postgres için yeniden açıldı
 
-`docker-compose.yml` Postgres'i host port **5433**'e map ediyordu fakat `appsettings.Development.json` içinde varsayılan olarak **5432** portu tanımlıydı. Bu tutarsızlık giderildi ve her iki appsettings (`appsettings.json` ve `appsettings.Development.json`) dosyasındaki varsayılan PostgreSQL portu **5433** olarak güncellendi. Artık ek bir ayar yapmaya gerek kalmadan Docker veritabanına otomatik olarak bağlanılabilmektedir.
+`docker-compose.yml` Postgres'i host port **5433**'e map ediyordu fakat `appsettings.Development.json` içinde varsayılan olarak **5432** portu tanımlıydı. PR #9 (`feature-backend-bayiGirisLog`) bunu her iki appsettings dosyasındaki (`appsettings.json`, `appsettings.Development.json`) varsayılan portu **5433**'e çevirerek "çözdü" — ama bu tutarsızlığı gidermek yerine ters yöne taşıdı: artık `docker compose up -d` ile çalışanlar için ek ayar gerekmiyor, fakat Homebrew/apt gibi native kurulu Postgres kullanan biri (varsayılan port `5432`) commit'lenmiş config'le **artık bağlanamıyor** ve portu 5432'ye override etmesi gerekiyor — örn. `dotnet user-secrets` ile machine-local override (bkz. `CLAUDE.md` → "Lokal veritabanı" bölümü, bu makinede uygulanan yöntem) veya `ConnectionStrings__DefaultConnection` ortam değişkeni. Kalıcı çözüm hâlâ aynı: connection string'i her iki kurulum tipinde de env var/user-secrets ile override edilebilir hale getirip README'de her iki senaryoyu da dokümante etmek.
 
