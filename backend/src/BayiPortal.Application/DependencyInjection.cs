@@ -13,6 +13,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IMaterialService, MaterialService>();
 
         return services;
     }

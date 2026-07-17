@@ -17,7 +17,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(x => x.StoredFileName).HasMaxLength(260).IsRequired();
         builder.Property(x => x.FilePath).HasMaxLength(500).IsRequired();
         builder.Property(x => x.MimeType).HasMaxLength(150).IsRequired();
-        builder.Property(x => x.Status).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
 
         builder.HasOne(x => x.Category)
             .WithMany(c => c.Materials)

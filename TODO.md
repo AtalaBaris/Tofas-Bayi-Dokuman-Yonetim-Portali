@@ -23,47 +23,64 @@ farklı çıktı, aşağıda düzeltildi).
 - İstisna: `TODO.md`/`CLAUDE.md` gibi salt dokümantasyon dosyaları doğrudan `main`'e
   commit'lenebilir; kod değişiklikleri `Develop` üzerinden `feature-*` akışını izler.
 
-## Mevcut durum özeti (2026-07-16)
+## Mevcut durum özeti (2026-07-16 güncellemesi #2)
 
-### ✅ Tamamlanan: Bayi + Admin login ekranları (frontend, PR #1 ile merge oldu)
+### ✅ Tamamlanan ve `Develop`'a merge olan işler
 
-`feature-frontend-bayilogin` dalında yapıldı, `Develop`'a merge edildi (`9d239f9`).
-Beklenenden çok daha ileri seviyede tamamlanmış:
+- **Bayi + Admin login ekranları** (frontend, PR #1, `feature-frontend-bayilogin` →
+  `9d239f9`): Reactive Forms, validasyon, şifre göster/gizle, animasyonlar;
+  `adminAuthGuard`/`adminRoleGuard` (eski `core/guards/role.guard.ts` silindi).
+- **Backend Auth** (PR ile merge, `feature-backend-auth` → `081a51f`, seed sorunu
+  sonradan `1845057` ile düzeltildi): `AuthController`
+  (`POST /api/auth/login`), JWT üretimi/doğrulaması, `PasswordHasher<User>`,
+  idempotent `SeedData` (Development'ta her başlangıçta 4 örnek hesabı garanti
+  eder). Frontend `AuthService.login()` artık gerçek API'ye bağlı, sahte
+  `dev-token` mantığı kaldırıldı.
+- **Paylaşılan Dökümanlar listesi** (frontend, PR #2,
+  `feature-frontend-paylasilan-dokuman-listesi` → `6d15b73`): `admin-shell` +
+  `admin-sidebar` layout, arama/kategori/marka/durum filtreleri, detay çekmecesi —
+  kaliteli bir uygulama ama **hâlâ mock veri** (`MOCK_DOCUMENTS`, 60 kayıt) üzerinde
+  çalışıyor, gerçek API'ye bağlı değil.
 
-- `features/bayi/login/components/bayi-login/` — Reactive Forms, email/şifre
-  validasyonu, şifre göster/gizle, animasyonlar, kendi SCSS'i
-- `features/admin/login/components/admin-login/` — aynı kalite/yapı, admin tarafı
-- `features/admin/admin.routes.ts` + `features/admin/guards/admin.guards.ts` —
-  `/admin/login`, `/admin/access-logs`, `/admin/materials/new` route'ları ve
-  `adminAuthGuard`/`adminRoleGuard` (eski `core/guards/role.guard.ts` artık
-  **kullanılmıyor** — bkz. temizlik notu aşağıda)
-- `AuthService` genişletildi: `rememberMe` (localStorage/sessionStorage seçimi),
-  `LoginOptions.portal` ('bayi' | 'admin')
+### 🔄 Şu anda incelemede (PR açık)
 
-### ⚠️ Hâlâ placeholder olan kısım
+- **Materials backend** (`feature-backend-materials`, PR #3 → `Develop`, henüz
+  merge edilmedi): `MaterialsController` (list/get/download tümü `[Authorize]`,
+  create/update/archive ayrıca Admin/ContentManager rolüyle kısıtlı), `MaterialService`,
+  `MaterialRepository`. **Kritik marka-eşleşme kuralı
+  (`DealerBrands ∩ MaterialBrands ≠ ∅`) bu PR'da doğrudan uygulandı** — aşağıdaki
+  madde `5`'i fiilen kapsıyor, o yüzden `5` artık ayrı bir dal gerektirmeyebilir
+  (bkz. madde 5'teki not). `MaterialStatus` enum'u `Material.Status`'e bağlandı.
+  Uçtan uca test edildi (curl): rol kısıtları, marka kesişimi, 401/403/404 senaryoları.
+  **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
+  bağlanması hâlâ ayrı bir iş.
+  - **2026-07-17 code review sonrası iki düzeltme eklendi ve `feature-backend-materials`
+    dalına push edildi (`f7d103a`), PR #3 kapsamına dahil:**
+    - `ExpiresAt` artık gerçekten uygulanıyor: `MaterialService.GetAuthorizedMaterialAsync`
+      süresi geçmiş (`ExpiresAt <= UtcNow`) içerikte de `ForbiddenAccessException` (403)
+      fırlatıyor; `GetListAsync` bayi kullanıcısı için `excludeExpired: true` ile listeden
+      de düşürüyor. Admin/ContentManager bu filtreden muaf (yönetim ekranında süresi geçmiş
+      içeriği de görebilmeli). curl ile doğrulandı: süresi geçmiş içerik bayi listesinde
+      görünmüyor, direkt id ile GET/download 403, admin GET ile hâlâ görülebiliyor.
+    - Create/Update için temel girdi doğrulaması eklendi (`MaterialService.ValidateAsync`
+      + yeni `Core.Exceptions.ValidationException` → 400, `GlobalExceptionMiddleware`'deki
+      genel `DomainException` case'i üzerinden otomatik yakalanıyor, switch'e yeni satır
+      gerekmedi): boş Title/Description, en az bir marka zorunluluğu, var olmayan
+      `CategoryId`/`BrandIds` artık `IMaterialRepository.CategoryExistsAsync` /
+      `GetExistingBrandIdsAsync` ile DB'ye karşı doğrulanıp anlaşılır mesajla 400
+      dönüyor (önceden FK ihlali ham 500'e düşüyordu). curl ile doğrulandı.
+    - **Hâlâ eksik (bu PR'a dahil edilmedi, ayrı takip gerekiyor):** dosya
+      türü/boyutu doğrulaması — `POST /api/materials` hâlâ herhangi bir uzantı/MIME/boyut
+      sınırı olmadan dosyayı kabul edip diske yazıyor. PDF'in "Hatalı dosya türü/boyutu ...
+      anlaşılır mesaj" kabul kriterini (madde 23) karşılamıyor. `feature-backend-materials`
+      içinde küçük bir takip commit'i olarak ya da `7. feature-*-test-ve-teslim`
+      aşamasında ele alınabilir.
 
-`AuthService.login()` gerçek bir API çağrısı yapmıyor — `portal` parametresine göre
-sahte bir rol atayıp (`admin` → `Admin`, aksi halde `DealerUser`) sahte `dev-token`
-döndürüyor. Formlar ve guard'lar **gerçek**, ama arkalarında gerçek bir backend yok.
+### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
-### ❌ Backend'de hâlâ hiçbir şey yok
-
-`Develop` dalında da backend tarafı bu oturumun başındaki durumla birebir aynı:
-sadece `HealthController` var. JWT wiring, seed veri, `AuthController`,
-`MaterialsController` — hiçbiri yazılmadı. (`feature-backend-auth` adında bir dal
-zaten **açılmış** ama içi boş — bu, tam olarak sırada bekleyen iş.)
-
-### 🧹 Küçük temizlik notu
-
-`frontend/src/app/core/guards/role.guard.ts` artık kullanılmıyor
-(`admin.guards.ts`'teki `adminRoleGuard` onun yerini aldı). Backend auth branch'i
-sırasında veya ayrı bir küçük commit'te silinmeli.
-
-### 📌 Ekibin zaten açtığı ama içi boş dallar
-
-- `feature-backend-auth` — backend auth işi için ayrılmış, hiç commit yok
-- `feature-frontend-paylasilan-dokuman-listesi` — materyal listesi ekranı için
-  ayrılmış (bayilogin merge'inden sonra açılmış), hiç commit yok
+- `feature-backend-girisLog` — bir takım arkadaşı bu dalda çalışıyor (muhtemelen
+  madde `6`, AccessLogs). Materials PR'ı bilerek `AccessLogs`'a yazma mantığına
+  dokunmadı ki bu dalla çakışma olmasın.
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
@@ -76,8 +93,7 @@ sırasında veya ayrı bir küçük commit'te silinmeli.
 ✅ frontend: bayi-login + admin-login          (feature-frontend-bayilogin, merge oldu)
         │
         ▼
-1. feature-backend-auth          ← SIRADAKİ İŞ, dal zaten açık
-   (JWT + seed + login endpoint + AuthService'i gerçek API'ye bağlama)
+✅ 1. feature-backend-auth        (merge oldu — JWT + seed + login endpoint çalışıyor)
         │
         ▼
 2. feature-backend-authorization ──┐
@@ -85,14 +101,14 @@ sırasında veya ayrı bir küçük commit'te silinmeli.
         ▼                          │   birbirlerine bağımlı değiller)
 3. feature-*-tanim-yonetimi ───────┤
                                    │
-4. feature-frontend-paylasilan-dokuman-listesi  (dal zaten açık)
-   + feature-backend-materials ────┘
+🔄 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
+   + feature-backend-materials ────┘   (backend PR #3'te, marka kesişim kuralı DAHİL)
         │
         ▼
-5. feature-*-bayi-marka-erisimi   (4'e bağımlı; ideal olarak 2 de merge olmuş olmalı)
-        │
+5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
+        │                          tamamlandı — ayrı dal gerekmeyebilir, teyit edin)
         ▼
-6. feature-*-access-logs          (5'e bağımlı)
+6. feature-*-access-logs          (5'e bağımlı — bir arkadaş feature-backend-girisLog'da çalışıyor)
         │
         ▼
 7. feature-*-test-ve-teslim       (6'ya bağımlı — hepsini kapsar)
@@ -117,7 +133,7 @@ sırasında veya ayrı bir küçük commit'te silinmeli.
 
 ---
 
-## 1. `feature-backend-auth` (dal zaten açık — sıradaki iş)
+## 1. `feature-backend-auth` — ✅ tamamlandı, `Develop`'a merge oldu
 
 **Kapsam genişledi:** frontend login ekranları zaten bittiği için bu dal artık hem
 backend'i hem de `AuthService`'in gerçek API'ye bağlanmasını kapsıyor.
@@ -173,37 +189,46 @@ bir bayiye atayabiliyor.
 
 ---
 
-## 4. `feature-frontend-paylasilan-dokuman-listesi` (dal zaten açık) + `feature-backend-materials`
+## 4. `feature-frontend-paylasilan-dokuman-listesi` (merge oldu) + `feature-backend-materials`
 
 **Bağımlılık:** yalnızca 1 (seed'deki Brand/Category verisi yeterli). **Paralel
 çalışılabilir:** 2, 3 ile birlikte.
 
-- Backend: `MaterialsController` — `POST/PUT/GET /api/materials`, dosya doğrulama
-  (uzantı/MIME/boyut), `IFileStorageService` (zaten hazır) ile kayıt, arşivleme
-  (`DELETE` → soft delete), kategori/marka/anahtar kelime filtresi
-- Frontend: `material-form`, `material-list`, `material-detail` bileşenleri hâlâ boş
-  stub (bu oturumda değişmedi) — gerçek API'ye bağlanması, yükleme ilerleme
-  göstergesi
+- ✅ Backend: `MaterialsController` yazıldı (PR #3, henüz merge edilmedi) —
+  `GET/POST/PUT/DELETE /api/materials`, `GET /api/materials/{id}/download`,
+  kategori/marka/anahtar kelime/status filtresi, `IFileStorageService` ile dosya
+  kaydı, arşivleme (`DELETE` → soft delete). Marka kesişim kuralı da bu PR'da
+  (bkz. madde 5). `dotnet-ef` migration gerekmedi.
+- ❌ Frontend: `features/admin/shared-docs-list-page/` (madde başındaki dal ile
+  merge oldu) hâlâ `MOCK_DOCUMENTS` üzerinde çalışıyor, gerçek
+  `GET /api/materials`'a bağlı değil. Eski `material-form`/`material-list`/
+  `material-detail` stub'ları da hâlâ boş. Materials PR'ı merge olduktan sonra bu
+  ekranı gerçek API'ye bağlamak ayrı bir küçük iş olarak kalıyor.
 
 **Bitti sayılır:** İçerik yöneticisi iki markaya açık bir eğitim dokümanı
-yükleyebiliyor; liste filtrelenebiliyor.
+yükleyebiliyor; liste filtrelenebiliyor. (Backend tarafı bu kriteri karşılıyor,
+curl ile doğrulandı — frontend bağlanınca uçtan uca tamamlanmış olacak.)
 
 ---
 
-## 5. `feature-*-bayi-marka-erisimi`
+## 5. `feature-*-bayi-marka-erisimi` — materials için PR #3 ile fiilen tamamlandı
 
-**Bağımlılık:** 4 (materyal olmadan test edilemez); ideal olarak 2 de merge olmuş
-olmalı. **Paralel çalışma yok** — sıralı ilerlemeli.
+**Neden kritik:** Projenin en önemli iş kuralı: `DealerBrands ∩ MaterialBrands ≠ ∅`.
 
-**Neden kritik:** Projenin en önemli iş kuralı:
-`DealerBrands ∩ MaterialBrands ≠ ∅`.
+Ayrı bir dal açılmadan, bu kural doğrudan `feature-backend-materials`
+(`MaterialService`) içinde uygulandı: `GET /api/materials` listesi bayi
+kullanıcısı için otomatik markaya göre filtreleniyor; `GET /api/materials/{id}` ve
+`GET /api/materials/{id}/download` marka eşleşmiyorsa veya içerik `Active` değilse
+403 dönüyor, body'de hiç içerik sızmıyor.
 
-- Backend: `GET /api/materials`, `GET /api/materials/{id}`,
-  `GET /api/materials/{id}/download` içinde marka kesişim kontrolü; yetkisiz
-  erişimde içerik body'de hiç dönmeden 403
+**Doğrulandı (curl ile):** Marka B bayisi, Marka A içeriğinin ID'sini bilerek
+doğrudan istek attığında hem `GET /api/materials/{id}` hem
+`GET /api/materials/{id}/download` için 403 alıyor — PDF'in negatif senaryosu
+karşılanıyor.
 
-**Bitti sayılır:** PDF'in negatif senaryosu çalışıyor — Marka B bayisi Marka A
-içeriğinin ID'sini bilse bile 403 alıyor.
+⚠️ Bu maddeyi ayrı bir branch olarak açmayın — kapsamı zaten madde 4'ün PR'ında.
+İleride başka içerik tipleri (ör. Tanım Yönetimi ekranındaki kaynaklar) için benzer
+bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
@@ -237,8 +262,34 @@ listesinin tamamı işaretlenebiliyor.
 
 ---
 
-## Küçük not (kod tutarsızlığı)
+## Küçük not (kod tutarsızlığı) — ✅ çözüldü
 
-`MaterialStatus` enum'u (Draft/Active/Archived) tanımlı ama `Material.Status` alanı
-hâlâ `string` — enum hiç kullanılmıyor. `feature-backend-materials` sırasında bu
-bağlanmalı.
+~~`MaterialStatus` enum'u (Draft/Active/Archived) tanımlı ama `Material.Status`
+alanı hâlâ `string` — enum hiç kullanılmıyor.~~ `feature-backend-materials`
+(PR #3) içinde `Material.Status` artık `MaterialStatus` enum'u kullanıyor
+(`HasConversion<string>()` ile aynı text kolonuna yazılıyor, migration gerekmedi).
+
+Benzer bir tutarsızlık hâlâ duruyor: `User.Role` da tanımlı `RoleType` enum'u
+yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
+`string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
+dosyalar) — ileride ilgili branch'lerde bağlanabilir.
+
+## Küçük not (config tutarsızlığı) — açık, çözülmedi
+
+`docker-compose.yml` Postgres'i host port **5433**'e map ediyor (yorum: "Host 5433:
+local Homebrew Postgres often occupies 5432"), ama commit'lenmiş
+`backend/src/BayiPortal.API/appsettings.Development.json` içindeki
+`ConnectionStrings:DefaultConnection` sabit olarak **5432**'yi kullanıyor. Bu iki
+değer birbiriyle uyuşmuyor:
+
+- Homebrew ile native Postgres kullanan biri (bu makine gibi) → 5432, commit'lenmiş
+  config'le hiçbir değişiklik yapmadan çalışıyor.
+- `docker compose up -d` ile Postgres'i container'da çalıştıran biri → connection
+  string'i **lokalde elle 5433'e çevirmesi gerekiyor** (ya da `dotnet user-secrets`/
+  ortam değişkeniyle override etmesi gerekiyor), aksi halde bağlantı hatası alır.
+
+Bu adım hiçbir yerde (README dahil) dokümante edilmemiş — Docker'ı ilk kez deneyen
+biri sessizce takılabilir. Kalıcı çözüm: connection string'i ortam değişkeninden
+okunabilir hale getirip (`ConnectionStrings__DefaultConnection` override), README'ye
+"Docker kullanıyorsanız portu 5433 yapın" notu eklemek. Şimdilik sadece flag'lendi,
+kimin çözeceği/ne zaman ekiple teyit edilmeli.

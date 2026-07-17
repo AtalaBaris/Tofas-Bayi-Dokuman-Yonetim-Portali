@@ -1,4 +1,6 @@
 // Materials: içerik metadata. Binary diskte; FileName orijinal, StoredFileName unique.
+using BayiPortal.Core.Enums;
+
 namespace BayiPortal.Core.Entities;
 
 public class Material
@@ -12,7 +14,7 @@ public class Material
     public string FilePath { get; set; } = string.Empty;
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public MaterialStatus Status { get; set; } = MaterialStatus.Draft;
     public DateTime PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public int CreatedBy { get; set; }
