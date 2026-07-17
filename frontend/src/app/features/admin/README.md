@@ -17,6 +17,11 @@ admin/
 │   ├── styles/
 │   ├── animations/
 │   └── models/
+├── definition-management/      # Kullanıcı, bayi, marka ve kategori tanımları
+│   ├── components/
+│   ├── styles/
+│   ├── animations/
+│   └── models/
 └── access-logs/
 ```
 
@@ -27,6 +32,10 @@ admin/
 | `/admin/documents` | Private — Admin, ContentManager |
 | `/admin/documents/new` | Private — Admin, ContentManager |
 | `/admin/materials/new` | → `/admin/documents/new` |
+| `/admin/definitions/users` | Private — Admin |
+| `/admin/definitions/dealers` | Private — Admin |
+| `/admin/definitions/brands` | Private — Admin |
+| `/admin/definitions/categories` | Private — Admin |
 | `/admin/access-logs` | Private — Admin |
 
 Shared layout: `shared/components/admin-shell` + `admin-sidebar`
