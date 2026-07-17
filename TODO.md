@@ -63,8 +63,8 @@ farklı çıktı, aşağıda düzeltildi).
   aşamasında eklenmeli.
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
-- **Tanım Yönetimi backend** (`feature-backend-tanim-yonetimi`, henüz `Develop`'a
-  merge olmadı, 2026-07-17): `DealersController`/`BrandsController`/
+- **Tanım Yönetimi backend** (PR #6, `feature-backend-tanim-yonetimi` → `Develop`,
+  `40a0b79` ile merge oldu, 2026-07-17): `DealersController`/`BrandsController`/
   `CategoriesController`/`UsersController` — hepsi `[Authorize(Roles = "Admin")]`,
   `GET` (list/by-id), `POST`, `PUT`, `DELETE` (soft delete → `IsActive = false`,
   hard delete yok). `DealerService`/`BrandService`/`CategoryService`/`UserService`
@@ -80,15 +80,15 @@ farklı çıktı, aşağıda düzeltildi).
   bu dal Materials dosyalarına dokunmadığı için `MaterialsController` üzerindeki
   marka-eşleşme kuralı ve 401/403 ayrımı da regresyon kontrolü olarak yeniden
   doğrulandı (etkilenmemiş). **Frontend tarafı bu dalda yok** — ayrı bir ekip
-  arkadaşı üzerinde çalışıyor. Henüz commit/PR açılmadı.
+  arkadaşı üzerinde çalışıyor.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
 - `feature-backend-girisLog` — bir takım arkadaşı bu dalda çalışıyor (muhtemelen
   madde `6`, AccessLogs). Materials PR'ı bilerek `AccessLogs`'a yazma mantığına
   dokunmadı ki bu dalla çakışma olmasın.
-- `feature-backend-tanim-yonetimi` — bu oturumda backend'i tamamlandı (yukarıya
-  bkz.), henüz commit/PR açılmadı. Frontend tarafı ayrı bir ekip arkadaşında.
+- `feature-backend-tanim-yonetimi` — backend'i PR #6 ile `Develop`'a merge oldu
+  (yukarıya bkz.). Frontend tarafı ayrı bir ekip arkadaşında, henüz ayrı bir dal.
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
@@ -107,8 +107,8 @@ farklı çıktı, aşağıda düzeltildi).
 2. feature-backend-authorization ──┐
         │                          │  (ikisi de sadece 1'e bağımlı,
         ▼                          │   birbirlerine bağımlı değiller)
-🔶 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — feature-backend-tanim-yonetimi,
-                                   │    henüz Develop'a merge olmadı; frontend ayrı ekip arkadaşında)
+✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
+                                   │    frontend hâlâ ayrı ekip arkadaşında, ayrı dal)
                                    │
 ✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
@@ -181,15 +181,15 @@ aynı isteği doğrudan API'ye atınca 403 dönüyor.
 
 ---
 
-## 3. `feature-*-tanim-yonetimi` — backend tamamlandı (henüz merge olmadı)
+## 3. `feature-*-tanim-yonetimi` — backend tamamlandı ve `Develop`'a merge oldu
 
 **Bağımlılık:** yalnızca 1. **Paralel çalışılabilir:** 2, 4 ile birlikte.
 
 **Neden gerekli:** PDF'in zorunlu ekran #5'i (Tanım Yönetimi) frontend'de hiç yok —
 seed'le gelen sabit veri yeterli değil, yönetici bunları ekleyip düzenleyebilmeli.
 
-- ✅ Backend: `feature-backend-tanim-yonetimi` dalında tamamlandı (2026-07-17,
-  henüz `Develop`'a merge olmadı). `DealersController`, `BrandsController`,
+- ✅ Backend: `feature-backend-tanim-yonetimi` dalında tamamlandı ve PR #6 ile
+  `Develop`'a merge oldu (2026-07-17). `DealersController`, `BrandsController`,
   `CategoriesController`, `UsersController` — CRUD, `Admin` rolüyle korumalı,
   soft delete (`IsActive`). Validasyon + marka/bayi eşleme kuralları dahil
   (yukarıdaki "Mevcut durum özeti"ne bkz.). `dotnet build` temiz, curl ile
