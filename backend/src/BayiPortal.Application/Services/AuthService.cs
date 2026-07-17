@@ -13,15 +13,18 @@ public sealed class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IAccessLogService _accessLogService;
 
     public AuthService(
         IUserRepository userRepository,
         IPasswordHasher<User> passwordHasher,
-        IJwtTokenService jwtTokenService)
+        IJwtTokenService jwtTokenService,
+        IAccessLogService accessLogService)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _jwtTokenService = jwtTokenService;
+        _accessLogService = accessLogService;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -31,16 +34,20 @@ public sealed class AuthService : IAuthService
         // Kullanıcı yok / pasif / şifre yanlış — hepsi aynı genel mesajla döner (enumeration engeli).
         if (user is null || !user.IsActive)
         {
+            await _accessLogService.LogAsync(null, request.Email, null, "Giriş", "Başarısız giriş denemesi.", "Başarısız", cancellationToken);
             throw new InvalidCredentialsException();
         }
 
         var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verification == PasswordVerificationResult.Failed)
         {
+            await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Başarısız giriş denemesi.", "Başarısız", cancellationToken);
             throw new InvalidCredentialsException();
         }
 
         var token = _jwtTokenService.GenerateToken(user);
+
+        await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Sisteme başarıyla giriş yapıldı.", "Başarılı", cancellationToken);
 
         return new LoginResponse
         {

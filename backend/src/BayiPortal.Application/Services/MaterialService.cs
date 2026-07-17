@@ -14,11 +14,16 @@ public sealed class MaterialService : IMaterialService
 
     private readonly IMaterialRepository _materialRepository;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IAccessLogService _accessLogService;
 
-    public MaterialService(IMaterialRepository materialRepository, IFileStorageService fileStorageService)
+    public MaterialService(
+        IMaterialRepository materialRepository,
+        IFileStorageService fileStorageService,
+        IAccessLogService accessLogService)
     {
         _materialRepository = materialRepository;
         _fileStorageService = fileStorageService;
+        _accessLogService = accessLogService;
     }
 
     public async Task<List<MaterialResponse>> GetListAsync(
@@ -46,6 +51,7 @@ public sealed class MaterialService : IMaterialService
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
         var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Görüntüleme", $"\"{material.Title}\" dökümanı görüntülendi.", "N/A", cancellationToken);
         return ToResponse(material);
     }
 
@@ -79,6 +85,8 @@ public sealed class MaterialService : IMaterialService
         _materialRepository.Add(material);
         await _materialRepository.SaveChangesAsync(cancellationToken);
 
+        await _accessLogService.LogAsync(requestingUser.UserId, null, material.Id, "Döküman Yükleme", $"\"{material.Title}\" dökümanı yüklendi.", "N/A", cancellationToken);
+
         var saved = await _materialRepository.GetByIdAsync(material.Id, cancellationToken)
             ?? throw new MaterialNotFoundException(material.Id);
         return ToResponse(saved);
@@ -108,6 +116,9 @@ public sealed class MaterialService : IMaterialService
 
         var saved = await _materialRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new MaterialNotFoundException(id);
+
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Güncelleme", $"\"{saved.Title}\" dökümanı güncellendi.", "N/A", cancellationToken);
+
         return ToResponse(saved);
     }
 
@@ -119,6 +130,8 @@ public sealed class MaterialService : IMaterialService
         material.Status = MaterialStatus.Archived;
         material.UpdatedAt = DateTime.UtcNow;
         await _materialRepository.SaveChangesAsync(cancellationToken);
+
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Arşivleme", $"\"{material.Title}\" dökümanı arşivlendi.", "N/A", cancellationToken);
     }
 
     public async Task<(Stream Content, string FileName, string MimeType)> GetDownloadStreamAsync(
@@ -126,6 +139,7 @@ public sealed class MaterialService : IMaterialService
     {
         var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
         var stream = _fileStorageService.OpenRead(material.FilePath);
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman İndirme", $"\"{material.Title}\" dökümanı indirildi.", "N/A", cancellationToken);
         return (stream, material.FileName, material.MimeType);
     }
 
