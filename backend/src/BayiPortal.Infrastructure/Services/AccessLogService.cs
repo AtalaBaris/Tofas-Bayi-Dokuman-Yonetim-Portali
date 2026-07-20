@@ -66,6 +66,35 @@ public class AccessLogService : IAccessLogService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<Dictionary<int, string>> GetAccessStatusesAsync(
+        int userId, IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default)
+    {
+        if (materialIds.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var logs = await _dbContext.AccessLogs
+            .Where(x => x.UserId == userId
+                && x.MaterialId != null
+                && materialIds.Contains(x.MaterialId.Value)
+                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+            .Select(x => new { MaterialId = x.MaterialId!.Value, x.Action })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<int, string>();
+        foreach (var log in logs)
+        {
+            var status = log.Action == "Döküman İndirme" ? "downloaded" : "viewed";
+            if (status == "downloaded" || !result.ContainsKey(log.MaterialId))
+            {
+                result[log.MaterialId] = status;
+            }
+        }
+
+        return result;
+    }
+
     public async Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
         CancellationToken cancellationToken = default)

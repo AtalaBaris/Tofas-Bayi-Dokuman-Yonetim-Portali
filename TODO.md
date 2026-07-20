@@ -348,12 +348,27 @@ için gerçek backend eksik.
    `PUT` ile güncellenen telefon kalıcı, `DealerUser` rolüyle hâlâ
    `/api/users` (liste) 403 dönüyor (Admin-only kısıtlama regresyona
    uğramadı).
-3. **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
-   yok.** `bayi-documents-page`'deki kart rozetleri kullanıcı+materyal
-   bazında `AccessLogs`'tan türetilmeli, ama `MaterialResponse` böyle bir
-   alan taşımıyor. `GET /api/materials` listesine (istekte bulunan
-   kullanıcıya özel) bir `myAccessStatus` alanı eklenmesi ya da ayrı bir
-   lookup endpoint'i gerekiyor.
+3. ✅ **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
+   yoktu** — çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `MaterialResponse`'a `myAccessStatus` alanı eklendi
+   (`"unread"`/`"viewed"`/`"downloaded"` — frontend'deki `BayiDocAccessStatus`
+   union type'ıyla birebir, ek mapping gerekmiyor). Yeni
+   `IAccessLogService.GetAccessStatusesAsync(userId, materialIds)`,
+   `AccessLogs` tablosundaki `"Döküman Görüntüleme"`/`"Döküman İndirme"`
+   kayıtlarından kullanıcı+materyal bazında en yüksek erişim seviyesini
+   (`downloaded` > `viewed`) hesaplıyor; `MaterialService.GetListAsync`
+   sadece `DealerUser` rolü için bunu materyal listesine uyguluyor
+   (Admin/ContentManager için her zaman `"unread"` — onlar için anlamlı bir
+   kavram değil, ekstra sorgu da atlanıyor). curl ile uçtan uca doğrulandı:
+   yeni oluşturulan bir materyal `bayi.a` için `unread` → `GET /{id}`
+   sonrası `viewed` → `GET /{id}/download` sonrası `downloaded` olarak
+   dönüyor; `bayi.b` (farklı marka) materyali listede hiç görmüyor; Admin
+   listesinde tüm materyaller `unread` kalıyor (regresyon yok).
+   ⚠️ Yan not: bu implementasyon `AccessLog.Action`'daki Türkçe serbest
+   metin değerlere (`"Döküman Görüntüleme"`/`"Döküman İndirme"`) doğrudan
+   bağımlı — dosyanın altındaki "Küçük not (kod tutarsızlığı)" bölümünde
+   bahsedilen `AccessAction` enum'una geçiş yapılırsa bu sorgu da
+   güncellenmeli.
 4. **Bildirimler için backend hiç yok.** `bayi-shell`'deki zil menüsü
    tamamen `BAYI_MOCK_NOTIFICATIONS` mock verisiyle çalışıyor — ne bir
    `Notification` entity/tablosu ne de bir controller var. Kapsam (gerçek
