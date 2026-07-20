@@ -24,6 +24,13 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'documents/:id/access-report',
+        loadComponent: () =>
+          import(
+            './document-access-report/components/document-access-report-page/document-access-report-page'
+          ).then((m) => m.DocumentAccessReportPage),
+      },
+      {
         path: 'login-activity',
         canActivate: [adminRoleGuard(['Admin'])],
         loadComponent: () =>

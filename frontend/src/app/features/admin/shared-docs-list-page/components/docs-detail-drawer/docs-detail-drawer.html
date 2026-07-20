@@ -67,7 +67,12 @@
         <h3 class="docs-drawer__section-title docs-drawer__section-title--flush">
           Son Bayi Görüntülemeleri
         </h3>
-        <a class="docs-drawer__link" href="#" (click)="$event.preventDefault()">Tüm Kayıtları Gör</a>
+        <a
+          class="docs-drawer__link"
+          [routerLink]="['/admin/documents', doc().id, 'access-report']"
+        >
+          Tüm Kayıtları Gör
+        </a>
       </div>
       <div class="docs-drawer__viewers">
         @for (viewer of viewers(); track viewer.id) {
