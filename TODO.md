@@ -64,6 +64,16 @@ farklı çıktı, aşağıda düzeltildi).
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
 - **Sistem Erişim Kayıtları (Access Logs) Entegrasyonu** (frontend + backend, 2026-07-17): `AccessLog` entitesi ve veritabanı şeması güncellenerek ilişkiler opsiyonel hale getirildi. Başarılı/başarısız giriş denemeleri, çıkış işlemleri, döküman görüntüleme, indirme, yükleme, güncelleme ve arşivleme hareketleri veritabanına kaydedilmeye başlandı. `AccessLogsController` (`GET /api/access-logs` filtreleme/sayfalama ve `POST /api/access-logs/logout` çıkış loglama) yazıldı. Frontend tarafındaki `/admin/access-logs` arayüzü mock veriden kurtarılarak gerçek API servisine bağlandı; sunucu taraflı arama, rol, işlem, durum ve tarih aralığı filtreleri ile dinamik sayfalama entegre edildi.
+- **Bayi Dashboard ekranları** (frontend, PR #13, `frontend-bayi-dashboard` →
+  `Develop`, `e003ec2` ile merge oldu, 2026-07-20): `bayi-shell` (üst bar +
+  bildirim zili + kullanıcı menüsü), `bayi-home-page` (özet/istatistik + son
+  dokümanlar), `bayi-documents-page` (bento kart grid, arama/kategori/marka/
+  erişim-durumu filtreleri, sayfalama), `bayi-document-detail-page`,
+  `bayi-profile-page` (ad/e-posta/telefon düzenleme), `bayi-settings-page`
+  (bildirim tercihi anahtarları). Kaliteli bir uygulama ama **tamamen mock
+  veri** üzerinde çalışıyor (`BAYI_MOCK_DOCUMENTS`, `BAYI_MOCK_NOTIFICATIONS`)
+  — hiçbir ekran gerçek API'ye bağlı değil. Detaylı backend eşleşmesi için
+  aşağıdaki madde `8`'e bakın.
 - **Tanım Yönetimi backend** (PR #6, `feature-backend-tanim-yonetimi` → `Develop`,
   `40a0b79` ile merge oldu, 2026-07-17): `DealersController`/`BrandsController`/
   `CategoriesController`/`UsersController` — hepsi `[Authorize(Roles = "Admin")]`,
@@ -122,7 +132,13 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 6. feature-*-access-logs          (tamamlandı — veritabanı loglama, API ve ön yüz entegrasyonu bitti)
         │
         ▼
-7. feature-*-test-ve-teslim       (6'ya bağımlı — hepsini kapsar)
+✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
+        │
+        ▼
+❌ 8. feature-backend-bayi-dashboard-entegrasyonu  (7'nin ekranlarını gerçek API'ye
+        │                                          bağlamak için gereken backend işleri)
+        ▼
+9. feature-*-test-ve-teslim       (8'e bağımlı — hepsini kapsar)
 ```
 
 ## Paralel çalışma noktaları
@@ -281,9 +297,70 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
-## 7. `feature-*-test-ve-teslim`
+## 8. `feature-backend-bayi-dashboard-entegrasyonu` — ❌ açılmadı
 
-**Bağımlılık:** 6 (hepsini kapsar). **Paralel çalışma yok — son adım.**
+**Bağımlılık:** 6 (`access-logs`) ve 7 (`feature-frontend-bayi-dashboard`, merge oldu).
+
+**Neden gerekli:** PR #13 ile gelen bayi dashboard ekranları (`bayi-shell`,
+`bayi-home-page`, `bayi-documents-page`, `bayi-document-detail-page`,
+`bayi-profile-page`, `bayi-settings-page`) tamamen mock veri üzerinde
+çalışıyor. Bazı ihtiyaçlar zaten mevcut endpoint'lerle karşılanıyor, bazıları
+için gerçek backend eksik.
+
+**Zaten karşılanıyor — sadece frontend wiring işi (yeni backend gerekmez):**
+- `GET /api/materials` (categoryId/brandId/keyword/status filtreleri) →
+  `bayi-home-page` ve `bayi-documents-page`'deki `BAYI_MOCK_DOCUMENTS`'in
+  yerini alacak.
+- `GET /api/materials/{id}` → `bayi-document-detail-page`; zaten sunucu
+  tarafında VIEW erişim logu atıyor (`MaterialService.cs`).
+- `GET /api/materials/{id}/download` → `onView`/`onDownload` TODO'ları;
+  zaten sunucu tarafında DOWNLOAD erişim logu atıyor.
+- Marka eşleşme kuralı (`DealerBrands ∩ MaterialBrands ≠ ∅`) zaten
+  `MaterialService.GetAuthorizedMaterialAsync`'de uygulanıyor (bkz. madde 5).
+
+**Eksik — gerçek backend işi gerekiyor:**
+1. **`DealerName` login response'unda dolmuyor.** `UserResponse.DealerName`
+   alanı tanımlı ama `AuthService.LoginAsync` (`AuthService.cs:55-62`) hiç
+   set etmiyor — bu yüzden frontend `dealerDisplayName(dealerId)` adında
+   dealerId'ye göre hardcoded bir switch kullanmak zorunda kalmış
+   (`bayi-home.model.ts:157`). Düzeltme: `IUserRepository.GetByEmailAsync`
+   sorgusuna `Dealer` include edilip `DealerName` doldurulmalı.
+2. **Bayi kullanıcısı için self-service profil endpoint'i yok.**
+   `UsersController` tamamen `[Authorize(Roles="Admin")]` ve id bazlı;
+   `bayi-profile-page` kendi adını/e-postasını/telefonunu görüntüleyip
+   güncelleyebilmeli → `GET /api/users/me` + `PUT /api/users/me` (Admin
+   rolü gerektirmeyen, JWT'deki kullanıcıya göre çalışan) eklenmeli. Not:
+   `User` entity'sinde `phone` alanı yok gibi görünüyor — eklenmesi ve buna
+   göre migration gerekebilir.
+3. **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
+   yok.** `bayi-documents-page`'deki kart rozetleri kullanıcı+materyal
+   bazında `AccessLogs`'tan türetilmeli, ama `MaterialResponse` böyle bir
+   alan taşımıyor. `GET /api/materials` listesine (istekte bulunan
+   kullanıcıya özel) bir `myAccessStatus` alanı eklenmesi ya da ayrı bir
+   lookup endpoint'i gerekiyor.
+4. **Bildirimler için backend hiç yok.** `bayi-shell`'deki zil menüsü
+   tamamen `BAYI_MOCK_NOTIFICATIONS` mock verisiyle çalışıyor — ne bir
+   `Notification` entity/tablosu ne de bir controller var. Kapsam (gerçek
+   push mi, yoksa süresi yaklaşan/yeni eklenen materyallerden anlık
+   hesaplanan bir liste mi) ürün kararı gerektiriyor, dala başlamadan önce
+   netleştirilmeli.
+5. **Ayarlar sayfasındaki bildirim tercihleri kalıcı değil.**
+   `bayi-settings-page`'deki `emailNotifications`/`documentAlerts`/
+   `expiryReminders` anahtarları hiçbir yere kaydedilmiyor (sayfa
+   yenilenince sıfırlanıyor) — `User`'a alan eklenmesi veya ayrı bir
+   `UserPreferences` tablosu gerekiyor. Madde 4 (bildirimler) ile birlikte
+   ele alınması mantıklı, çünkü aynı tabloyu paylaşabilirler.
+
+**Bitti sayılır:** Bayi kullanıcısı giriş yaptığında gerçek bayi adını görüyor;
+doküman listesi/detayı gerçek API'den geliyor ve görüntüleme/indirme gerçek
+erişim logu üretiyor; kendi profilini güncelleyebiliyor; bildirim zili ve
+ayarlar sayfası mock veriden kurtulmuş (kapsamı netleşmişse).
+
+---
+
+## 9. `feature-*-test-ve-teslim`
+
+**Bağımlılık:** 8 (hepsini kapsar). **Paralel çalışma yok — son adım.**
 
 - Tüm demo senaryosunu uçtan uca doğrulama, eksik hata mesajlarını düzeltme
 - Temel test coverage'ı ekleme (şu an backend'de test projesi, frontend'de
