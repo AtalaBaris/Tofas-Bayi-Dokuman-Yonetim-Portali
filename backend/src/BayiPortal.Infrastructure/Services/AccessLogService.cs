@@ -8,6 +8,7 @@ using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
 using BayiPortal.Core.Entities;
+using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -83,9 +84,9 @@ public class AccessLogService : IAccessLogService
         }
 
         // Role filter
-        if (!string.IsNullOrWhiteSpace(query.Role))
+        if (!string.IsNullOrWhiteSpace(query.Role) && Enum.TryParse<RoleType>(query.Role, out var roleFilter))
         {
-            dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == query.Role);
+            dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == roleFilter);
         }
 
         // Action filter — tek değer veya virgülle ayrılmış liste (örn. "Giriş,Çıkış")
@@ -131,7 +132,7 @@ public class AccessLogService : IAccessLogService
 
         var dtos = items.Select(log => {
             // Determine UserRole & UserType
-            var role = log.User?.Role ?? (log.Action == "Giriş" && log.LoginStatus == "Başarısız" ? "Guest" : "Guest");
+            var role = log.User?.Role.ToString() ?? "Guest";
             var userType = "Bayi Kullanıcısı";
             if (role == "Admin") userType = "Yönetici";
             else if (role == "ContentManager") userType = "İçerik Yöneticisi";

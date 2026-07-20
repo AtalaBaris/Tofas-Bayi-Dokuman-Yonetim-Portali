@@ -41,7 +41,7 @@ public sealed class UserService : IUserService
         {
             Name = request.Name,
             Email = request.Email,
-            Role = request.Role,
+            Role = Enum.Parse<RoleType>(request.Role),
             DealerId = request.DealerId,
             IsActive = true
         };
@@ -63,7 +63,7 @@ public sealed class UserService : IUserService
             ?? throw new UserNotFoundException(id);
 
         user.Name = request.Name;
-        user.Role = request.Role;
+        user.Role = Enum.Parse<RoleType>(request.Role);
         user.DealerId = request.DealerId;
         user.IsActive = request.IsActive;
 
@@ -137,7 +137,7 @@ public sealed class UserService : IUserService
         Id = user.Id,
         Name = user.Name,
         Email = user.Email,
-        Role = user.Role,
+        Role = user.Role.ToString(),
         DealerId = user.DealerId,
         DealerName = user.Dealer?.Name,
         IsActive = user.IsActive
