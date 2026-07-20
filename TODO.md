@@ -297,7 +297,7 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
-## 8. `feature-backend-bayi-dashboard-entegrasyonu` — ❌ açılmadı
+## 8. `feature-backend-bayi-dashboard-entegrasyonu` — 🔄 devam ediyor
 
 **Bağımlılık:** 6 (`access-logs`) ve 7 (`feature-frontend-bayi-dashboard`, merge oldu).
 
@@ -319,12 +319,20 @@ için gerçek backend eksik.
   `MaterialService.GetAuthorizedMaterialAsync`'de uygulanıyor (bkz. madde 5).
 
 **Eksik — gerçek backend işi gerekiyor:**
-1. **`DealerName` login response'unda dolmuyor.** `UserResponse.DealerName`
-   alanı tanımlı ama `AuthService.LoginAsync` (`AuthService.cs:55-62`) hiç
-   set etmiyor — bu yüzden frontend `dealerDisplayName(dealerId)` adında
-   dealerId'ye göre hardcoded bir switch kullanmak zorunda kalmış
-   (`bayi-home.model.ts:157`). Düzeltme: `IUserRepository.GetByEmailAsync`
-   sorgusuna `Dealer` include edilip `DealerName` doldurulmalı.
+1. ✅ **`DealerName` login response'unda dolmuyor** — çözüldü (2026-07-20,
+   `feature-backend-bayi-dashboard-entegrasyonu` dalında). `UserRepository.GetByEmailAsync`
+   artık `Dealer`'ı include ediyor, `AuthService.LoginAsync`
+   `DealerName = user.Dealer?.Name` set ediyor. `bayi.a@bayiportal.local` ile
+   giriş curl'le doğrulandı: `dealerName: "Bayi A"` dönüyor; admin girişinde
+   (`dealerId` yok) `dealerName: null`, hata yok. Frontend tarafındaki
+   `dealerDisplayName(dealerId)` hardcoded switch'i (`bayi-home.model.ts:157`)
+   artık gereksiz — bir sonraki frontend işinde gerçek `dealerName`'e
+   geçirilebilir.
+   ⚠️ Yan not (bu commit'in kapsamı dışında, ayrıca fark edildi):
+   `LoginResponse`'daki `UserResponse.IsActive` hiç set edilmiyor, her zaman
+   `false` dönüyor (curl ile doğrulandı) — `UsersController`'daki diğer
+   `UserResponse` projeksiyonlarıyla tutarsız, ayrı bir küçük takip
+   gerektirir.
 2. **Bayi kullanıcısı için self-service profil endpoint'i yok.**
    `UsersController` tamamen `[Authorize(Roles="Admin")]` ve id bazlı;
    `bayi-profile-page` kendi adını/e-postasını/telefonunu görüntüleyip

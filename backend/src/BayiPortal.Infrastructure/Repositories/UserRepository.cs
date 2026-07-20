@@ -18,6 +18,7 @@ public sealed class UserRepository : IUserRepository
     {
         var normalized = email.Trim().ToLowerInvariant();
         return _dbContext.Users
+            .Include(u => u.Dealer)
             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalized, cancellationToken);
     }
 
