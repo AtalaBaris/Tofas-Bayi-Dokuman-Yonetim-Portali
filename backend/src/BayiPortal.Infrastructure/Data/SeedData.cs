@@ -1,6 +1,7 @@
 // Geliştirme ortamı için örnek başlangıç verisi (README'deki örnek kullanıcılarla birebir).
 // Idempotent: eksik bayi/marka/kategori/kullanıcıyı tamamlar; seed kullanıcı şifrelerini README ile senkron tutar.
 using BayiPortal.Core.Entities;
+using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,7 @@ public static class SeedData
             passwordHasher,
             email: "admin@bayiportal.local",
             name: "Yönetici",
-            role: "Admin",
+            role: RoleType.Admin,
             password: "Admin123!",
             dealer: null);
 
@@ -42,7 +43,7 @@ public static class SeedData
             passwordHasher,
             email: "editor@bayiportal.local",
             name: "İçerik Yöneticisi",
-            role: "ContentManager",
+            role: RoleType.ContentManager,
             password: "Editor123!",
             dealer: null);
 
@@ -51,7 +52,7 @@ public static class SeedData
             passwordHasher,
             email: "bayi.a@bayiportal.local",
             name: "Bayi Kullanıcısı A",
-            role: "DealerUser",
+            role: RoleType.DealerUser,
             password: "Bayi123!",
             dealer: dealerA);
 
@@ -60,7 +61,7 @@ public static class SeedData
             passwordHasher,
             email: "bayi.b@bayiportal.local",
             name: "Bayi Kullanıcısı B",
-            role: "DealerUser",
+            role: RoleType.DealerUser,
             password: "Bayi123!",
             dealer: dealerB);
 
@@ -136,7 +137,7 @@ public static class SeedData
         IPasswordHasher<User> passwordHasher,
         string email,
         string name,
-        string role,
+        RoleType role,
         string password,
         Dealer? dealer)
     {

@@ -57,7 +57,7 @@ public sealed class AuthService : IAuthService
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                Role = user.Role,
+                Role = user.Role.ToString(),
                 DealerId = user.DealerId
             }
         };
