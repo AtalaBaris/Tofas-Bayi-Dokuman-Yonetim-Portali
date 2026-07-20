@@ -25,6 +25,7 @@ export class AdminSidebar {
   readonly usersMenuOpen = signal(this.router.url.startsWith('/admin/definitions'));
 
   readonly navItems: AdminNavItem[] = [
+    { label: 'Ana Sayfa', icon: 'dashboard', link: '/admin/dashboard' },
     { label: 'Dokümanlar', icon: 'description', link: '/admin/documents' },
     { label: 'Son Yüklenenler', icon: 'history', link: null },
   ];

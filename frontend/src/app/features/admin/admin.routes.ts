@@ -15,7 +15,14 @@ export const ADMIN_ROUTES: Routes = [
     loadComponent: () =>
       import('../../shared/components/admin-shell/admin-shell').then((m) => m.AdminShell),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'documents' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/components/admin-dashboard-page/admin-dashboard-page').then(
+            (m) => m.AdminDashboardPage
+          ),
+      },
       {
         path: 'documents',
         loadComponent: () =>
