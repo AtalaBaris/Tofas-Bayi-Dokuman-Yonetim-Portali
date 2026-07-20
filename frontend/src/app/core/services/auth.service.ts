@@ -67,6 +67,17 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  /** Profil güncellemesi — API gelene kadar yerel oturumu günceller. */
+  updateCurrentUser(updates: Partial<User>): void {
+    const current = this.currentUser();
+    if (!current) {
+      return;
+    }
+    const next = { ...current, ...updates };
+    this.currentUser.set(next);
+    this.writeStoredUser(next);
+  }
+
   private clearLocalSession(): void {
     clearStoredSession();
     this.currentUser.set(null);
@@ -93,6 +104,19 @@ export class AuthService {
       return JSON.parse(raw) as User;
     } catch {
       return null;
+    }
+  }
+
+  private writeStoredUser(user: User): void {
+    const payload = JSON.stringify(user);
+    if (localStorage.getItem(AUTH_USER_KEY)) {
+      localStorage.setItem(AUTH_USER_KEY, payload);
+    }
+    if (sessionStorage.getItem(AUTH_USER_KEY)) {
+      sessionStorage.setItem(AUTH_USER_KEY, payload);
+    }
+    if (!localStorage.getItem(AUTH_USER_KEY) && !sessionStorage.getItem(AUTH_USER_KEY)) {
+      localStorage.setItem(AUTH_USER_KEY, payload);
     }
   }
 }

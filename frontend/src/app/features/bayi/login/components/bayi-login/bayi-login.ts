@@ -61,7 +61,7 @@ export class BayiLogin {
     this.auth.login({ email, password }, { portal: 'bayi', rememberMe }).subscribe({
       next: () => {
         this.loading.set(false);
-        void this.router.navigateByUrl('/materials');
+        void this.router.navigateByUrl('/bayi');
       },
       error: () => {
         this.loading.set(false);
