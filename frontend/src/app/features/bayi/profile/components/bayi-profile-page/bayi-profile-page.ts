@@ -1,15 +1,10 @@
-/** Bayi profil düzenleme — iletişim bilgileri (mock kayıt). */
+/** Bayi profil düzenleme — iletişim bilgileri (GET/PUT /api/users/me). */
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { dealerDisplayName } from '../../../home/models/bayi-home.model';
-import {
-  joinFullName,
-  readBayiProfileExtra,
-  splitFullName,
-  writeBayiProfileExtra,
-} from '../../models/bayi-profile.model';
+import { UserProfileService } from '../../../../../core/services/user-profile.service';
+import { joinFullName, splitFullName } from '../../models/bayi-profile.model';
 
 @Component({
   selector: 'app-bayi-profile-page',
@@ -19,17 +14,19 @@ import {
 })
 export class BayiProfilePage {
   private readonly auth = inject(AuthService);
+  private readonly userProfileService = inject(UserProfileService);
 
   firstName = '';
   lastName = '';
   email = '';
   phone = '';
 
+  readonly loading = signal(true);
   readonly saving = signal(false);
   readonly saved = signal(false);
   readonly error = signal('');
 
-  readonly dealerName = computed(() => dealerDisplayName(this.auth.currentUser()?.dealerId));
+  readonly dealerName = computed(() => this.auth.currentUser()?.dealerName ?? 'Bayiniz');
   readonly userId = computed(() => this.auth.currentUser()?.id ?? 0);
 
   get initials(): string {
@@ -43,7 +40,20 @@ export class BayiProfilePage {
   }
 
   constructor() {
-    this.loadForm();
+    this.userProfileService.getMe().subscribe({
+      next: (user) => {
+        const names = splitFullName(user.name);
+        this.firstName = names.firstName;
+        this.lastName = names.lastName;
+        this.email = user.email;
+        this.phone = user.phone ?? '';
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(err?.message ?? 'Profil yüklenemedi.');
+        this.loading.set(false);
+      },
+    });
   }
 
   save(): void {
@@ -70,25 +80,18 @@ export class BayiProfilePage {
 
     this.saving.set(true);
 
-    // TODO: PUT /api/users/me
-    this.auth.updateCurrentUser({
-      name: joinFullName(firstName, lastName),
-      email,
+    const name = joinFullName(firstName, lastName);
+    this.userProfileService.updateMe({ name, email, phone: phone || null }).subscribe({
+      next: (user) => {
+        this.auth.updateCurrentUser({ name: user.name, email: user.email });
+        this.phone = user.phone ?? '';
+        this.saving.set(false);
+        this.saved.set(true);
+      },
+      error: (err) => {
+        this.error.set(err?.message ?? 'Profil kaydedilemedi.');
+        this.saving.set(false);
+      },
     });
-    writeBayiProfileExtra({ phone });
-
-    this.saving.set(false);
-    this.saved.set(true);
-  }
-
-  private loadForm(): void {
-    const user = this.auth.currentUser();
-    const extra = readBayiProfileExtra();
-    const names = splitFullName(user?.name ?? '');
-
-    this.firstName = names.firstName;
-    this.lastName = names.lastName;
-    this.email = user?.email ?? '';
-    this.phone = extra.phone || '+90 532 000 00 00';
   }
 }

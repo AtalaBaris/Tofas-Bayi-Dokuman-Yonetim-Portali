@@ -5,4 +5,7 @@ export interface User {
   email: string;
   role: 'Admin' | 'ContentManager' | 'DealerUser';
   dealerId?: number | null;
+  dealerName?: string | null;
+  phone?: string | null;
+  isActive?: boolean;
 }

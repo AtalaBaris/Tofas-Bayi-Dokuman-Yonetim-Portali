@@ -70,10 +70,12 @@ farklı çıktı, aşağıda düzeltildi).
   dokümanlar), `bayi-documents-page` (bento kart grid, arama/kategori/marka/
   erişim-durumu filtreleri, sayfalama), `bayi-document-detail-page`,
   `bayi-profile-page` (ad/e-posta/telefon düzenleme), `bayi-settings-page`
-  (bildirim tercihi anahtarları). Kaliteli bir uygulama ama **tamamen mock
-  veri** üzerinde çalışıyor (`BAYI_MOCK_DOCUMENTS`, `BAYI_MOCK_NOTIFICATIONS`)
-  — hiçbir ekran gerçek API'ye bağlı değil. Detaylı backend eşleşmesi için
-  aşağıdaki madde `8`'e bakın.
+  (bildirim tercihi anahtarları). İlk merge'de tamamen mock veri üzerinde
+  çalışıyordu; madde `8` (backend) ve `9` (frontend wiring) ile
+  `bayi-shell`'deki bildirim zili ve `bayi-settings-page` **dışındaki**
+  tüm ekranlar artık gerçek API'ye bağlı (`BAYI_MOCK_DOCUMENTS` silindi).
+  Bildirimler hâlâ `BAYI_MOCK_NOTIFICATIONS` üzerinde — ürün kararı
+  bekliyor (bkz. madde 8, alt madde 4-5).
 - **Tanım Yönetimi backend** (PR #6, `feature-backend-tanim-yonetimi` → `Develop`,
   `40a0b79` ile merge oldu, 2026-07-17): `DealersController`/`BrandsController`/
   `CategoriesController`/`UsersController` — hepsi `[Authorize(Roles = "Admin")]`,
@@ -135,10 +137,15 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
         │
         ▼
-❌ 8. feature-backend-bayi-dashboard-entegrasyonu  (7'nin ekranlarını gerçek API'ye
-        │                                          bağlamak için gereken backend işleri)
+🔄 8. feature-backend-bayi-dashboard-entegrasyonu  (7'nin ekranlarını gerçek API'ye
+        │                                          bağlamak için gereken backend işleri —
+        │                                          1-3 tamam, 4-5 ürün kararı bekliyor)
         ▼
-9. feature-*-test-ve-teslim       (8'e bağımlı — hepsini kapsar)
+✅ 9. feature-frontend-bayi-dashboard-entegrasyonu  (8'in 1-3 numaralı maddelerini
+        │                                           kullanarak 7'nin ekranlarını gerçek
+        │                                           API'ye bağladı)
+        ▼
+10. feature-*-test-ve-teslim       (8 ve 9'a bağımlı — hepsini kapsar)
 ```
 
 ## Paralel çalışma noktaları
@@ -307,7 +314,8 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 çalışıyor. Bazı ihtiyaçlar zaten mevcut endpoint'lerle karşılanıyor, bazıları
 için gerçek backend eksik.
 
-**Zaten karşılanıyor — sadece frontend wiring işi (yeni backend gerekmez):**
+**Zaten karşılanıyor — sadece frontend wiring işi (yeni backend gerekmez),
+✅ bu da bitti (bkz. madde 9):**
 - `GET /api/materials` (categoryId/brandId/keyword/status filtreleri) →
   `bayi-home-page` ve `bayi-documents-page`'deki `BAYI_MOCK_DOCUMENTS`'in
   yerini alacak.
@@ -385,13 +393,72 @@ için gerçek backend eksik.
 **Bitti sayılır:** Bayi kullanıcısı giriş yaptığında gerçek bayi adını görüyor;
 doküman listesi/detayı gerçek API'den geliyor ve görüntüleme/indirme gerçek
 erişim logu üretiyor; kendi profilini güncelleyebiliyor; bildirim zili ve
-ayarlar sayfası mock veriden kurtulmuş (kapsamı netleşmişse).
+ayarlar sayfası mock veriden kurtulmuş (kapsamı netleşmişse). Madde 4 ve 5
+dışındaki her şey madde 9 ile fiilen tamamlandı.
 
 ---
 
-## 9. `feature-*-test-ve-teslim`
+## 9. `feature-frontend-bayi-dashboard-entegrasyonu` — ✅ tamamlandı (2026-07-20)
 
-**Bağımlılık:** 8 (hepsini kapsar). **Paralel çalışma yok — son adım.**
+**Bağımlılık:** 8'in 1-3 numaralı backend maddeleri (hepsi ✅).
+
+**Kapsam:** PR #13'teki bayi dashboard ekranlarını (`bayi-home-page`,
+`bayi-documents-page`, `bayi-document-detail-page`, `bayi-profile-page`,
+`bayi-shell`, `bayi-settings-page`) mock veriden kurtarıp gerçek API'ye
+bağlamak. Bildirimler (madde 4) ve ayarlar kalıcılığı (madde 5) kapsam dışı
+bırakıldı — hâlâ mock, ürün kararı bekliyor.
+
+- **Modeller:** `core/models/material.interface.ts`'e `myAccessStatus`,
+  `core/models/user.interface.ts`'e `dealerName`/`phone`/`isActive` eklendi
+  (backend DTO'larıyla birebir).
+- **Yeni servis:** `core/services/user-profile.service.ts` —
+  `GET/PUT /api/users/me` sarmalayıcısı.
+- **Yeni yardımcı:** `shared/utils/file-download.util.ts` —
+  `saveBlobAsFile`/`openBlobInNewTab`. Backend `/materials/{id}/download`
+  her zaman `Content-Disposition: attachment` döndüğü için doğrudan
+  `<a href>` ile önizleme yapılamıyor; blob XHR ile çekilip biz karar
+  veriyoruz (indir → `download` attribute'lu anchor; görüntüle → blob'u
+  yeni sekmede aç). İkisi de aynı backend endpoint'ini çağırıyor — ayrı bir
+  "sadece önizle, indirme sayma" endpoint'i yok, bu bilinen bir sınır.
+- **`bayi-home.model.ts`:** `BAYI_MOCK_DOCUMENTS` ve `dealerDisplayName`
+  silindi; yerine `toBayiDocumentCard(material: Material)` mapper'ı eklendi
+  (mimeType → fileKind, publishedAt → dateLabel/daysAgo, expiresAt →
+  expiresInDays, myAccessStatus → accessStatus doğrudan geçiyor).
+- **`bayi-home-page` / `bayi-documents-page`:** `MaterialsService.list()`'e
+  bağlandı; kategori/marka filtre seçenekleri artık gerçek materyallerden
+  türetiliyor (statik `['Pazarlama', 'Genel Duyuru', 'Eğitim']` listesi
+  kaldırıldı — `CategoriesController` Admin-only olduğu için bayi
+  kullanıcısı zaten gerçek kategori listesini API'den çekemiyor, mevcut
+  materyallerden türetmek tek pratik yol). Liste indirme butonu artık
+  gerçek dosyayı indiriyor.
+- **`bayi-document-detail-page`:** `MaterialsService.getById()`'e bağlandı
+  (sayfa yüklenince backend zaten VIEW logu atıyor); "İndir"/"Görüntüle"
+  butonları gerçek blob indirme/önizlemeye bağlandı.
+- **`bayi-profile-page`:** localStorage tabanlı mock kayıt
+  (`readBayiProfileExtra`/`writeBayiProfileExtra`, artık silindi) yerine
+  gerçek `GET/PUT /api/users/me`.
+- **`bayi-shell` / `bayi-settings-page` / `bayi-home-page`:** hardcoded
+  `dealerDisplayName(dealerId)` switch'i kaldırıldı, yerine gerçek
+  `currentUser().dealerName` kullanılıyor (madde 8/1'in doğal sonucu).
+
+**Doğrulama:** `ng build` temiz; ayrıca gerçek backend + gerçek Postgres'e
+karşı Playwright ile uçtan uca tarayıcı testi yapıldı (dealer olarak giriş
+→ ana sayfa gerçek bayi adı ve gerçek materyali gösteriyor → dokümanlar
+sayfasında filtre/arama çalışıyor → karta tıklayınca detay sayfası gerçek
+başlık/açıklama gösteriyor → "Dosyayı İndir" gerçek bir dosya indirme
+event'i tetikliyor (doğru dosya adıyla) → detaya girince erişim durumu
+unread'den viewed/downloaded'a gerçekten değişiyor → profil sayfası gerçek
+ad/e-posta/telefonu yüklüyor, kaydedilen telefon sayfa yenilenince kalıcı
+kalıyor (backend'den geliyor, localStorage'dan değil)); konsolda hiç hata
+yok. Ekran görüntüleriyle doğrulandı.
+
+**Bitti sayılır:** ✅ — yukarıdaki akışların tamamı gerçek veriyle çalışıyor.
+
+---
+
+## 10. `feature-*-test-ve-teslim`
+
+**Bağımlılık:** 8 ve 9 (hepsini kapsar). **Paralel çalışma yok — son adım.**
 
 - Tüm demo senaryosunu uçtan uca doğrulama, eksik hata mesajlarını düzeltme
 - Temel test coverage'ı ekleme (şu an backend'de test projesi, frontend'de
