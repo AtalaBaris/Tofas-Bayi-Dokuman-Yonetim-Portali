@@ -74,6 +74,53 @@ public sealed class UserService : IUserService
         return ToResponse(saved);
     }
 
+    public async Task<UserResponse> GetOwnProfileAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new UserNotFoundException(userId);
+        return ToResponse(user);
+    }
+
+    public async Task<UserResponse> UpdateOwnProfileAsync(
+        int userId, UpdateOwnProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new UserNotFoundException(userId);
+
+        var name = request.Name?.Trim() ?? string.Empty;
+        var email = request.Email?.Trim() ?? string.Empty;
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errors.Add("Ad zorunludur.");
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errors.Add("E-posta zorunludur.");
+        }
+        else if (await _userRepository.EmailExistsAsync(email, userId, cancellationToken))
+        {
+            errors.Add("Bu e-posta zaten kullanılıyor.");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(string.Join(" ", errors));
+        }
+
+        user.Name = name;
+        user.Email = email;
+        user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        var saved = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new UserNotFoundException(userId);
+        return ToResponse(saved);
+    }
+
     public async Task DeactivateAsync(int id, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(id, cancellationToken)
@@ -140,6 +187,7 @@ public sealed class UserService : IUserService
         Role = user.Role.ToString(),
         DealerId = user.DealerId,
         DealerName = user.Dealer?.Name,
-        IsActive = user.IsActive
+        IsActive = user.IsActive,
+        Phone = user.Phone
     };
 }

@@ -297,7 +297,7 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
-## 8. `feature-backend-bayi-dashboard-entegrasyonu` — ❌ açılmadı
+## 8. `feature-backend-bayi-dashboard-entegrasyonu` — 🔄 devam ediyor
 
 **Bağımlılık:** 6 (`access-logs`) ve 7 (`feature-frontend-bayi-dashboard`, merge oldu).
 
@@ -319,25 +319,56 @@ için gerçek backend eksik.
   `MaterialService.GetAuthorizedMaterialAsync`'de uygulanıyor (bkz. madde 5).
 
 **Eksik — gerçek backend işi gerekiyor:**
-1. **`DealerName` login response'unda dolmuyor.** `UserResponse.DealerName`
-   alanı tanımlı ama `AuthService.LoginAsync` (`AuthService.cs:55-62`) hiç
-   set etmiyor — bu yüzden frontend `dealerDisplayName(dealerId)` adında
-   dealerId'ye göre hardcoded bir switch kullanmak zorunda kalmış
-   (`bayi-home.model.ts:157`). Düzeltme: `IUserRepository.GetByEmailAsync`
-   sorgusuna `Dealer` include edilip `DealerName` doldurulmalı.
-2. **Bayi kullanıcısı için self-service profil endpoint'i yok.**
-   `UsersController` tamamen `[Authorize(Roles="Admin")]` ve id bazlı;
-   `bayi-profile-page` kendi adını/e-postasını/telefonunu görüntüleyip
-   güncelleyebilmeli → `GET /api/users/me` + `PUT /api/users/me` (Admin
-   rolü gerektirmeyen, JWT'deki kullanıcıya göre çalışan) eklenmeli. Not:
-   `User` entity'sinde `phone` alanı yok gibi görünüyor — eklenmesi ve buna
-   göre migration gerekebilir.
-3. **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
-   yok.** `bayi-documents-page`'deki kart rozetleri kullanıcı+materyal
-   bazında `AccessLogs`'tan türetilmeli, ama `MaterialResponse` böyle bir
-   alan taşımıyor. `GET /api/materials` listesine (istekte bulunan
-   kullanıcıya özel) bir `myAccessStatus` alanı eklenmesi ya da ayrı bir
-   lookup endpoint'i gerekiyor.
+1. ✅ **`DealerName` login response'unda dolmuyor** — çözüldü (2026-07-20,
+   `feature-backend-bayi-dashboard-entegrasyonu` dalında). `UserRepository.GetByEmailAsync`
+   artık `Dealer`'ı include ediyor, `AuthService.LoginAsync`
+   `DealerName = user.Dealer?.Name` set ediyor. `bayi.a@bayiportal.local` ile
+   giriş curl'le doğrulandı: `dealerName: "Bayi A"` dönüyor; admin girişinde
+   (`dealerId` yok) `dealerName: null`, hata yok. Frontend tarafındaki
+   `dealerDisplayName(dealerId)` hardcoded switch'i (`bayi-home.model.ts:157`)
+   artık gereksiz — bir sonraki frontend işinde gerçek `dealerName`'e
+   geçirilebilir.
+   ⚠️ Yan not (bu commit'in kapsamı dışında, ayrıca fark edildi):
+   `LoginResponse`'daki `UserResponse.IsActive` hiç set edilmiyor, her zaman
+   `false` dönüyor (curl ile doğrulandı) — `UsersController`'daki diğer
+   `UserResponse` projeksiyonlarıyla tutarsız, ayrı bir küçük takip
+   gerektirir.
+2. ✅ **Bayi kullanıcısı için self-service profil endpoint'i yoktu** —
+   çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `User` entity'sine `Phone` (nullable, max 30) eklendi
+   (`AddPhoneToUsers` migration'ı oluşturuldu ve lokal veritabanına
+   uygulandı). Yeni `UserProfileController` (`api/users/me`, sadece
+   `[Authorize]` — rol şartı yok, `UsersController`'ın Admin-only class
+   attribute'ından ayrı tutuldu ki normal bayi kullanıcısı da erişebilsin):
+   `GET /api/users/me` JWT'deki kullanıcıyı döner, `PUT /api/users/me`
+   sadece `Name`/`Email`/`Phone` günceller (Role/DealerId/IsActive bu
+   endpoint'ten değiştirilemez — onlar hâlâ Admin'in `PUT /api/users/{id}`
+   endpoint'inde). `UserResponse`'a `Phone` alanı eklendi. curl ile
+   doğrulandı: token'sız istek 401, e-posta çakışması 400, GET sonrası
+   `PUT` ile güncellenen telefon kalıcı, `DealerUser` rolüyle hâlâ
+   `/api/users` (liste) 403 dönüyor (Admin-only kısıtlama regresyona
+   uğramadı).
+3. ✅ **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
+   yoktu** — çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `MaterialResponse`'a `myAccessStatus` alanı eklendi
+   (`"unread"`/`"viewed"`/`"downloaded"` — frontend'deki `BayiDocAccessStatus`
+   union type'ıyla birebir, ek mapping gerekmiyor). Yeni
+   `IAccessLogService.GetAccessStatusesAsync(userId, materialIds)`,
+   `AccessLogs` tablosundaki `"Döküman Görüntüleme"`/`"Döküman İndirme"`
+   kayıtlarından kullanıcı+materyal bazında en yüksek erişim seviyesini
+   (`downloaded` > `viewed`) hesaplıyor; `MaterialService.GetListAsync`
+   sadece `DealerUser` rolü için bunu materyal listesine uyguluyor
+   (Admin/ContentManager için her zaman `"unread"` — onlar için anlamlı bir
+   kavram değil, ekstra sorgu da atlanıyor). curl ile uçtan uca doğrulandı:
+   yeni oluşturulan bir materyal `bayi.a` için `unread` → `GET /{id}`
+   sonrası `viewed` → `GET /{id}/download` sonrası `downloaded` olarak
+   dönüyor; `bayi.b` (farklı marka) materyali listede hiç görmüyor; Admin
+   listesinde tüm materyaller `unread` kalıyor (regresyon yok).
+   ⚠️ Yan not: bu implementasyon `AccessLog.Action`'daki Türkçe serbest
+   metin değerlere (`"Döküman Görüntüleme"`/`"Döküman İndirme"`) doğrudan
+   bağımlı — dosyanın altındaki "Küçük not (kod tutarsızlığı)" bölümünde
+   bahsedilen `AccessAction` enum'una geçiş yapılırsa bu sorgu da
+   güncellenmeli.
 4. **Bildirimler için backend hiç yok.** `bayi-shell`'deki zil menüsü
    tamamen `BAYI_MOCK_NOTIFICATIONS` mock verisiyle çalışıyor — ne bir
    `Notification` entity/tablosu ne de bir controller var. Kapsam (gerçek

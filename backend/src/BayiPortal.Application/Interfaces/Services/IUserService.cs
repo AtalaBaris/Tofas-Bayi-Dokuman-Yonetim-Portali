@@ -14,4 +14,9 @@ public interface IUserService
     Task<UserResponse> UpdateAsync(int id, UpdateUserRequest request, CancellationToken cancellationToken = default);
 
     Task DeactivateAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<UserResponse> GetOwnProfileAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task<UserResponse> UpdateOwnProfileAsync(
+        int userId, UpdateOwnProfileRequest request, CancellationToken cancellationToken = default);
 }

@@ -17,4 +17,11 @@ public class MaterialResponse
     public DateTime UpdatedAt { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public List<string> BrandNames { get; set; } = new();
+
+    /// <summary>
+    /// İsteği atan kullanıcının bu materyale erişim durumu: "unread" | "viewed" | "downloaded".
+    /// Yalnızca DealerUser rolü için AccessLogs'tan hesaplanır; Admin/ContentManager için her
+    /// zaman "unread" döner (onlar için anlamlı bir kavram değil).
+    /// </summary>
+    public string MyAccessStatus { get; set; } = "unread";
 }

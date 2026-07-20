@@ -12,6 +12,7 @@ public class User
     public RoleType Role { get; set; }
     public int? DealerId { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? Phone { get; set; }
 
     public Dealer? Dealer { get; set; }
     public ICollection<Material> CreatedMaterials { get; set; } = new List<Material>();

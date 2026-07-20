@@ -44,7 +44,22 @@ public sealed class MaterialService : IMaterialService
             query.CategoryId, query.BrandId, query.Keyword, status, restrictToBrandIds,
             excludeExpired: isDealerUser, cancellationToken);
 
-        return materials.Select(ToResponse).ToList();
+        var responses = materials.Select(ToResponse).ToList();
+
+        if (isDealerUser && responses.Count > 0)
+        {
+            var statuses = await _accessLogService.GetAccessStatusesAsync(
+                requestingUser.UserId, responses.Select(r => r.Id).ToList(), cancellationToken);
+            foreach (var response in responses)
+            {
+                if (statuses.TryGetValue(response.Id, out var accessStatus))
+                {
+                    response.MyAccessStatus = accessStatus;
+                }
+            }
+        }
+
+        return responses;
     }
 
     public async Task<MaterialResponse> GetByIdAsync(
