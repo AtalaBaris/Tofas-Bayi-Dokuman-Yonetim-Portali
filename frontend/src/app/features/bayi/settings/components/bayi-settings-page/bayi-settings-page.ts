@@ -2,7 +2,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { dealerDisplayName } from '../../../home/models/bayi-home.model';
 
 @Component({
   selector: 'app-bayi-settings-page',
@@ -18,7 +17,7 @@ export class BayiSettingsPage {
   readonly expiryReminders = signal(true);
 
   readonly userName = () => this.auth.currentUser()?.name ?? 'Kullanıcı';
-  readonly dealerName = () => dealerDisplayName(this.auth.currentUser()?.dealerId);
+  readonly dealerName = () => this.auth.currentUser()?.dealerName ?? 'Bayiniz';
 
   toggleEmailNotifications(): void {
     this.emailNotifications.update((value) => !value);

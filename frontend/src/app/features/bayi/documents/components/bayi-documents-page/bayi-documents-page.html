@@ -69,7 +69,7 @@
             (ngModelChange)="onCategory($event)"
           >
             <option value="">Tüm Kategoriler</option>
-            @for (cat of categories; track cat) {
+            @for (cat of categories(); track cat) {
               <option [value]="cat">{{ cat }}</option>
             }
           </select>

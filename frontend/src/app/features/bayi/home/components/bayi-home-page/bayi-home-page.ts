@@ -1,14 +1,10 @@
-/** Bayi ana sayfa — hoş geldiniz + özet + son dokümanlar. */
+/** Bayi ana sayfa — hoş geldiniz + özet + son dokümanlar (gerçek Materials API). */
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
-import {
-  BAYI_MOCK_DOCUMENTS,
-  dealerDisplayName,
-  fileKindIcon,
-  type BayiDocumentCard,
-} from '../../models/bayi-home.model';
+import { MaterialsService } from '../../../../../core/services/materials.service';
+import { fileKindIcon, toBayiDocumentCard, type BayiDocumentCard } from '../../models/bayi-home.model';
 
 @Component({
   selector: 'app-bayi-home-page',
@@ -18,9 +14,10 @@ import {
 })
 export class BayiHomePage {
   private readonly auth = inject(AuthService);
+  private readonly materialsService = inject(MaterialsService);
 
   readonly displayName = computed(() => this.auth.currentUser()?.name ?? 'Kullanıcı');
-  readonly dealerName = computed(() => dealerDisplayName(this.auth.currentUser()?.dealerId));
+  readonly dealerName = computed(() => this.auth.currentUser()?.dealerName ?? 'Bayiniz');
 
   readonly todayLabel = computed(() =>
     new Intl.DateTimeFormat('tr-TR', {
@@ -30,10 +27,12 @@ export class BayiHomePage {
     }).format(new Date())
   );
 
-  readonly allDocs = BAYI_MOCK_DOCUMENTS;
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly allDocs = signal<BayiDocumentCard[]>([]);
 
   readonly stats = computed(() => {
-    const docs = this.allDocs;
+    const docs = this.allDocs();
     return {
       total: docs.length,
       thisWeek: docs.filter((d) => d.daysAgo <= 7).length,
@@ -42,8 +41,21 @@ export class BayiHomePage {
   });
 
   readonly recentDocs = computed(() =>
-    [...this.allDocs].sort((a, b) => a.daysAgo - b.daysAgo).slice(0, 4)
+    [...this.allDocs()].sort((a, b) => a.daysAgo - b.daysAgo).slice(0, 4)
   );
+
+  constructor() {
+    this.materialsService.list().subscribe({
+      next: (materials) => {
+        this.allDocs.set(materials.map(toBayiDocumentCard));
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(err?.message ?? 'Dokümanlar yüklenemedi.');
+        this.loading.set(false);
+      },
+    });
+  }
 
   iconFor(doc: BayiDocumentCard): string {
     return fileKindIcon(doc.fileKind);

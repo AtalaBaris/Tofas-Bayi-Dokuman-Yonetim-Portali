@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { dealerDisplayName } from '../../../home/models/bayi-home.model';
 import {
   BAYI_MOCK_NOTIFICATIONS,
   type BayiNotification,
@@ -41,7 +40,7 @@ export class BayiShell {
 
   readonly userName = () => this.auth.currentUser()?.name ?? 'Kullanıcı';
   readonly userEmail = () => this.auth.currentUser()?.email ?? '';
-  readonly dealerName = () => dealerDisplayName(this.auth.currentUser()?.dealerId);
+  readonly dealerName = () => this.auth.currentUser()?.dealerName ?? 'Bayiniz';
   readonly initials = () => {
     const name = this.userName().trim();
     const parts = name.split(/\s+/).filter(Boolean);

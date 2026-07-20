@@ -1,8 +1,9 @@
-/** Bayi portalı mock dokümanları (API bağlanana kadar). */
+/** Bayi portalı doküman kartı — gerçek Materials API'sinden (Material) türetilir. */
+import type { Material } from '../../../../core/models/material.interface';
 
 export type BayiDocFileKind = 'pdf' | 'video' | 'doc';
 
-/** Kullanıcının bu dokümana erişim durumu (AccessLogs VIEW/DOWNLOAD özet). */
+/** Kullanıcının bu dokümana erişim durumu (AccessLogs VIEW/DOWNLOAD özet, backend MaterialResponse.myAccessStatus). */
 export type BayiDocAccessStatus = 'unread' | 'viewed' | 'downloaded';
 
 export interface BayiDocumentCard {
@@ -18,7 +19,6 @@ export interface BayiDocumentCard {
   expiresInDays?: number | null;
   /** Kullanıcının bu dokümana erişim özeti. */
   accessStatus: BayiDocAccessStatus;
-  /** Detay sayfası — API sonrası Materials DTO’dan gelir. */
   description?: string;
   fileName?: string;
   fileSize?: string;
@@ -26,83 +26,65 @@ export interface BayiDocumentCard {
   uploadedBy?: string;
 }
 
-export const BAYI_MOCK_DOCUMENTS: BayiDocumentCard[] = [
-  {
-    id: 1,
-    title: '2024 Q4 Kampanya Görselleri ve Kullanım Kılavuzu',
-    category: 'Pazarlama',
-    brands: ['Fiat'],
-    fileKind: 'pdf',
-    dateLabel: '24 Eki 2024',
-    daysAgo: 1,
-    isNew: true,
-    accessStatus: 'viewed',
-    fileSize: '3.1 MB',
-  },
-  {
-    id: 2,
-    title: '2024 Ürün Yol Haritası - Video Anlatım',
-    category: 'Eğitim',
-    brands: ['Jeep'],
-    fileKind: 'video',
-    dateLabel: '22 Eki 2024',
-    daysAgo: 3,
-    isNew: true,
-    accessStatus: 'downloaded',
-    fileSize: '45 MB',
-  },
-  {
-    id: 3,
-    title: 'Ekim Ayı Güncel Fiyat Listesi ve Opsiyonlar',
-    category: 'Genel Duyuru',
-    brands: ['Fiat', 'Jeep'],
-    fileKind: 'pdf',
-    dateLabel: '20 Eki 2024',
-    daysAgo: 5,
-    isNew: true,
-    accessStatus: 'unread',
-    fileSize: '1.8 MB',
-  },
-  {
-    id: 4,
-    title: 'Acil Servis Bülteni Güncellemesi',
-    category: 'Eğitim',
-    brands: ['Fiat'],
-    fileKind: 'pdf',
-    dateLabel: '18 Eki 2024',
-    daysAgo: 7,
-    expiresInDays: 3,
-    accessStatus: 'unread',
-    fileSize: '890 KB',
-  },
-  {
-    id: 5,
-    title: 'Haziran Pazarlama Kampanyası',
-    category: 'Pazarlama',
-    brands: ['Fiat', 'Jeep'],
-    fileKind: 'pdf',
-    dateLabel: '12 Haz 2024',
-    daysAgo: 40,
-    accessStatus: 'viewed',
-    fileName: 'haziran_kampanya.pdf',
-    fileSize: '2.4 MB',
-    pageCount: 24,
-    uploadedBy: 'Merkez Admin',
-    description:
-      'Bu doküman, Haziran ayı boyunca Türkiye genelindeki tüm yetkili satıcılarımızda uygulanacak olan entegre pazarlama kampanyasının detaylarını, görsel materyallerini ve dijital iletişim stratejilerini içermektedir. Kampanya, özellikle Fiat ve Jeep markalarının öne çıkan modellerinde (Egea Cross, Renegade) uygulanacak özel finansman seçeneklerini desteklemek üzere kurgulanmıştır.\n\nDoküman içerisinde showroom içi POP malzemelerinin yerleşim planları, sosyal medya paylaşım takvimi, radyo spot metinleri ve yerel basın ilan şablonları bulunmaktadır. Lütfen kampanya başlangıç tarihinden en az 3 gün önce tüm materyallerin showroom\'larınızda hazır olduğundan emin olunuz.',
-  },
-  {
-    id: 6,
-    title: 'Yeni Bayi Yönergeleri 3. Çeyrek',
-    category: 'Genel Duyuru',
-    brands: ['Jeep'],
-    fileKind: 'doc',
-    dateLabel: '05 Haz 2024',
-    daysAgo: 50,
-    accessStatus: 'downloaded',
-    fileSize: '1.1 MB',
-  },
-];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function fileKindFromMimeType(mimeType: string): BayiDocFileKind {
+  if (mimeType.startsWith('video/')) {
+    return 'video';
+  }
+  if (mimeType === 'application/pdf') {
+    return 'pdf';
+  }
+  return 'doc';
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes <= 0) {
+    return '0 B';
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateLabel(iso: string): string {
+  return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(iso)
+  );
+}
+
+/** Backend MaterialResponse'unu bayi ekranlarının kullandığı kart modeline çevirir. */
+export function toBayiDocumentCard(material: Material): BayiDocumentCard {
+  const publishedAt = new Date(material.publishedAt);
+  const daysAgo = Math.max(0, Math.floor((Date.now() - publishedAt.getTime()) / DAY_MS));
+
+  let expiresInDays: number | null = null;
+  if (material.expiresAt) {
+    const diff = Math.ceil((new Date(material.expiresAt).getTime() - Date.now()) / DAY_MS);
+    expiresInDays = diff > 0 ? diff : 0;
+  }
+
+  return {
+    id: material.id,
+    title: material.title,
+    category: material.categoryName,
+    brands: material.brandNames,
+    fileKind: fileKindFromMimeType(material.mimeType),
+    dateLabel: formatDateLabel(material.publishedAt),
+    daysAgo,
+    isNew: daysAgo < 7,
+    expiresInDays,
+    accessStatus: material.myAccessStatus,
+    description: material.description,
+    fileName: material.fileName,
+    fileSize: formatFileSize(material.fileSize),
+    uploadedBy: undefined,
+  };
+}
 
 export interface BayiAccessStatusMeta {
   label: string;
@@ -151,17 +133,6 @@ export function isUrgentDocument(doc: BayiDocumentCard): boolean {
 
 export function viewActionLabel(doc: BayiDocumentCard): string {
   return doc.fileKind === 'video' ? 'İzle' : 'Görüntüle';
-}
-
-/** Seed dealerId → gösterim adı (login henüz DealerName dönmüyor). */
-export function dealerDisplayName(dealerId: number | null | undefined): string {
-  if (dealerId === 1) {
-    return 'Bayi A';
-  }
-  if (dealerId === 2) {
-    return 'Bayi B';
-  }
-  return 'Bayiniz';
 }
 
 export function fileKindIcon(kind: BayiDocFileKind): string {

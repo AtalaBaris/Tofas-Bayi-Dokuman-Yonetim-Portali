@@ -15,4 +15,6 @@ export interface Material {
   updatedAt: string;
   brandIds: number[];
   brandNames: string[];
+  /** İsteği atan kullanıcının bu materyale erişim durumu (DealerUser için anlamlı; Admin/ContentManager için hep "unread"). */
+  myAccessStatus: 'unread' | 'viewed' | 'downloaded';
 }

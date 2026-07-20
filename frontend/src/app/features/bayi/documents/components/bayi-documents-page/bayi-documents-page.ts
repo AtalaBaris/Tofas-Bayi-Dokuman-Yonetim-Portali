@@ -1,14 +1,16 @@
-/** Bayi doküman listesi — bento kart grid, filtreler ve erişim durumu. */
+/** Bayi doküman listesi — bento kart grid, filtreler ve erişim durumu (gerçek Materials API). */
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MaterialsService } from '../../../../../core/services/materials.service';
+import { saveBlobAsFile } from '../../../../../shared/utils/file-download.util';
 import {
   accessStatusMeta,
-  BAYI_MOCK_DOCUMENTS,
   cardVisualIcon,
   fileKindIcon,
   fileKindLabel,
   isUrgentDocument,
+  toBayiDocumentCard,
   viewActionLabel,
   type BayiDocAccessStatus,
   type BayiDocumentCard,
@@ -24,7 +26,12 @@ const PAGE_SIZE = 6;
 })
 export class BayiDocumentsPage {
   private readonly router = inject(Router);
+  private readonly materialsService = inject(MaterialsService);
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly allDocs = signal<BayiDocumentCard[]>([]);
 
   readonly search = signal('');
   readonly category = signal('');
@@ -32,11 +39,17 @@ export class BayiDocumentsPage {
   readonly accessFilter = signal<'' | BayiDocAccessStatus>('');
   readonly visibleCount = signal(PAGE_SIZE);
 
-  readonly categories = ['Pazarlama', 'Genel Duyuru', 'Eğitim'];
+  readonly categories = computed(() => {
+    const set = new Set<string>();
+    for (const doc of this.allDocs()) {
+      set.add(doc.category);
+    }
+    return [...set].sort();
+  });
 
   readonly brands = computed(() => {
     const set = new Set<string>();
-    for (const doc of BAYI_MOCK_DOCUMENTS) {
+    for (const doc of this.allDocs()) {
       for (const brand of doc.brands) {
         set.add(brand);
       }
@@ -46,7 +59,7 @@ export class BayiDocumentsPage {
 
   readonly statusCounts = computed(() => {
     const counts = { unread: 0, viewed: 0, downloaded: 0 };
-    for (const doc of BAYI_MOCK_DOCUMENTS) {
+    for (const doc of this.allDocs()) {
       counts[doc.accessStatus] += 1;
     }
     return counts;
@@ -58,7 +71,7 @@ export class BayiDocumentsPage {
     const brand = this.brand();
     const access = this.accessFilter();
 
-    return BAYI_MOCK_DOCUMENTS.filter((d) => {
+    return this.allDocs().filter((d) => {
       if (cat && d.category !== cat) {
         return false;
       }
@@ -87,6 +100,19 @@ export class BayiDocumentsPage {
   readonly cardVisualIcon = cardVisualIcon;
   readonly isUrgentDocument = isUrgentDocument;
   readonly viewActionLabel = viewActionLabel;
+
+  constructor() {
+    this.materialsService.list().subscribe({
+      next: (materials) => {
+        this.allDocs.set(materials.map(toBayiDocumentCard));
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(err?.message ?? 'Dokümanlar yüklenemedi.');
+        this.loading.set(false);
+      },
+    });
+  }
 
   fileKindIcon(doc: BayiDocumentCard): string {
     return fileKindIcon(doc.fileKind);
@@ -148,8 +174,15 @@ export class BayiDocumentsPage {
 
   onDownload(doc: BayiDocumentCard, event: Event): void {
     event.stopPropagation();
-    // TODO: GET /api/materials/:id/download
-    console.info('[mock] DOWNLOAD', doc.id);
+    this.materialsService.download(doc.id).subscribe({
+      next: (blob) => {
+        saveBlobAsFile(blob, doc.fileName ?? doc.title);
+        this.allDocs.update((docs) =>
+          docs.map((d) => (d.id === doc.id ? { ...d, accessStatus: 'downloaded' } : d))
+        );
+      },
+      error: (err) => this.error.set(err?.message ?? 'Dosya indirilemedi.'),
+    });
   }
 
   private resetPagination(): void {
