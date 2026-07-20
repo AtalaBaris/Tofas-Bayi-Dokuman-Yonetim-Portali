@@ -1,0 +1,269 @@
+<div class="bayi-docs">
+  <div class="bayi-docs__inner">
+    <header class="bayi-docs__header">
+      <h1 class="bayi-docs__title">Dokümanlarım</h1>
+      <p class="bayi-docs__subtitle">
+        Yalnızca bayinizin markalarına atanmış aktif içerikler listelenir.
+      </p>
+    </header>
+
+    <div class="bayi-docs__status-bar" aria-label="Erişim durumu özeti">
+      <button
+        type="button"
+        class="bayi-docs__status-chip"
+        [class.bayi-docs__status-chip--active]="accessFilter() === ''"
+        (click)="setAccessFilter('')"
+      >
+        Tümü
+        <span class="bayi-docs__status-count">{{ statusCounts().unread + statusCounts().viewed + statusCounts().downloaded }}</span>
+      </button>
+      <button
+        type="button"
+        class="bayi-docs__status-chip bayi-docs__status-chip--unread"
+        [class.bayi-docs__status-chip--active]="accessFilter() === 'unread'"
+        (click)="setAccessFilter('unread')"
+      >
+        <span class="material-symbols-outlined">mark_email_unread</span>
+        Henüz açılmadı
+        <span class="bayi-docs__status-count">{{ statusCounts().unread }}</span>
+      </button>
+      <button
+        type="button"
+        class="bayi-docs__status-chip bayi-docs__status-chip--viewed"
+        [class.bayi-docs__status-chip--active]="accessFilter() === 'viewed'"
+        (click)="setAccessFilter('viewed')"
+      >
+        <span class="material-symbols-outlined">visibility</span>
+        Görüntülendi
+        <span class="bayi-docs__status-count">{{ statusCounts().viewed }}</span>
+      </button>
+      <button
+        type="button"
+        class="bayi-docs__status-chip bayi-docs__status-chip--downloaded"
+        [class.bayi-docs__status-chip--active]="accessFilter() === 'downloaded'"
+        (click)="setAccessFilter('downloaded')"
+      >
+        <span class="material-symbols-outlined">download_done</span>
+        İndirildi
+        <span class="bayi-docs__status-count">{{ statusCounts().downloaded }}</span>
+      </button>
+    </div>
+
+    <div class="bayi-docs__filters">
+      <label class="bayi-docs__search">
+        <span class="material-symbols-outlined">search</span>
+        <input
+          #searchInput
+          type="search"
+          placeholder="Doküman ara..."
+          [ngModel]="search()"
+          (ngModelChange)="onSearch($event)"
+        />
+      </label>
+
+      <div class="bayi-docs__selects">
+        <label class="bayi-docs__select-wrap">
+          <select
+            class="bayi-docs__select"
+            [ngModel]="category()"
+            (ngModelChange)="onCategory($event)"
+          >
+            <option value="">Tüm Kategoriler</option>
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined">expand_more</span>
+        </label>
+
+        <label class="bayi-docs__select-wrap">
+          <select class="bayi-docs__select" [ngModel]="brand()" (ngModelChange)="onBrand($event)">
+            <option value="">Tüm Markalar</option>
+            @for (b of brands(); track b) {
+              <option [value]="b">{{ b }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined">expand_more</span>
+        </label>
+      </div>
+    </div>
+
+    @if (filtered().length === 0) {
+      <section class="bayi-docs__empty" aria-live="polite">
+        <div class="bayi-docs__empty-glow" aria-hidden="true"></div>
+
+        <div class="bayi-docs__empty-card">
+          <div class="bayi-docs__empty-icon-wrap">
+            <div class="bayi-docs__empty-icon-ring" aria-hidden="true"></div>
+            <div class="bayi-docs__empty-icon">
+              <span class="material-symbols-outlined">folder_off</span>
+            </div>
+          </div>
+
+          <h2 class="bayi-docs__empty-title">Aramanızla eşleşen doküman bulunamadı</h2>
+          <p class="bayi-docs__empty-text">
+            Filtreleri temizleyerek veya farklı bir anahtar kelime deneyerek tekrar arama
+            yapabilirsiniz. Gelişmiş arama seçeneklerini kullanarak daha spesifik sonuçlar elde
+            edebilirsiniz.
+          </p>
+
+          <div class="bayi-docs__empty-actions">
+            <button type="button" class="bayi-docs__empty-btn bayi-docs__empty-btn--primary" (click)="clearFilters()">
+              <span class="material-symbols-outlined">filter_list_off</span>
+              Filtreleri Temizle
+            </button>
+            <button type="button" class="bayi-docs__empty-btn bayi-docs__empty-btn--outline" (click)="focusSearch()">
+              <span class="material-symbols-outlined">search</span>
+              Yeni Arama
+            </button>
+          </div>
+        </div>
+
+        <div class="bayi-docs__empty-hints">
+          <article class="bayi-docs__hint-card">
+            <span class="material-symbols-outlined">spellcheck</span>
+            <h3>Yazım Kontrolü</h3>
+            <p>Anahtar kelimenizde yazım hatası olmadığından emin olun.</p>
+          </article>
+          <article class="bayi-docs__hint-card">
+            <span class="material-symbols-outlined">category</span>
+            <h3>Geniş Kategoriler</h3>
+            <p>Daha genel terimler veya üst kategoriler kullanarak aramayı genişletin.</p>
+          </article>
+          <article class="bayi-docs__hint-card">
+            <span class="material-symbols-outlined">history</span>
+            <h3>Tarih Aralığı</h3>
+            <p>Seçili tarih filtrelerini genişleterek geçmiş dokümanları dahil edin.</p>
+          </article>
+        </div>
+      </section>
+    } @else {
+      <div class="bayi-docs__grid">
+        @for (doc of visibleDocs(); track doc.id) {
+          @let urgent = isUrgentDocument(doc);
+          @let status = accessStatusMeta(doc.accessStatus);
+          <article
+            class="bayi-docs__card"
+            [class.bayi-docs__card--urgent]="urgent"
+            tabindex="0"
+            role="button"
+            (click)="openDetail(doc)"
+            (keydown.enter)="openDetail(doc)"
+          >
+            <div
+              class="bayi-docs__card-visual"
+              [class.bayi-docs__card-visual--urgent]="urgent"
+              [class.bayi-docs__card-visual--video]="doc.fileKind === 'video'"
+            >
+              <div class="bayi-docs__card-pattern" aria-hidden="true"></div>
+              <div
+                class="bayi-docs__card-icon"
+                [class.bayi-docs__card-icon--urgent]="urgent"
+                [class.bayi-docs__card-icon--video]="doc.fileKind === 'video'"
+              >
+                <span class="material-symbols-outlined">{{ cardVisualIcon(doc) }}</span>
+              </div>
+
+              <div class="bayi-docs__card-badges-left">
+                <span class="bayi-docs__cat-badge">{{ doc.category }}</span>
+              </div>
+
+              <div class="bayi-docs__card-badges-right">
+                @if (urgent) {
+                  <span class="bayi-docs__expiry-badge">{{ doc.expiresInDays }} gün kaldı</span>
+                } @else if (doc.isNew) {
+                  <span class="bayi-docs__new-badge">Yeni</span>
+                }
+                @for (brand of doc.brands; track brand) {
+                  <span class="bayi-docs__brand-badge">{{ brand }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="bayi-docs__card-body">
+              <h2 class="bayi-docs__card-title">{{ doc.title }}</h2>
+
+              <div class="bayi-docs__card-meta">
+                <span
+                  class="bayi-docs__access-badge"
+                  [class.bayi-docs__access-badge--info]="status.tone === 'info'"
+                  [class.bayi-docs__access-badge--success]="status.tone === 'success'"
+                  [class.bayi-docs__access-badge--neutral]="status.tone === 'neutral'"
+                >
+                  <span class="material-symbols-outlined">{{ status.icon }}</span>
+                  {{ status.label }}
+                </span>
+
+                <span class="bayi-docs__meta-dot" aria-hidden="true"></span>
+
+                <span class="bayi-docs__meta-item">
+                  <span class="material-symbols-outlined">{{ fileKindIcon(doc) }}</span>
+                  {{ fileKindLabel(doc.fileKind) }}
+                </span>
+
+                @if (doc.fileSize) {
+                  <span class="bayi-docs__meta-dot" aria-hidden="true"></span>
+                  <span>{{ doc.fileSize }}</span>
+                }
+
+                <span class="bayi-docs__meta-dot" aria-hidden="true"></span>
+                <span>{{ doc.dateLabel }}</span>
+              </div>
+            </div>
+
+            <div class="bayi-docs__card-overlay">
+              <button
+                type="button"
+                class="bayi-docs__overlay-btn bayi-docs__overlay-btn--primary"
+                [class.bayi-docs__overlay-btn--urgent]="urgent"
+                (click)="onView(doc, $event)"
+              >
+                <span class="material-symbols-outlined">{{ viewActionIcon(doc) }}</span>
+                {{ viewActionLabel(doc) }}
+              </button>
+              <button
+                type="button"
+                class="bayi-docs__overlay-btn bayi-docs__overlay-btn--icon"
+                [class.bayi-docs__overlay-btn--urgent]="urgent"
+                (click)="onDownload(doc, $event)"
+                aria-label="İndir"
+              >
+                <span class="material-symbols-outlined">download</span>
+              </button>
+            </div>
+
+            <div class="bayi-docs__card-mobile-actions">
+              <button
+                type="button"
+                class="bayi-docs__mobile-btn bayi-docs__mobile-btn--primary"
+                [class.bayi-docs__mobile-btn--urgent]="urgent"
+                (click)="onView(doc, $event)"
+              >
+                <span class="material-symbols-outlined">{{ viewActionIcon(doc) }}</span>
+                {{ viewActionLabel(doc) }}
+              </button>
+              <button
+                type="button"
+                class="bayi-docs__mobile-btn"
+                [class.bayi-docs__mobile-btn--urgent]="urgent"
+                (click)="onDownload(doc, $event)"
+                aria-label="İndir"
+              >
+                <span class="material-symbols-outlined">download</span>
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (canLoadMore()) {
+        <div class="bayi-docs__load-more">
+          <button type="button" class="bayi-docs__load-btn" (click)="loadMore()">
+            Daha Fazla Yükle
+            <span class="material-symbols-outlined">keyboard_arrow_down</span>
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

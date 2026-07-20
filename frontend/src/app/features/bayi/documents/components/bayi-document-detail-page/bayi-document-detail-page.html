@@ -1,0 +1,132 @@
+@if (doc(); as d) {
+  <div class="bayi-detail">
+    <nav class="bayi-detail__crumbs" aria-label="Sayfa yolu">
+      <a routerLink="/bayi/documents" class="bayi-detail__crumb-link">
+        <span class="material-symbols-outlined">folder</span>
+        Dokümanlarım
+      </a>
+      <span class="material-symbols-outlined bayi-detail__crumb-sep">chevron_right</span>
+      <span class="bayi-detail__crumb-current">{{ d.title }}</span>
+    </nav>
+
+    <header class="bayi-detail__header">
+      <div class="bayi-detail__header-main">
+        <h1 class="bayi-detail__title">{{ d.title }}</h1>
+        <div class="bayi-detail__tags">
+          <span class="bayi-detail__cat">{{ d.category }}</span>
+          <span class="bayi-detail__tag-dot" aria-hidden="true"></span>
+          @for (brand of d.brands; track brand) {
+            <span class="bayi-detail__brand">{{ brand }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="bayi-detail__header-actions">
+        <button type="button" class="bayi-detail__btn bayi-detail__btn--outline" (click)="onDownload()">
+          <span class="material-symbols-outlined">download</span>
+          İndir
+        </button>
+        <button type="button" class="bayi-detail__btn bayi-detail__btn--primary" (click)="onView()">
+          <span class="material-symbols-outlined">visibility</span>
+          Görüntüle
+        </button>
+      </div>
+    </header>
+
+    <div class="bayi-detail__grid">
+      <div class="bayi-detail__main">
+        <section class="bayi-detail__section">
+          <h2 class="bayi-detail__section-title">Kampanya Detayları</h2>
+          @for (paragraph of descriptionParagraphs(); track $index) {
+            <p class="bayi-detail__text">{{ paragraph }}</p>
+          }
+        </section>
+
+        @if (d.fileKind === 'pdf') {
+          <section class="bayi-detail__section">
+            <h2 class="bayi-detail__section-title bayi-detail__section-title--icon">
+              <span class="material-symbols-outlined">preview</span>
+              PDF Önizleme
+            </h2>
+            <button type="button" class="bayi-detail__preview" (click)="onView()">
+              <span class="bayi-detail__preview-pattern" aria-hidden="true"></span>
+              <span class="material-symbols-outlined bayi-detail__preview-icon">picture_as_pdf</span>
+              <p class="bayi-detail__preview-label">Önizlemeyi Başlatmak İçin Tıklayın</p>
+              @if (previewMeta(); as meta) {
+                <p class="bayi-detail__preview-meta">{{ meta }}</p>
+              }
+            </button>
+          </section>
+        }
+      </div>
+
+      <aside class="bayi-detail__sidebar">
+        <div class="bayi-detail__info-card">
+          <div class="bayi-detail__info-accent" aria-hidden="true"></div>
+          <h3 class="bayi-detail__info-title">
+            <span class="material-symbols-outlined">info</span>
+            Doküman Bilgileri
+          </h3>
+          <dl class="bayi-detail__meta">
+            <div class="bayi-detail__meta-row">
+              <dt>Yükleyen</dt>
+              <dd>
+                <span class="material-symbols-outlined">person</span>
+                {{ uploadedBy() }}
+              </dd>
+            </div>
+            <div class="bayi-detail__meta-row">
+              <dt>Tarih</dt>
+              <dd>
+                <span class="material-symbols-outlined">calendar_today</span>
+                {{ d.dateLabel }}
+              </dd>
+            </div>
+            <div class="bayi-detail__meta-row">
+              <dt>Boyut</dt>
+              <dd>
+                <span class="material-symbols-outlined">sd_storage</span>
+                {{ fileSize() }}
+              </dd>
+            </div>
+            <div class="bayi-detail__meta-row bayi-detail__meta-row--last">
+              <dt>Dosya Adı</dt>
+              <dd>
+                <code class="bayi-detail__filename">{{ fileName() }}</code>
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bayi-detail__quick-card">
+          <h4 class="bayi-detail__quick-title">Hızlı İşlemler</h4>
+          <div class="bayi-detail__quick-list">
+            <button type="button" class="bayi-detail__quick-item" disabled>
+              <span>Yorum Ekle</span>
+              <span class="material-symbols-outlined">add_comment</span>
+            </button>
+            <button type="button" class="bayi-detail__quick-item" disabled>
+              <span>Geçmiş Versiyonlar</span>
+              <span class="material-symbols-outlined">history</span>
+            </button>
+            <button type="button" class="bayi-detail__quick-item" disabled>
+              <span>Bayi ile Paylaş</span>
+              <span class="material-symbols-outlined">share</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="bayi-detail__bottom-bar" role="toolbar" aria-label="Doküman işlemleri">
+      <button type="button" class="bayi-detail__bottom-btn bayi-detail__bottom-btn--outline" (click)="onDownload()">
+        <span class="material-symbols-outlined">download</span>
+        Dosyayı İndir
+      </button>
+      <button type="button" class="bayi-detail__bottom-btn bayi-detail__bottom-btn--primary" (click)="onView()">
+        <span class="material-symbols-outlined">visibility</span>
+        Dokümanı Görüntüle
+      </button>
+    </div>
+  </div>
+}

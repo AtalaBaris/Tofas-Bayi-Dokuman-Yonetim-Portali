@@ -1,15 +1,20 @@
 # bayi/
 
-Bayi kullanıcısına ait ekranlar.
+Bayi kullanıcısına (`DealerUser`) ait ekranlar.
 
 ```
 bayi/
-└── login/
-    ├── components/bayi-login/   # BayiLogin sayfası
-    ├── styles/                  # login SCSS
-    └── animations/              # Angular animations
+├── bayi.routes.ts
+├── guards/bayi.guards.ts
+├── login/                 # Public giriş (/login)
+├── shell/                 # Üst bar + mobil bottom nav
+├── home/                  # Ana sayfa dashboard
+└── documents/             # Liste + detay (şimdilik mock)
 ```
 
 | URL | Erişim |
 |-----|--------|
 | `/login` | Public — bayi girişi |
+| `/bayi` | DealerUser — ana sayfa |
+| `/bayi/documents` | DealerUser — doküman listesi |
+| `/bayi/documents/:id` | DealerUser — doküman detayı |
