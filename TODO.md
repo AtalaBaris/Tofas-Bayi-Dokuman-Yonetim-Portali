@@ -302,10 +302,30 @@ alanı hâlâ `string` — enum hiç kullanılmıyor.~~ `feature-backend-materia
 (PR #3) içinde `Material.Status` artık `MaterialStatus` enum'u kullanıyor
 (`HasConversion<string>()` ile aynı text kolonuna yazılıyor, migration gerekmedi).
 
-Benzer bir tutarsızlık hâlâ duruyor: `User.Role` da tanımlı `RoleType` enum'u
-yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
-`string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
-dosyalar) — ileride ilgili branch'lerde bağlanabilir.
+~~`User.Role` da tanımlı `RoleType` enum'u yerine `string` kullanıyordu.~~
+`feature-backend-role-enum` dalında aynı desenle (`HasConversion<string>()`)
+çözüldü (2026-07-20): `User.Role` artık `RoleType` enum'u kullanıyor, DB'deki
+mevcut değerler (`Admin`/`ContentManager`/`DealerUser`) enum adlarıyla birebir
+eşleştiği için migration gerekmedi. DTO sınırı (Request/Response) bilinçli
+olarak `string` kaldı — sadece entity/DB katmanı enum'a bağlandı. Etkilenen
+dosyalar: `User.cs`, `UserConfiguration.cs`, `SeedData.cs`, `UserService.cs`,
+`AuthService.cs`, `JwtTokenService.cs`, `AccessLogService.cs` (rol filtresi +
+görüntüleme projeksiyonu). Canlı sunucuya karşı curl ile doğrulandı: login/JWT
+role claim, `GET /api/users`, rol bazlı 403, access-logs rol filtresi,
+kullanıcı oluşturma/güncelleme (geçerli + geçersiz rol), materials
+liste/oluşturma yetkilendirmesi, logout loglama — regresyon yok.
+
+Benzer bir tutarsızlık hâlâ duruyor: `AccessLog.Action` da `AccessAction`
+enum'u yerine `string` kullanıyor. Bu, `User.Role`'den daha riskli: mevcut
+`AccessAction` enum'u sadece `View`/`Download` içeriyor, ama gerçekte loglanan
+değerler Türkçe serbest metin (`"Giriş"`, `"Çıkış"`, `"Döküman Görüntüleme"`,
+`"Döküman Yükleme"`, `"Döküman Güncelleme"`, `"Döküman Arşivleme"`,
+`"Döküman İndirme"`) — enum'un 7 üyeyle yeniden tanımlanmasını gerektirir ve
+frontend'deki `/admin/access-logs` ekranı bu string değerlerle filtreleme
+yapıyor (bkz. `AccessLogService.cs` içindeki `"Giriş,Çıkış"` yorum örneği).
+Bu yüzden ayrı bir dal olarak, frontend tarafını elleyen ekip arkadaşıyla
+koordineli şekilde ele alınmalı — tek başına backend commit'i olarak
+yapılmamalı.
 
 ## Küçük not (config tutarsızlığı) — ⚠️ Docker için çözüldü, native Postgres için yeniden açıldı
 
