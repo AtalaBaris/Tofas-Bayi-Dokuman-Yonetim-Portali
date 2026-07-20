@@ -333,13 +333,21 @@ için gerçek backend eksik.
    `false` dönüyor (curl ile doğrulandı) — `UsersController`'daki diğer
    `UserResponse` projeksiyonlarıyla tutarsız, ayrı bir küçük takip
    gerektirir.
-2. **Bayi kullanıcısı için self-service profil endpoint'i yok.**
-   `UsersController` tamamen `[Authorize(Roles="Admin")]` ve id bazlı;
-   `bayi-profile-page` kendi adını/e-postasını/telefonunu görüntüleyip
-   güncelleyebilmeli → `GET /api/users/me` + `PUT /api/users/me` (Admin
-   rolü gerektirmeyen, JWT'deki kullanıcıya göre çalışan) eklenmeli. Not:
-   `User` entity'sinde `phone` alanı yok gibi görünüyor — eklenmesi ve buna
-   göre migration gerekebilir.
+2. ✅ **Bayi kullanıcısı için self-service profil endpoint'i yoktu** —
+   çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `User` entity'sine `Phone` (nullable, max 30) eklendi
+   (`AddPhoneToUsers` migration'ı oluşturuldu ve lokal veritabanına
+   uygulandı). Yeni `UserProfileController` (`api/users/me`, sadece
+   `[Authorize]` — rol şartı yok, `UsersController`'ın Admin-only class
+   attribute'ından ayrı tutuldu ki normal bayi kullanıcısı da erişebilsin):
+   `GET /api/users/me` JWT'deki kullanıcıyı döner, `PUT /api/users/me`
+   sadece `Name`/`Email`/`Phone` günceller (Role/DealerId/IsActive bu
+   endpoint'ten değiştirilemez — onlar hâlâ Admin'in `PUT /api/users/{id}`
+   endpoint'inde). `UserResponse`'a `Phone` alanı eklendi. curl ile
+   doğrulandı: token'sız istek 401, e-posta çakışması 400, GET sonrası
+   `PUT` ile güncellenen telefon kalıcı, `DealerUser` rolüyle hâlâ
+   `/api/users` (liste) 403 dönüyor (Admin-only kısıtlama regresyona
+   uğramadı).
 3. **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
    yok.** `bayi-documents-page`'deki kart rozetleri kullanıcı+materyal
    bazında `AccessLogs`'tan türetilmeli, ama `MaterialResponse` böyle bir

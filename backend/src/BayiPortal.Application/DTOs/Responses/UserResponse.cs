@@ -9,4 +9,5 @@ public class UserResponse
     public int? DealerId { get; set; }
     public string? DealerName { get; set; }
     public bool IsActive { get; set; }
+    public string? Phone { get; set; }
 }
