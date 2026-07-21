@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Requests;
@@ -18,5 +19,15 @@ public interface IAccessLogService
 
     Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Verilen kullanıcının, verilen materyaller için en yüksek erişim seviyesini döner
+    /// ("downloaded" &gt; "viewed"). Hiç log yoksa o materyal için sözlükte anahtar bulunmaz
+    /// (çağıran taraf bunu "unread" olarak yorumlamalı).
+    /// </summary>
+    Task<Dictionary<int, string>> GetAccessStatusesAsync(
+        int userId,
+        IReadOnlyCollection<int> materialIds,
         CancellationToken cancellationToken = default);
 }

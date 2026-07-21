@@ -8,6 +8,7 @@ using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
 using BayiPortal.Core.Entities;
+using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +66,35 @@ public class AccessLogService : IAccessLogService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<Dictionary<int, string>> GetAccessStatusesAsync(
+        int userId, IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default)
+    {
+        if (materialIds.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var logs = await _dbContext.AccessLogs
+            .Where(x => x.UserId == userId
+                && x.MaterialId != null
+                && materialIds.Contains(x.MaterialId.Value)
+                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+            .Select(x => new { MaterialId = x.MaterialId!.Value, x.Action })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<int, string>();
+        foreach (var log in logs)
+        {
+            var status = log.Action == "Döküman İndirme" ? "downloaded" : "viewed";
+            if (status == "downloaded" || !result.ContainsKey(log.MaterialId))
+            {
+                result[log.MaterialId] = status;
+            }
+        }
+
+        return result;
+    }
+
     public async Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
         CancellationToken cancellationToken = default)
@@ -83,15 +113,24 @@ public class AccessLogService : IAccessLogService
         }
 
         // Role filter
-        if (!string.IsNullOrWhiteSpace(query.Role))
+        if (!string.IsNullOrWhiteSpace(query.Role) && Enum.TryParse<RoleType>(query.Role, out var roleFilter))
         {
-            dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == query.Role);
+            dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == roleFilter);
         }
 
-        // Action filter
+        // Action filter — tek değer veya virgülle ayrılmış liste (örn. "Giriş,Çıkış")
         if (!string.IsNullOrWhiteSpace(query.Action))
         {
-            dbQuery = dbQuery.Where(x => x.Action == query.Action);
+            var actions = query.Action
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (actions.Length == 1)
+            {
+                dbQuery = dbQuery.Where(x => x.Action == actions[0]);
+            }
+            else
+            {
+                dbQuery = dbQuery.Where(x => actions.Contains(x.Action));
+            }
         }
 
         // Status filter
@@ -122,7 +161,7 @@ public class AccessLogService : IAccessLogService
 
         var dtos = items.Select(log => {
             // Determine UserRole & UserType
-            var role = log.User?.Role ?? (log.Action == "Giriş" && log.LoginStatus == "Başarısız" ? "Guest" : "Guest");
+            var role = log.User?.Role.ToString() ?? "Guest";
             var userType = "Bayi Kullanıcısı";
             if (role == "Admin") userType = "Yönetici";
             else if (role == "ContentManager") userType = "İçerik Yöneticisi";

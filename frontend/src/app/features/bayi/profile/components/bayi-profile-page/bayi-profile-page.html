@@ -1,0 +1,89 @@
+<div class="bayi-profile">
+  <div class="bayi-profile__inner">
+    <nav class="bayi-profile__crumbs" aria-label="Sayfa yolu">
+      <a routerLink="/bayi">Ana Sayfa</a>
+      <span class="material-symbols-outlined">chevron_right</span>
+      <span>Profilim</span>
+    </nav>
+
+    <header class="bayi-profile__header">
+      <div class="bayi-profile__avatar">{{ initials }}</div>
+      <div>
+        <h1 class="bayi-profile__title">Profilim</h1>
+        <p class="bayi-profile__subtitle">
+          İletişim bilgilerinizi güncelleyin. Değişiklikler bayi hesabınıza kaydedilir.
+        </p>
+      </div>
+    </header>
+
+    <form class="bayi-profile__form" (ngSubmit)="save()">
+      <section class="bayi-profile__card">
+        <h2 class="bayi-profile__section-title">
+          <span class="material-symbols-outlined">person</span>
+          Kişisel Bilgiler
+        </h2>
+
+        <div class="bayi-profile__grid">
+          <label class="bayi-profile__field">
+            <span>Ad</span>
+            <input type="text" name="firstName" [(ngModel)]="firstName" autocomplete="given-name" />
+          </label>
+          <label class="bayi-profile__field">
+            <span>Soyad</span>
+            <input type="text" name="lastName" [(ngModel)]="lastName" autocomplete="family-name" />
+          </label>
+        </div>
+      </section>
+
+      <section class="bayi-profile__card">
+        <h2 class="bayi-profile__section-title">
+          <span class="material-symbols-outlined">contact_mail</span>
+          İletişim Bilgileri
+        </h2>
+
+        <div class="bayi-profile__stack">
+          <label class="bayi-profile__field">
+            <span>E-posta</span>
+            <input type="email" name="email" [(ngModel)]="email" autocomplete="email" />
+          </label>
+          <label class="bayi-profile__field">
+            <span>Telefon</span>
+            <input type="tel" name="phone" [(ngModel)]="phone" autocomplete="tel" placeholder="+90 5XX XXX XX XX" />
+          </label>
+        </div>
+      </section>
+
+      <section class="bayi-profile__card bayi-profile__card--readonly">
+        <h2 class="bayi-profile__section-title">
+          <span class="material-symbols-outlined">storefront</span>
+          Bayi Bilgisi
+        </h2>
+
+        <dl class="bayi-profile__readonly">
+          <div>
+            <dt>Bayi</dt>
+            <dd>{{ dealerName() }}</dd>
+          </div>
+          <div>
+            <dt>Kullanıcı ID</dt>
+            <dd>#{{ userId() }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      @if (error()) {
+        <p class="bayi-profile__error" role="alert">{{ error() }}</p>
+      }
+      @if (saved()) {
+        <p class="bayi-profile__success" role="status">Profil bilgileriniz kaydedildi.</p>
+      }
+
+      <div class="bayi-profile__actions">
+        <a routerLink="/bayi" class="bayi-profile__btn bayi-profile__btn--outline">Vazgeç</a>
+        <button type="submit" class="bayi-profile__btn bayi-profile__btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

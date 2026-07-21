@@ -1,0 +1,110 @@
+<div class="add-doc__card">
+  <h2 class="add-doc__card-title">Sınıflandırma &amp; Yayın</h2>
+
+  <div class="add-meta">
+    <div class="add-meta__field">
+      <label class="add-meta__label" for="add-doc-category">Kategori</label>
+      <div class="add-meta__select-wrap">
+        <select
+          id="add-doc-category"
+          class="add-meta__select"
+          [ngModel]="category()"
+          (ngModelChange)="categoryChange.emit($event)"
+        >
+          <option disabled value="">Kategori Seçiniz</option>
+          @for (opt of categories; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        <span class="material-symbols-outlined add-meta__caret">expand_more</span>
+      </div>
+    </div>
+
+    <div class="add-meta__field">
+      <span class="add-meta__label">Markalar</span>
+      <div class="add-meta__brands">
+        @for (brand of brands(); track brand) {
+          <button type="button" class="add-meta__pill" (click)="removeBrand(brand)">
+            {{ brand }}
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        }
+
+        <div class="add-meta__brand-menu-wrap">
+          <button
+            type="button"
+            class="add-meta__pill-add"
+            [disabled]="availableBrands().length === 0"
+            (click)="toggleBrandMenu(); $event.stopPropagation()"
+          >
+            <span class="material-symbols-outlined">add</span>
+            Ekle
+          </button>
+
+          @if (brandMenuOpen()) {
+            <div class="add-meta__brand-menu" @brandMenu>
+              @for (opt of availableBrands(); track opt.id) {
+                <button
+                  type="button"
+                  class="add-meta__brand-option"
+                  (click)="addBrand(opt.label)"
+                >
+                  {{ opt.label }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <hr class="add-meta__divider" />
+
+    <div class="add-meta__dates">
+      <div class="add-meta__field">
+        <label class="add-meta__label" for="add-doc-published">Yayın Tarihi</label>
+        <div class="add-meta__date-wrap">
+          <span class="material-symbols-outlined add-meta__date-icon">calendar_today</span>
+          <input
+            id="add-doc-published"
+            class="add-meta__date"
+            type="date"
+            [ngModel]="publishedAt()"
+            (ngModelChange)="publishedAtChange.emit($event)"
+          />
+        </div>
+      </div>
+      <div class="add-meta__field">
+        <label class="add-meta__label" for="add-doc-expires">Bitiş Tarihi</label>
+        <div class="add-meta__date-wrap">
+          <span class="material-symbols-outlined add-meta__date-icon">event_busy</span>
+          <input
+            id="add-doc-expires"
+            class="add-meta__date"
+            type="date"
+            [ngModel]="expiresAt()"
+            (ngModelChange)="expiresAtChange.emit($event)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <hr class="add-meta__divider" />
+
+    <div class="add-meta__field">
+      <span class="add-meta__label">Durum</span>
+      <div class="add-meta__status" role="group" aria-label="İçerik durumu">
+        @for (opt of statuses; track opt.value) {
+          <button
+            type="button"
+            class="add-meta__status-btn"
+            [class.add-meta__status-btn--active]="status() === opt.value"
+            (click)="statusChange.emit(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>

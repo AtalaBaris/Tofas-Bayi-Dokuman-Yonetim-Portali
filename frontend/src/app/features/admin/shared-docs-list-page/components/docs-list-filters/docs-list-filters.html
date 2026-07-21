@@ -18,12 +18,9 @@
         (ngModelChange)="categoryChange.emit($event)"
       >
         <option value="">Kategori</option>
-        <option value="Pazarlama">Pazarlama</option>
-        <option value="Satış">Satış</option>
-        <option value="Teknik">Teknik</option>
-        <option value="Kurumsal">Kurumsal</option>
-        <option value="Strateji">Strateji</option>
-        <option value="Hukuk">Hukuk</option>
+        @for (option of categoryOptions(); track option) {
+          <option [value]="option">{{ option }}</option>
+        }
       </select>
       <span class="material-symbols-outlined docs-filters__caret">arrow_drop_down</span>
     </div>
@@ -50,7 +47,7 @@
               </button>
             }
           </div>
-          @for (option of brandOptions; track option) {
+          @for (option of brandOptions(); track option) {
             <label class="docs-filters__brand-option">
               <input
                 type="checkbox"

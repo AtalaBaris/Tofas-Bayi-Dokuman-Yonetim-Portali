@@ -1,8 +1,7 @@
 /** Admin sol menü — tüm yönetim sayfalarında kullanılır. */
-import { Component, inject, input, output } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { AccessLogService } from '../../../core/services/access-log.service';
 
 export interface AdminNavItem {
   label: string;
@@ -20,32 +19,34 @@ export interface AdminNavItem {
 export class AdminSidebar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly accessLogService = inject(AccessLogService);
 
   readonly mobileOpen = input(false);
   readonly closed = output<void>();
+  readonly usersMenuOpen = signal(this.router.url.startsWith('/admin/definitions'));
 
   readonly navItems: AdminNavItem[] = [
+    { label: 'Ana Sayfa', icon: 'dashboard', link: '/admin/dashboard' },
     { label: 'Dokümanlar', icon: 'description', link: '/admin/documents' },
     { label: 'Son Yüklenenler', icon: 'history', link: null },
-    { label: 'Bayi Ayarları', icon: 'settings', link: null },
-    { label: 'Sistem Kayıtları', icon: 'terminal', link: '/admin/access-logs' },
   ];
+
+  toggleUsersMenu(): void {
+    this.usersMenuOpen.update((open) => !open);
+    void this.router.navigateByUrl('/admin/definitions/users');
+  }
 
   onNavClick(): void {
     this.closed.emit();
   }
 
   logout(): void {
-    // Send logout log to backend before clearing credentials
-    this.accessLogService.logLogout().subscribe({
-      next: () => this.performLocalLogout(),
-      error: () => this.performLocalLogout() // fallback if server is unreachable
+    this.auth.logout().subscribe({
+      next: () => this.afterLogout(),
+      error: () => this.afterLogout(),
     });
   }
 
-  private performLocalLogout(): void {
-    this.auth.logout();
+  private afterLogout(): void {
     this.closed.emit();
     void this.router.navigateByUrl('/admin/login');
   }

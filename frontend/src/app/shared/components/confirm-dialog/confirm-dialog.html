@@ -1,0 +1,49 @@
+@if (open()) {
+  <div class="confirm-dialog" role="presentation">
+    <button
+      type="button"
+      class="confirm-dialog__overlay"
+      aria-label="Kapat"
+      @overlay
+      (click)="onOverlayClick()"
+    ></button>
+
+    <div
+      class="confirm-dialog__panel"
+      role="alertdialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'confirm-dialog-title'"
+      [attr.aria-describedby]="'confirm-dialog-message'"
+      @panel
+      (click)="$event.stopPropagation()"
+    >
+      <div
+        class="confirm-dialog__icon"
+        [class.confirm-dialog__icon--danger]="danger()"
+        aria-hidden="true"
+      >
+        <span class="material-symbols-outlined">
+          {{ danger() ? 'warning' : 'help' }}
+        </span>
+      </div>
+
+      <h2 id="confirm-dialog-title" class="confirm-dialog__title">{{ title() }}</h2>
+      <p id="confirm-dialog-message" class="confirm-dialog__message">{{ message() }}</p>
+      <p class="confirm-dialog__hint">Bu işlem geri alınamaz.</p>
+
+      <div class="confirm-dialog__actions">
+        <button type="button" class="confirm-dialog__cancel" (click)="onCancel()">
+          {{ cancelLabel() }}
+        </button>
+        <button
+          type="button"
+          class="confirm-dialog__confirm"
+          [class.confirm-dialog__confirm--danger]="danger()"
+          (click)="onConfirm()"
+        >
+          {{ confirmLabel() }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

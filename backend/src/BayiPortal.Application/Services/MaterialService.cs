@@ -44,7 +44,27 @@ public sealed class MaterialService : IMaterialService
             query.CategoryId, query.BrandId, query.Keyword, status, restrictToBrandIds,
             excludeExpired: isDealerUser, cancellationToken);
 
-        return materials.Select(ToResponse).ToList();
+        var responses = materials.Select(ToResponse).ToList();
+
+        if (isDealerUser && responses.Count > 0)
+        {
+            var statuses = await _accessLogService.GetAccessStatusesAsync(
+                requestingUser.UserId, responses.Select(r => r.Id).ToList(), cancellationToken);
+            foreach (var response in responses)
+            {
+                if (statuses.TryGetValue(response.Id, out var accessStatus))
+                {
+                    response.MyAccessStatus = accessStatus;
+                }
+            }
+        }
+
+        if (responses.Count > 0)
+        {
+            await ApplyCoverageCountsAsync(responses, cancellationToken);
+        }
+
+        return responses;
     }
 
     public async Task<MaterialResponse> GetByIdAsync(
@@ -52,7 +72,22 @@ public sealed class MaterialService : IMaterialService
     {
         var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
         await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Görüntüleme", $"\"{material.Title}\" dökümanı görüntülendi.", "N/A", cancellationToken);
-        return ToResponse(material);
+        var response = ToResponse(material);
+        await ApplyCoverageCountsAsync(new List<MaterialResponse> { response }, cancellationToken);
+        return response;
+    }
+
+    private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)
+    {
+        var materialIds = responses.Select(r => r.Id).ToList();
+        var viewedCounts = await _materialRepository.GetViewedCountsAsync(materialIds, cancellationToken);
+        var audienceCounts = await _materialRepository.GetAudienceCountsAsync(materialIds, cancellationToken);
+
+        foreach (var response in responses)
+        {
+            response.ViewedCount = viewedCounts.GetValueOrDefault(response.Id);
+            response.AudienceCount = audienceCounts.GetValueOrDefault(response.Id);
+        }
     }
 
     public async Task<MaterialResponse> CreateAsync(
@@ -105,6 +140,7 @@ public sealed class MaterialService : IMaterialService
         material.CategoryId = request.CategoryId;
         material.ExpiresAt = request.ExpiresAt;
         material.UpdatedAt = DateTime.UtcNow;
+        material.Version += 1;
 
         material.MaterialBrands.Clear();
         foreach (var brandId in request.BrandIds.Distinct())
@@ -228,11 +264,13 @@ public sealed class MaterialService : IMaterialService
         MimeType = material.MimeType,
         FileSize = material.FileSize,
         Status = material.Status.ToString(),
+        Version = material.Version,
         PublishedAt = material.PublishedAt,
         ExpiresAt = material.ExpiresAt,
         CreatedAt = material.CreatedAt,
         UpdatedAt = material.UpdatedAt,
         BrandIds = material.MaterialBrands.Select(mb => mb.BrandId).ToList(),
-        BrandNames = material.MaterialBrands.Select(mb => mb.Brand.Name).ToList()
+        BrandNames = material.MaterialBrands.Select(mb => mb.Brand.Name).ToList(),
+        CreatedByName = material.Creator.Name
     };
 }

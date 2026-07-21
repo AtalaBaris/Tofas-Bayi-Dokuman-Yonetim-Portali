@@ -10,6 +10,11 @@ export const routes: Routes = [
       import('./features/bayi/login/components/bayi-login/bayi-login').then((m) => m.BayiLogin),
   },
   {
+    path: 'bayi',
+    loadChildren: () =>
+      import('./features/bayi/bayi.routes').then((m) => m.BAYI_ROUTES),
+  },
+  {
     path: 'admin',
     loadChildren: () =>
       import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),

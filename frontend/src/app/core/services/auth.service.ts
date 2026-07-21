@@ -1,8 +1,15 @@
 /** Giriş/çıkış, token saklama ve currentUser sinyali. */
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, Injector, inject, signal } from '@angular/core';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import type { User } from '../models/user.interface';
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  clearStoredSession,
+  readStoredToken,
+} from '../auth-storage';
 import { ApiService } from './api.service';
+import { AccessLogService } from './access-log.service';
 
 export interface LoginRequest {
   email: string;
@@ -24,8 +31,8 @@ export interface LoginOptions {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = inject(ApiService);
-  private readonly tokenKey = 'bayi_portal_token';
-  private readonly userKey = 'bayi_portal_user';
+  /** Lazy: AuthService ↔ HttpClient döngüsünü kurulumda tetiklemesin. */
+  private readonly injector = inject(Injector);
   readonly currentUser = signal<User | null>(this.readStoredUser());
 
   login(request: LoginRequest, options?: LoginOptions): Observable<LoginResponse> {
@@ -37,35 +44,58 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    sessionStorage.removeItem(this.tokenKey);
-    sessionStorage.removeItem(this.userKey);
-    this.currentUser.set(null);
+  /** Önce backend'e çıkış kaydı düşer, sonra yerel oturumu temizler. */
+  logout(): Observable<void> {
+    const hasToken = !!this.getToken();
+    const clear$ = of(void 0).pipe(tap(() => this.clearLocalSession()));
+
+    if (!hasToken) {
+      return clear$;
+    }
+
+    return this.injector.get(AccessLogService).logLogout().pipe(
+      catchError(() => of(void 0)),
+      switchMap(() => clear$)
+    );
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey) ?? sessionStorage.getItem(this.tokenKey);
+    return readStoredToken();
   }
 
   isAuthenticated(): boolean {
     return !!this.getToken();
   }
 
+  /** Profil güncellemesi — API gelene kadar yerel oturumu günceller. */
+  updateCurrentUser(updates: Partial<User>): void {
+    const current = this.currentUser();
+    if (!current) {
+      return;
+    }
+    const next = { ...current, ...updates };
+    this.currentUser.set(next);
+    this.writeStoredUser(next);
+  }
+
+  private clearLocalSession(): void {
+    clearStoredSession();
+    this.currentUser.set(null);
+  }
+
   private persistSession(token: string, user: User, rememberMe: boolean): void {
     const primary = rememberMe ? localStorage : sessionStorage;
     const secondary = rememberMe ? sessionStorage : localStorage;
 
-    secondary.removeItem(this.tokenKey);
-    secondary.removeItem(this.userKey);
-    primary.setItem(this.tokenKey, token);
-    primary.setItem(this.userKey, JSON.stringify(user));
+    secondary.removeItem(AUTH_TOKEN_KEY);
+    secondary.removeItem(AUTH_USER_KEY);
+    primary.setItem(AUTH_TOKEN_KEY, token);
+    primary.setItem(AUTH_USER_KEY, JSON.stringify(user));
   }
 
   private readStoredUser(): User | null {
     const raw =
-      localStorage.getItem(this.userKey) ?? sessionStorage.getItem(this.userKey);
+      localStorage.getItem(AUTH_USER_KEY) ?? sessionStorage.getItem(AUTH_USER_KEY);
     if (!raw) {
       return null;
     }
@@ -74,6 +104,19 @@ export class AuthService {
       return JSON.parse(raw) as User;
     } catch {
       return null;
+    }
+  }
+
+  private writeStoredUser(user: User): void {
+    const payload = JSON.stringify(user);
+    if (localStorage.getItem(AUTH_USER_KEY)) {
+      localStorage.setItem(AUTH_USER_KEY, payload);
+    }
+    if (sessionStorage.getItem(AUTH_USER_KEY)) {
+      sessionStorage.setItem(AUTH_USER_KEY, payload);
+    }
+    if (!localStorage.getItem(AUTH_USER_KEY) && !sessionStorage.getItem(AUTH_USER_KEY)) {
+      localStorage.setItem(AUTH_USER_KEY, payload);
     }
   }
 }

@@ -1,0 +1,64 @@
+<div class="definitions-page">
+  <header class="definitions-page__header">
+    <div>
+      <span class="definitions-page__eyebrow">Tanım Yönetimi</span>
+      <h1>{{ title() }}</h1>
+      <p>Kullanıcı ve portal tanımlarını tek alandan yönetin.</p>
+    </div>
+  </header>
+
+  <main class="definitions-page__content">
+    @if (listError()) {
+      <p class="definitions-page__error">{{ listError() }}</p>
+    }
+    @if (loading()) {
+      <p class="definitions-page__loading">Yükleniyor…</p>
+    }
+
+    <app-definition-table
+      [section]="section()"
+      [users]="users()"
+      [items]="items()"
+      [search]="search()"
+      [searchPlaceholder]="searchPlaceholder()"
+      (searchChange)="search.set($event)"
+      (addClick)="openDrawer()"
+      (editClick)="onEdit($event)"
+      (deleteClick)="onDeleteRequest($event)"
+      (toggleActiveClick)="onToggleActive($event)"
+    />
+  </main>
+
+  @if (drawerOpen()) {
+    <button
+      type="button"
+      class="definitions-page__overlay"
+      aria-label="Formu kapat"
+      @fade
+      (click)="closeDrawer()"
+    ></button>
+    <div @drawer>
+      <app-definition-drawer
+        [section]="section()"
+        [editTarget]="editTarget()"
+        [dealers]="dealerOptions()"
+        [brands]="brandOptions()"
+        [saving]="saving()"
+        [formError]="formError()"
+        (closed)="closeDrawer()"
+        (saved)="saveDefinition($event)"
+      />
+    </div>
+  }
+
+  <app-confirm-dialog
+    [open]="confirmOpen()"
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    confirmLabel="Pasife Al"
+    cancelLabel="Vazgeç"
+    [danger]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="closeConfirm()"
+  />
+</div>

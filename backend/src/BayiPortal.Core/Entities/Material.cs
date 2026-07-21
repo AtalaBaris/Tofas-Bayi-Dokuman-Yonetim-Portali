@@ -15,6 +15,7 @@ public class Material
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public MaterialStatus Status { get; set; } = MaterialStatus.Draft;
+    public int Version { get; set; } = 1;
     public DateTime PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public int CreatedBy { get; set; }

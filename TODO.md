@@ -64,12 +64,50 @@ farklı çıktı, aşağıda düzeltildi).
   **Frontend tarafı bu PR'da yok** — yukarıdaki mock-veri listesinin gerçek API'ye
   bağlanması hâlâ ayrı bir iş.
 - **Sistem Erişim Kayıtları (Access Logs) Entegrasyonu** (frontend + backend, 2026-07-17): `AccessLog` entitesi ve veritabanı şeması güncellenerek ilişkiler opsiyonel hale getirildi. Başarılı/başarısız giriş denemeleri, çıkış işlemleri, döküman görüntüleme, indirme, yükleme, güncelleme ve arşivleme hareketleri veritabanına kaydedilmeye başlandı. `AccessLogsController` (`GET /api/access-logs` filtreleme/sayfalama ve `POST /api/access-logs/logout` çıkış loglama) yazıldı. Frontend tarafındaki `/admin/access-logs` arayüzü mock veriden kurtarılarak gerçek API servisine bağlandı; sunucu taraflı arama, rol, işlem, durum ve tarih aralığı filtreleri ile dinamik sayfalama entegre edildi.
+- **Bayi Dashboard ekranları** (frontend, PR #13, `frontend-bayi-dashboard` →
+  `Develop`, `e003ec2` ile merge oldu, 2026-07-20): `bayi-shell` (üst bar +
+  bildirim zili + kullanıcı menüsü), `bayi-home-page` (özet/istatistik + son
+  dokümanlar), `bayi-documents-page` (bento kart grid, arama/kategori/marka/
+  erişim-durumu filtreleri, sayfalama), `bayi-document-detail-page`,
+  `bayi-profile-page` (ad/e-posta/telefon düzenleme), `bayi-settings-page`
+  (bildirim tercihi anahtarları). İlk merge'de tamamen mock veri üzerinde
+  çalışıyordu; madde `8` (backend) ve `9` (frontend wiring) ile
+  `bayi-shell`'deki bildirim zili ve `bayi-settings-page` **dışındaki**
+  tüm ekranlar artık gerçek API'ye bağlı (`BAYI_MOCK_DOCUMENTS` silindi).
+  Bildirimler hâlâ `BAYI_MOCK_NOTIFICATIONS` üzerinde — ürün kararı
+  bekliyor (bkz. madde 8, alt madde 4-5).
+- **Tanım Yönetimi backend** (PR #6, `feature-backend-tanim-yonetimi` → `Develop`,
+  `40a0b79` ile merge oldu, 2026-07-17): `DealersController`/`BrandsController`/
+  `CategoriesController`/`UsersController` — hepsi `[Authorize(Roles = "Admin")]`,
+  `GET` (list/by-id), `POST`, `PUT`, `DELETE` (soft delete → `IsActive = false`,
+  hard delete yok). `DealerService`/`BrandService`/`CategoryService`/`UserService`
+  + yeni `DealerRepository`/`BrandRepository`/`CategoryRepository`, `UserRepository`
+  CRUD metotlarıyla genişletildi. Validasyon: benzersiz `Dealer.Code`/`Brand.Code`,
+  benzersiz `User.Email`, geçersiz `RoleType`, `DealerUser` rolü için `DealerId`
+  zorunlu ve var olmalı — hepsi `Core.Exceptions.ValidationException` ile 400 döner.
+  `Dealer` create/update `BrandIds` alır ve `DealerBrand` eşlemesini `Material`'ın
+  `MaterialBrands`'i yönettiği desenle aynı şekilde yönetir. 4 yeni
+  `{Entity}NotFoundException` (`Dealer`/`Brand`/`Category`/`User`)
+  `GlobalExceptionMiddleware`'de 404'e bağlandı. `dotnet build` temiz, canlı sunucuya
+  karşı curl ile tüm CRUD + validasyon + 401/403/404 senaryoları doğrulandı; ayrıca
+  bu dal Materials dosyalarına dokunmadığı için `MaterialsController` üzerindeki
+  marka-eşleşme kuralı ve 401/403 ayrımı da regresyon kontrolü olarak yeniden
+  doğrulandı (etkilenmemiş). **Frontend tarafı bu dalda yok** — ayrı bir ekip
+  arkadaşı üzerinde çalışıyor.
+- **Doküman görüntülenme/hedef kitle sayacı + versiyon** (PR #17
+  `feature-backend-dokuman-goruntulenme-sayaci` → `063ea45`, ardından PR #18
+  `feature-frontend-admin-dokuman-listesi-entegrasyonu` → `d48727e`, ikisi de
+  2026-07-21'de `Develop`'a merge oldu, bu sırayla — backend önce): madde 11'in
+  "AccessLog'da MaterialId bağlantısı yok" diye kapsam dışı bıraktığı
+  `viewedCount`/`audienceCount`/`version` çözüldü. Ayrıntı için madde 12'ye bakın.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
 - `feature-backend-girisLog` — bir takım arkadaşı bu dalda çalışıyor (muhtemelen
   madde `6`, AccessLogs). Materials PR'ı bilerek `AccessLogs`'a yazma mantığına
   dokunmadı ki bu dalla çakışma olmasın.
+- `feature-backend-tanim-yonetimi` — backend'i PR #6 ile `Develop`'a merge oldu
+  (yukarıya bkz.). Frontend tarafı ayrı bir ekip arkadaşında, henüz ayrı bir dal.
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
@@ -85,15 +123,19 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 1. feature-backend-auth        (merge oldu — JWT + seed + login endpoint çalışıyor)
         │
         ▼
-2. feature-backend-authorization ──┐
+✅ 2. feature-backend-authorization ──┐
         │                          │  (ikisi de sadece 1'e bağımlı,
         ▼                          │   birbirlerine bağımlı değiller)
-3. feature-*-tanim-yonetimi ───────┤
+✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
+                                   │    frontend hâlâ ayrı ekip arkadaşında, ayrı dal)
                                    │
-✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
+✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu)
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
-        │                               kuralı + expiry + validasyon DAHİL; frontend
-        │                               hâlâ mock veride, bağlama işi ayrı kalıyor)
+        │                               kuralı + expiry + validasyon DAHİL)
+        ▼
+✅ 11. feature-frontend-admin-dokuman-listesi-entegrasyonu  (4'ün frontend'ini gerçek
+        │                                                   API'ye bağladı — PR #18 ile
+        │                                                   `Develop`'a merge oldu)
         ▼
 ✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
         │                          tamamlandı — ayrı dal açılmadı)
@@ -101,7 +143,23 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 6. feature-*-access-logs          (tamamlandı — veritabanı loglama, API ve ön yüz entegrasyonu bitti)
         │
         ▼
-7. feature-*-test-ve-teslim       (6'ya bağımlı — hepsini kapsar)
+✅ 12. feature-backend-dokuman-goruntulenme-sayaci  (6'nın ürettiği AccessLog.MaterialId'yi
+        │                                           kullanarak 11'in placeholder bıraktığı
+        │                                           viewedCount/audienceCount/version'ı çözdü —
+        │                                           PR #17 ile `Develop`'a merge oldu, PR #18'den önce)
+        ▼
+✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
+        │
+        ▼
+🔄 8. feature-backend-bayi-dashboard-entegrasyonu  (7'nin ekranlarını gerçek API'ye
+        │                                          bağlamak için gereken backend işleri —
+        │                                          1-3 tamam, 4-5 ürün kararı bekliyor)
+        ▼
+✅ 9. feature-frontend-bayi-dashboard-entegrasyonu  (8'in 1-3 numaralı maddelerini
+        │                                           kullanarak 7'nin ekranlarını gerçek
+        │                                           API'ye bağladı)
+        ▼
+10. feature-*-test-ve-teslim       (8 ve 9'a bağımlı — hepsini kapsar)
 ```
 
 ## Paralel çalışma noktaları
@@ -144,38 +202,61 @@ yanlış şifre anlaşılır hata veriyor.
 
 ---
 
-## 2. `feature-backend-authorization`
+## 2. `feature-backend-authorization` — ✅ tamamlandı (ayrı dal açılmadı, doğrulama yapıldı 2026-07-17)
 
-**Bağımlılık:** yalnızca 1. **Paralel çalışılabilir:** 3, 4 ile birlikte.
+**Bağımlılık:** yalnızca 1.
 
-- Backend: `[Authorize(Roles = "...")]` politikaları; `401` (token yok/geçersiz) vs
-  `403` (rol yetersiz) ayrımının doğru çalıştığının doğrulanması
-  (`GlobalExceptionMiddleware` zaten `ForbiddenAccessException`'ı 403'e çeviriyor,
-  endpoint'lerin bu exception'ı gerçekten fırlatması lazım)
-- Frontend: `adminRoleGuard`/`authGuard` zaten gerçek JWT tabanlı `currentUser()`
-  claim'lerini okuyor (1 tamamlanınca otomatik doğru çalışacak) — ek iş büyük
-  ihtimalle gerekmeyecek, sadece doğrulama
+Rol bazlı yetkilendirme, diğer backend PR'ları ilerlerken (Materials PR #3,
+Tanım Yönetimi PR #6, Access Logs PR #9) her controller'a kendi `[Authorize(...)]`
+attribute'larıyla zaten eklenmiş — ayrı bir dal gerekmedi. Bu madde kapsamında
+sadece uçtan uca doğrulama yapıldı (lokal API'ye admin/editor/bayi.a
+kullanıcılarıyla gerçek JWT alınıp curl ile test edildi):
 
-**Bitti sayılır:** Bayi kullanıcısı `/admin` altına girmeye çalışınca yönlendiriliyor;
-aynı isteği doğrudan API'ye atınca 403 dönüyor.
+- **401 (token yok/geçersiz):** `/api/materials`, `/api/dealers`, `/api/access-logs`
+  token'sız veya bozuk token'la istendiğinde 401 dönüyor — doğrulandı.
+- **403 (rol yetersiz):** `DealerUser` (bayi.a) token'ıyla `Admin`-only endpoint'lere
+  (`/api/dealers`, `/api/brands`, `/api/categories`, `/api/users`, `/api/access-logs`)
+  ve materials create'e (`ManagerRoles`) istek atıldığında 403 dönüyor;
+  `ContentManager` (editor) token'ıyla `/api/dealers` yine 403 — doğrulandı.
+- **Materyal marka/durum eşleşmesi (madde 5 ile kesişen kısım):** `DealerUser`
+  aynı markadan ama `Archived` bir materyale (`GET /api/materials/{id}`) 403
+  alıyor, `Admin` aynı isteği 200 ile görüyor — `GlobalExceptionMiddleware`'in
+  `ForbiddenAccessException` → 403 dönüşümü hâlâ doğru çalışıyor.
+- **Frontend:** `adminRoleGuard`/`adminAuthGuard`
+  (`frontend/src/app/features/admin/guards/admin.guards.ts`) gerçek login
+  response'undan gelen `currentUser().role`'ü okuyor (JWT claim decode değil,
+  backend zaten aynı kuralı bağımsız uyguluyor); `admin.routes.ts` tüm `/admin`
+  alt ağacını `['Admin','ContentManager']` ile, Tanım Yönetimi gibi bazı alt
+  route'ları ek olarak `['Admin']` ile kısıtlıyor — kod incelemesiyle doğrulandı,
+  ek iş gerekmedi.
+
+**Bitti sayılır:** ✅ Bayi kullanıcısı `/admin` altına girmeye çalışınca
+yönlendiriliyor (guard); aynı isteği doğrudan API'ye atınca 403 dönüyor (yukarıda
+curl ile doğrulandı).
 
 ---
 
-## 3. `feature-*-tanim-yonetimi`
+## 3. `feature-*-tanim-yonetimi` — backend tamamlandı ve `Develop`'a merge oldu
 
 **Bağımlılık:** yalnızca 1. **Paralel çalışılabilir:** 2, 4 ile birlikte.
 
 **Neden gerekli:** PDF'in zorunlu ekran #5'i (Tanım Yönetimi) frontend'de hiç yok —
 seed'le gelen sabit veri yeterli değil, yönetici bunları ekleyip düzenleyebilmeli.
 
-- Backend: `DealersController`, `BrandsController`, `CategoriesController`,
-  `UsersController` (CRUD, `Admin` rolüyle korumalı)
-- Frontend: Yeni bir tanım yönetimi ekranı (`features/admin` altına, mevcut
+- ✅ Backend: `feature-backend-tanim-yonetimi` dalında tamamlandı ve PR #6 ile
+  `Develop`'a merge oldu (2026-07-17). `DealersController`, `BrandsController`,
+  `CategoriesController`, `UsersController` — CRUD, `Admin` rolüyle korumalı,
+  soft delete (`IsActive`). Validasyon + marka/bayi eşleme kuralları dahil
+  (yukarıdaki "Mevcut durum özeti"ne bkz.). `dotnet build` temiz, curl ile
+  canlı doğrulandı.
+- ❌ Frontend: Yeni bir tanım yönetimi ekranı (`features/admin` altına, mevcut
   `admin.routes.ts`'e yeni route olarak eklenir) — kullanıcı/bayi/marka/kategori
-  listeleme/ekleme/düzenleme
+  listeleme/ekleme/düzenleme. Bir ekip arkadaşı bu ekran üzerinde çalışıyor;
+  backend artık hazır olduğu için gerçek API'ye bağlanabilir.
 
 **Bitti sayılır:** Yönetici yeni bir bayi + marka + kategori ekleyip bir kullanıcıyı
-bir bayiye atayabiliyor.
+bir bayiye atayabiliyor. (Backend tarafı bu kriteri karşılıyor — frontend
+bağlanınca uçtan uca tamamlanmış olacak.)
 
 ---
 
@@ -190,12 +271,11 @@ bir bayiye atayabiliyor.
   kaydı, arşivleme (`DELETE` → soft delete). Marka kesişim kuralı da bu PR'da
   (bkz. madde 5). `ExpiresAt` uygulanıyor, Create/Update girdi doğrulaması var
   (bkz. yukarıdaki "Mevcut durum özeti"). `dotnet-ef` migration gerekmedi.
-- ❌ Frontend: `features/admin/shared-docs-list-page/` (madde başındaki dal ile
-  merge oldu) hâlâ `MOCK_DOCUMENTS` üzerinde çalışıyor, gerçek
-  `GET /api/materials`'a bağlı değil. Eski `material-form`/`material-list`/
-  `material-detail` stub'ları da hâlâ boş. Materials backend'i merge olduğuna göre
-  bu ekranı gerçek API'ye bağlamak artık **sıradaki iş** — ayrı bir küçük
-  `feature-frontend-*` dalı olarak açılabilir.
+- ✅ Frontend: `features/admin/shared-docs-list-page/` artık gerçek
+  `GET/DELETE /api/materials`'a bağlı — bkz. madde 11
+  (`feature-frontend-admin-dokuman-listesi-entegrasyonu`, henüz `Develop`'a
+  merge olmadı). Eski `material-form`/`material-list`/`material-detail`
+  stub'ları hâlâ boş.
 - ⚠️ Takip: dosya türü/boyutu doğrulaması backend'de hâlâ yok (yukarıda
   detaylandırıldı).
 
@@ -237,9 +317,161 @@ bir kural gerekirse, o zaman yeni bir iş maddesi olarak eklenir.
 
 ---
 
-## 7. `feature-*-test-ve-teslim`
+## 8. `feature-backend-bayi-dashboard-entegrasyonu` — 🔄 devam ediyor
 
-**Bağımlılık:** 6 (hepsini kapsar). **Paralel çalışma yok — son adım.**
+**Bağımlılık:** 6 (`access-logs`) ve 7 (`feature-frontend-bayi-dashboard`, merge oldu).
+
+**Neden gerekli:** PR #13 ile gelen bayi dashboard ekranları (`bayi-shell`,
+`bayi-home-page`, `bayi-documents-page`, `bayi-document-detail-page`,
+`bayi-profile-page`, `bayi-settings-page`) tamamen mock veri üzerinde
+çalışıyor. Bazı ihtiyaçlar zaten mevcut endpoint'lerle karşılanıyor, bazıları
+için gerçek backend eksik.
+
+**Zaten karşılanıyor — sadece frontend wiring işi (yeni backend gerekmez),
+✅ bu da bitti (bkz. madde 9):**
+- `GET /api/materials` (categoryId/brandId/keyword/status filtreleri) →
+  `bayi-home-page` ve `bayi-documents-page`'deki `BAYI_MOCK_DOCUMENTS`'in
+  yerini alacak.
+- `GET /api/materials/{id}` → `bayi-document-detail-page`; zaten sunucu
+  tarafında VIEW erişim logu atıyor (`MaterialService.cs`).
+- `GET /api/materials/{id}/download` → `onView`/`onDownload` TODO'ları;
+  zaten sunucu tarafında DOWNLOAD erişim logu atıyor.
+- Marka eşleşme kuralı (`DealerBrands ∩ MaterialBrands ≠ ∅`) zaten
+  `MaterialService.GetAuthorizedMaterialAsync`'de uygulanıyor (bkz. madde 5).
+
+**Eksik — gerçek backend işi gerekiyor:**
+1. ✅ **`DealerName` login response'unda dolmuyor** — çözüldü (2026-07-20,
+   `feature-backend-bayi-dashboard-entegrasyonu` dalında). `UserRepository.GetByEmailAsync`
+   artık `Dealer`'ı include ediyor, `AuthService.LoginAsync`
+   `DealerName = user.Dealer?.Name` set ediyor. `bayi.a@bayiportal.local` ile
+   giriş curl'le doğrulandı: `dealerName: "Bayi A"` dönüyor; admin girişinde
+   (`dealerId` yok) `dealerName: null`, hata yok. Frontend tarafındaki
+   `dealerDisplayName(dealerId)` hardcoded switch'i (`bayi-home.model.ts:157`)
+   artık gereksiz — bir sonraki frontend işinde gerçek `dealerName`'e
+   geçirilebilir.
+   ⚠️ Yan not (bu commit'in kapsamı dışında, ayrıca fark edildi):
+   `LoginResponse`'daki `UserResponse.IsActive` hiç set edilmiyor, her zaman
+   `false` dönüyor (curl ile doğrulandı) — `UsersController`'daki diğer
+   `UserResponse` projeksiyonlarıyla tutarsız, ayrı bir küçük takip
+   gerektirir.
+2. ✅ **Bayi kullanıcısı için self-service profil endpoint'i yoktu** —
+   çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `User` entity'sine `Phone` (nullable, max 30) eklendi
+   (`AddPhoneToUsers` migration'ı oluşturuldu ve lokal veritabanına
+   uygulandı). Yeni `UserProfileController` (`api/users/me`, sadece
+   `[Authorize]` — rol şartı yok, `UsersController`'ın Admin-only class
+   attribute'ından ayrı tutuldu ki normal bayi kullanıcısı da erişebilsin):
+   `GET /api/users/me` JWT'deki kullanıcıyı döner, `PUT /api/users/me`
+   sadece `Name`/`Email`/`Phone` günceller (Role/DealerId/IsActive bu
+   endpoint'ten değiştirilemez — onlar hâlâ Admin'in `PUT /api/users/{id}`
+   endpoint'inde). `UserResponse`'a `Phone` alanı eklendi. curl ile
+   doğrulandı: token'sız istek 401, e-posta çakışması 400, GET sonrası
+   `PUT` ile güncellenen telefon kalıcı, `DealerUser` rolüyle hâlâ
+   `/api/users` (liste) 403 dönüyor (Admin-only kısıtlama regresyona
+   uğramadı).
+3. ✅ **Dokümana özgü erişim durumu (`unread`/`viewed`/`downloaded`) API'de
+   yoktu** — çözüldü (2026-07-20, `feature-backend-bayi-dashboard-entegrasyonu`
+   dalında). `MaterialResponse`'a `myAccessStatus` alanı eklendi
+   (`"unread"`/`"viewed"`/`"downloaded"` — frontend'deki `BayiDocAccessStatus`
+   union type'ıyla birebir, ek mapping gerekmiyor). Yeni
+   `IAccessLogService.GetAccessStatusesAsync(userId, materialIds)`,
+   `AccessLogs` tablosundaki `"Döküman Görüntüleme"`/`"Döküman İndirme"`
+   kayıtlarından kullanıcı+materyal bazında en yüksek erişim seviyesini
+   (`downloaded` > `viewed`) hesaplıyor; `MaterialService.GetListAsync`
+   sadece `DealerUser` rolü için bunu materyal listesine uyguluyor
+   (Admin/ContentManager için her zaman `"unread"` — onlar için anlamlı bir
+   kavram değil, ekstra sorgu da atlanıyor). curl ile uçtan uca doğrulandı:
+   yeni oluşturulan bir materyal `bayi.a` için `unread` → `GET /{id}`
+   sonrası `viewed` → `GET /{id}/download` sonrası `downloaded` olarak
+   dönüyor; `bayi.b` (farklı marka) materyali listede hiç görmüyor; Admin
+   listesinde tüm materyaller `unread` kalıyor (regresyon yok).
+   ⚠️ Yan not: bu implementasyon `AccessLog.Action`'daki Türkçe serbest
+   metin değerlere (`"Döküman Görüntüleme"`/`"Döküman İndirme"`) doğrudan
+   bağımlı — dosyanın altındaki "Küçük not (kod tutarsızlığı)" bölümünde
+   bahsedilen `AccessAction` enum'una geçiş yapılırsa bu sorgu da
+   güncellenmeli.
+4. **Bildirimler için backend hiç yok.** `bayi-shell`'deki zil menüsü
+   tamamen `BAYI_MOCK_NOTIFICATIONS` mock verisiyle çalışıyor — ne bir
+   `Notification` entity/tablosu ne de bir controller var. Kapsam (gerçek
+   push mi, yoksa süresi yaklaşan/yeni eklenen materyallerden anlık
+   hesaplanan bir liste mi) ürün kararı gerektiriyor, dala başlamadan önce
+   netleştirilmeli.
+5. **Ayarlar sayfasındaki bildirim tercihleri kalıcı değil.**
+   `bayi-settings-page`'deki `emailNotifications`/`documentAlerts`/
+   `expiryReminders` anahtarları hiçbir yere kaydedilmiyor (sayfa
+   yenilenince sıfırlanıyor) — `User`'a alan eklenmesi veya ayrı bir
+   `UserPreferences` tablosu gerekiyor. Madde 4 (bildirimler) ile birlikte
+   ele alınması mantıklı, çünkü aynı tabloyu paylaşabilirler.
+
+**Bitti sayılır:** Bayi kullanıcısı giriş yaptığında gerçek bayi adını görüyor;
+doküman listesi/detayı gerçek API'den geliyor ve görüntüleme/indirme gerçek
+erişim logu üretiyor; kendi profilini güncelleyebiliyor; bildirim zili ve
+ayarlar sayfası mock veriden kurtulmuş (kapsamı netleşmişse). Madde 4 ve 5
+dışındaki her şey madde 9 ile fiilen tamamlandı.
+
+---
+
+## 9. `feature-frontend-bayi-dashboard-entegrasyonu` — ✅ tamamlandı (2026-07-20)
+
+**Bağımlılık:** 8'in 1-3 numaralı backend maddeleri (hepsi ✅).
+
+**Kapsam:** PR #13'teki bayi dashboard ekranlarını (`bayi-home-page`,
+`bayi-documents-page`, `bayi-document-detail-page`, `bayi-profile-page`,
+`bayi-shell`, `bayi-settings-page`) mock veriden kurtarıp gerçek API'ye
+bağlamak. Bildirimler (madde 4) ve ayarlar kalıcılığı (madde 5) kapsam dışı
+bırakıldı — hâlâ mock, ürün kararı bekliyor.
+
+- **Modeller:** `core/models/material.interface.ts`'e `myAccessStatus`,
+  `core/models/user.interface.ts`'e `dealerName`/`phone`/`isActive` eklendi
+  (backend DTO'larıyla birebir).
+- **Yeni servis:** `core/services/user-profile.service.ts` —
+  `GET/PUT /api/users/me` sarmalayıcısı.
+- **Yeni yardımcı:** `shared/utils/file-download.util.ts` —
+  `saveBlobAsFile`/`openBlobInNewTab`. Backend `/materials/{id}/download`
+  her zaman `Content-Disposition: attachment` döndüğü için doğrudan
+  `<a href>` ile önizleme yapılamıyor; blob XHR ile çekilip biz karar
+  veriyoruz (indir → `download` attribute'lu anchor; görüntüle → blob'u
+  yeni sekmede aç). İkisi de aynı backend endpoint'ini çağırıyor — ayrı bir
+  "sadece önizle, indirme sayma" endpoint'i yok, bu bilinen bir sınır.
+- **`bayi-home.model.ts`:** `BAYI_MOCK_DOCUMENTS` ve `dealerDisplayName`
+  silindi; yerine `toBayiDocumentCard(material: Material)` mapper'ı eklendi
+  (mimeType → fileKind, publishedAt → dateLabel/daysAgo, expiresAt →
+  expiresInDays, myAccessStatus → accessStatus doğrudan geçiyor).
+- **`bayi-home-page` / `bayi-documents-page`:** `MaterialsService.list()`'e
+  bağlandı; kategori/marka filtre seçenekleri artık gerçek materyallerden
+  türetiliyor (statik `['Pazarlama', 'Genel Duyuru', 'Eğitim']` listesi
+  kaldırıldı — `CategoriesController` Admin-only olduğu için bayi
+  kullanıcısı zaten gerçek kategori listesini API'den çekemiyor, mevcut
+  materyallerden türetmek tek pratik yol). Liste indirme butonu artık
+  gerçek dosyayı indiriyor.
+- **`bayi-document-detail-page`:** `MaterialsService.getById()`'e bağlandı
+  (sayfa yüklenince backend zaten VIEW logu atıyor); "İndir"/"Görüntüle"
+  butonları gerçek blob indirme/önizlemeye bağlandı.
+- **`bayi-profile-page`:** localStorage tabanlı mock kayıt
+  (`readBayiProfileExtra`/`writeBayiProfileExtra`, artık silindi) yerine
+  gerçek `GET/PUT /api/users/me`.
+- **`bayi-shell` / `bayi-settings-page` / `bayi-home-page`:** hardcoded
+  `dealerDisplayName(dealerId)` switch'i kaldırıldı, yerine gerçek
+  `currentUser().dealerName` kullanılıyor (madde 8/1'in doğal sonucu).
+
+**Doğrulama:** `ng build` temiz; ayrıca gerçek backend + gerçek Postgres'e
+karşı Playwright ile uçtan uca tarayıcı testi yapıldı (dealer olarak giriş
+→ ana sayfa gerçek bayi adı ve gerçek materyali gösteriyor → dokümanlar
+sayfasında filtre/arama çalışıyor → karta tıklayınca detay sayfası gerçek
+başlık/açıklama gösteriyor → "Dosyayı İndir" gerçek bir dosya indirme
+event'i tetikliyor (doğru dosya adıyla) → detaya girince erişim durumu
+unread'den viewed/downloaded'a gerçekten değişiyor → profil sayfası gerçek
+ad/e-posta/telefonu yüklüyor, kaydedilen telefon sayfa yenilenince kalıcı
+kalıyor (backend'den geliyor, localStorage'dan değil)); konsolda hiç hata
+yok. Ekran görüntüleriyle doğrulandı.
+
+**Bitti sayılır:** ✅ — yukarıdaki akışların tamamı gerçek veriyle çalışıyor.
+
+---
+
+## 10. `feature-*-test-ve-teslim`
+
+**Bağımlılık:** 8 ve 9 (hepsini kapsar). **Paralel çalışma yok — son adım.**
 
 - Tüm demo senaryosunu uçtan uca doğrulama, eksik hata mesajlarını düzeltme
 - Temel test coverage'ı ekleme (şu an backend'de test projesi, frontend'de
@@ -251,6 +483,98 @@ listesinin tamamı işaretlenebiliyor.
 
 ---
 
+## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — ✅ tamamlandı, `Develop`'a merge oldu (PR #18 → `d48727e`, 2026-07-21)
+
+**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu) ve 12
+(`feature-backend-dokuman-goruntulenme-sayaci`, PR #17 ile merge oldu —
+`viewedCount`/`audienceCount`/`version` bu dal olmadan backend'den gelmezdi;
+merge sırası doğru şekilde 12 önce, 11 sonra oldu).
+
+**Kapsam:** Admin "Paylaşılan Dökümanlar" listesini (`features/admin/shared-docs-list-page/`)
+`MOCK_DOCUMENTS`'ten kurtarıp gerçek `MaterialsController`'a bağlamak.
+
+- **Backend (küçük, additive):** `MaterialResponse`'a `CreatedByName` eklendi;
+  `MaterialRepository.BaseQuery()` artık `Creator` navigasyonunu include ediyor.
+  Salt-okunur bir join olduğu için mevcut davranışı bozmuyor, migration gerekmedi.
+- **`MaterialsService`'e `archive(id)`** eklendi (`DELETE /api/materials/{id}`).
+- **`document-list.model.ts`:** `toAdminDocumentListItem(material: Material)`
+  mapper'ı eklendi. `MOCK_DOCUMENTS`/`MOCK_VIEWERS`/`SEED_DOCUMENTS` **silinmedi**
+  — `document-access-report-page` hâlâ bunlara bağlı (bkz. aşağıdaki bilinen sınır).
+- **`docs-list-page.ts`:** `MaterialsService.list()`'e bağlandı, loading/error
+  state eklendi; `archiveDoc()` artık gerçek `DELETE` çağırıyor. Kategori/marka
+  filtre seçenekleri artık yüklenen veriden türetiliyor — önceden
+  `docs-list-filters.ts`'te sabit bir liste vardı (`['Pazarlama','Satış',...]` ve
+  `BRAND_FILTER_OPTIONS = ['Fiat','Jeep','Peugeot','Opel','Citroen']`, gerçek
+  marka isimleri ama şu anki dev seed'i — `SeedData.cs` — yalnızca placeholder
+  "Marka A"/"Marka B" tanımlıyor); dinamik türetme sayesinde filtre hangi
+  ortamda hangi markalar/kategoriler seed edilmişse onlarla çalışıyor.
+- **`viewedCount`/`audienceCount`/`version` artık gerçek veri (madde 12 ile
+  çözüldü):** `toAdminDocumentListItem`, `MaterialResponse.ViewedCount`/
+  `AudienceCount`/`Version` alanlarını doğrudan kullanıyor; `document-list.model.ts`
+  içindeki eski "backend'de karşılığı yok" placeholder yorumu kaldırıldı.
+- **Hâlâ mock kalan:** `document-access-report-page` (`/admin/documents/:id/access-report`)
+  — kişi bazlı görüntüleyen listesi (`MOCK_VIEWERS`) için `AccessLog`'dan
+  materyal başına viewer detayı döndüren ayrı bir endpoint gerekiyor; madde 12
+  yalnızca toplu sayaçları (`ViewedCount`/`AudienceCount`) çözdü, satır satır
+  viewer dökümünü değil. Ayrı bir backend işi olarak planlanmalı.
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` ve `tsc --noEmit` temiz;
+gerçek backend'e karşı curl ile uçtan uca doğrulandı (materyal oluştur → gerçek
+`createdByName` dönüyor → `DELETE /api/materials/{id}` → status `Archived`'a
+dönüyor).
+
+**Bitti sayılır:** Admin, gerçek yüklenmiş bir dokümanı listede görüp
+arşivleyebiliyor; kategori/marka filtreleri gerçek veriyle çalışıyor.
+
+---
+
+## 12. `feature-backend-dokuman-goruntulenme-sayaci` — ✅ tamamlandı, `Develop`'a merge oldu (PR #17 → `063ea45`, 2026-07-21)
+
+**Bağımlılık:** 6 (`feature-*-access-logs`, merge oldu — `AccessLog.MaterialId`
+zaten dolu geliyor). `Develop`'tan dallandı.
+
+**Kapsam:** `MaterialResponse`'a `ViewedCount`, `AudienceCount`, `Version`
+eklemek — madde 11'de "AccessLog'da MaterialId bağlantısı yok" diye kapsam
+dışı bırakılan sınırın aslında `feature-backend-access-logs` ile zaten
+çözülmüş olduğu fark edildi (bkz. `AccessLog.MaterialId`, `AccessLogService`).
+Yalnızca `Version` gerçekten eksikti.
+
+- **`Material.Version`** (yeni `int` kolon, varsayılan `1`) — migration
+  `AddVersionToMaterials`; `MaterialService.UpdateAsync` her güncellemede
+  `+1` artırıyor. Versiyon geçmişi/dosya arşivi **yok**, sadece artan sayaç
+  (frontend `v{version}.0` olarak gösteriyor — mock'taki "v1.2 (Son)" gibi
+  minor/major veya "Son" etiketleme kavramı yok, bilinçli olarak MVP'de basit
+  tutuldu).
+- **`MaterialRepository.GetViewedCountsAsync`** — `AccessLog` üzerinde
+  `MaterialId` + `Action == "Döküman Görüntüleme"` filtresiyle, `UserId`'ye
+  göre `Distinct()` sonrası `MaterialId` bazında `GroupBy`/`Count` (benzersiz
+  görüntüleyen sayısı).
+- **`MaterialRepository.GetAudienceCountsAsync`** — `MaterialBrands` ⋈
+  `DealerBrands` ⋈ `Users` (yalnızca `Role == DealerUser && IsActive`) join'i
+  ile materyalin markalarıyla eşleşen aktif bayi kullanıcı sayısı.
+- **`MaterialService`** — `GetListAsync`/`GetByIdAsync` sonunda
+  `ApplyCoverageCountsAsync` ile bu iki sözlüğü response'lara uyguluyor
+  (N+1 yok, `materialIds` listesi için tek sorgu).
+- **Frontend (bu daldan `feature-frontend-admin-dokuman-listesi-entegrasyonu`'na
+  taşındı, ayrı bağımlılık):** `Material` arayüzüne `viewedCount`/`audienceCount`/
+  `version` eklendi; `toAdminDocumentListItem` artık gerçek değerleri kullanıyor.
+
+**Bilinçli kapsam dışı:** Kişi bazlı "kim görüntüledi" listesi
+(`document-access-report-page`/`MOCK_VIEWERS`) — bkz. madde 11'deki not, ayrı
+bir iş.
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` temiz; migration lokal
+Postgres'e (`bayi`/`BayiPortalDb`) uygulandı; frontend `tsc --noEmit` temiz.
+Merge sonrası birleşmiş `Develop` üzerinde tekrar doğrulandı: 4 migration da
+(`InitialCreate`, `UpdateAccessLogsForSystemLogging`, `AddPhoneToUsers`,
+`AddVersionToMaterials`) sırayla uygulanmış durumda, hiçbiri pending değil.
+Canlı sunucuya karşı uçtan uca (curl) doğrulama hâlâ **yapılmadı**.
+
+**Bitti sayılır:** Admin doküman listesinde her satır gerçek
+görüntülenme/hedef kitle sayacını ve versiyon numarasını gösteriyor.
+
+---
+
 ## Küçük not (kod tutarsızlığı) — ✅ çözüldü
 
 ~~`MaterialStatus` enum'u (Draft/Active/Archived) tanımlı ama `Material.Status`
@@ -258,12 +582,32 @@ alanı hâlâ `string` — enum hiç kullanılmıyor.~~ `feature-backend-materia
 (PR #3) içinde `Material.Status` artık `MaterialStatus` enum'u kullanıyor
 (`HasConversion<string>()` ile aynı text kolonuna yazılıyor, migration gerekmedi).
 
-Benzer bir tutarsızlık hâlâ duruyor: `User.Role` da tanımlı `RoleType` enum'u
-yerine `string` kullanıyor, `AccessLog.Action` da `AccessAction` enum'u yerine
-`string`. Bunlar bu PR'ın kapsamı dışında bırakıldı (auth/access-logs dallarına ait
-dosyalar) — ileride ilgili branch'lerde bağlanabilir.
+~~`User.Role` da tanımlı `RoleType` enum'u yerine `string` kullanıyordu.~~
+`feature-backend-role-enum` dalında aynı desenle (`HasConversion<string>()`)
+çözüldü (2026-07-20): `User.Role` artık `RoleType` enum'u kullanıyor, DB'deki
+mevcut değerler (`Admin`/`ContentManager`/`DealerUser`) enum adlarıyla birebir
+eşleştiği için migration gerekmedi. DTO sınırı (Request/Response) bilinçli
+olarak `string` kaldı — sadece entity/DB katmanı enum'a bağlandı. Etkilenen
+dosyalar: `User.cs`, `UserConfiguration.cs`, `SeedData.cs`, `UserService.cs`,
+`AuthService.cs`, `JwtTokenService.cs`, `AccessLogService.cs` (rol filtresi +
+görüntüleme projeksiyonu). Canlı sunucuya karşı curl ile doğrulandı: login/JWT
+role claim, `GET /api/users`, rol bazlı 403, access-logs rol filtresi,
+kullanıcı oluşturma/güncelleme (geçerli + geçersiz rol), materials
+liste/oluşturma yetkilendirmesi, logout loglama — regresyon yok.
 
-## Küçük not (config tutarsızlığı) — ✅ çözüldü
+Benzer bir tutarsızlık hâlâ duruyor: `AccessLog.Action` da `AccessAction`
+enum'u yerine `string` kullanıyor. Bu, `User.Role`'den daha riskli: mevcut
+`AccessAction` enum'u sadece `View`/`Download` içeriyor, ama gerçekte loglanan
+değerler Türkçe serbest metin (`"Giriş"`, `"Çıkış"`, `"Döküman Görüntüleme"`,
+`"Döküman Yükleme"`, `"Döküman Güncelleme"`, `"Döküman Arşivleme"`,
+`"Döküman İndirme"`) — enum'un 7 üyeyle yeniden tanımlanmasını gerektirir ve
+frontend'deki `/admin/access-logs` ekranı bu string değerlerle filtreleme
+yapıyor (bkz. `AccessLogService.cs` içindeki `"Giriş,Çıkış"` yorum örneği).
+Bu yüzden ayrı bir dal olarak, frontend tarafını elleyen ekip arkadaşıyla
+koordineli şekilde ele alınmalı — tek başına backend commit'i olarak
+yapılmamalı.
 
-`docker-compose.yml` Postgres'i host port **5433**'e map ediyordu fakat `appsettings.Development.json` içinde varsayılan olarak **5432** portu tanımlıydı. Bu tutarsızlık giderildi ve her iki appsettings (`appsettings.json` ve `appsettings.Development.json`) dosyasındaki varsayılan PostgreSQL portu **5433** olarak güncellendi. Artık ek bir ayar yapmaya gerek kalmadan Docker veritabanına otomatik olarak bağlanılabilmektedir.
+## Küçük not (config tutarsızlığı) — ⚠️ Docker için çözüldü, native Postgres için yeniden açıldı
+
+`docker-compose.yml` Postgres'i host port **5433**'e map ediyordu fakat `appsettings.Development.json` içinde varsayılan olarak **5432** portu tanımlıydı. PR #9 (`feature-backend-bayiGirisLog`) bunu her iki appsettings dosyasındaki (`appsettings.json`, `appsettings.Development.json`) varsayılan portu **5433**'e çevirerek "çözdü" — ama bu tutarsızlığı gidermek yerine ters yöne taşıdı: artık `docker compose up -d` ile çalışanlar için ek ayar gerekmiyor, fakat Homebrew/apt gibi native kurulu Postgres kullanan biri (varsayılan port `5432`) commit'lenmiş config'le **artık bağlanamıyor** ve portu 5432'ye override etmesi gerekiyor — örn. `dotnet user-secrets` ile machine-local override (bkz. `CLAUDE.md` → "Lokal veritabanı" bölümü, bu makinede uygulanan yöntem) veya `ConnectionStrings__DefaultConnection` ortam değişkeni. Kalıcı çözüm hâlâ aynı: connection string'i her iki kurulum tipinde de env var/user-secrets ile override edilebilir hale getirip README'de her iki senaryoyu da dokümante etmek.
 

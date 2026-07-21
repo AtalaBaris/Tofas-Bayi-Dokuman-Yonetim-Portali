@@ -1,0 +1,80 @@
+<div class="bayi-settings">
+  <div class="bayi-settings__inner">
+    <nav class="bayi-settings__crumbs" aria-label="Sayfa yolu">
+      <a routerLink="/bayi">Ana Sayfa</a>
+      <span class="material-symbols-outlined">chevron_right</span>
+      <span>Ayarlar</span>
+    </nav>
+
+    <header class="bayi-settings__header">
+      <h1 class="bayi-settings__title">Ayarlar</h1>
+      <p class="bayi-settings__subtitle">
+        {{ userName() }} · {{ dealerName() }}
+      </p>
+    </header>
+
+    <section class="bayi-settings__card">
+      <h2 class="bayi-settings__section-title">Hesap</h2>
+      <a routerLink="/bayi/profile" class="bayi-settings__row bayi-settings__row--link">
+        <span class="bayi-settings__row-main">
+          <span class="material-symbols-outlined">person</span>
+          <span>
+            <strong>Profil Bilgileri</strong>
+            <small>Ad, e-posta ve telefon düzenle</small>
+          </span>
+        </span>
+        <span class="material-symbols-outlined">chevron_right</span>
+      </a>
+      <button type="button" class="bayi-settings__row" disabled>
+        <span class="bayi-settings__row-main">
+          <span class="material-symbols-outlined">lock</span>
+          <span>
+            <strong>Şifre Değiştir</strong>
+            <small>Yakında aktif olacak</small>
+          </span>
+        </span>
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </section>
+
+    <section class="bayi-settings__card">
+      <h2 class="bayi-settings__section-title">Bildirimler</h2>
+
+      <label class="bayi-settings__toggle">
+        <span>
+          <strong>E-posta bildirimleri</strong>
+          <small>Yeni dokümanlar için e-posta al</small>
+        </span>
+        <input
+          type="checkbox"
+          [checked]="emailNotifications()"
+          (change)="toggleEmailNotifications()"
+        />
+      </label>
+
+      <label class="bayi-settings__toggle">
+        <span>
+          <strong>Doküman uyarıları</strong>
+          <small>Markanıza yeni içerik eklendiğinde bildir</small>
+        </span>
+        <input
+          type="checkbox"
+          [checked]="documentAlerts()"
+          (change)="toggleDocumentAlerts()"
+        />
+      </label>
+
+      <label class="bayi-settings__toggle">
+        <span>
+          <strong>Süre hatırlatmaları</strong>
+          <small>Süresi dolmak üzere olan dokümanları hatırlat</small>
+        </span>
+        <input
+          type="checkbox"
+          [checked]="expiryReminders()"
+          (change)="toggleExpiryReminders()"
+        />
+      </label>
+    </section>
+  </div>
+</div>

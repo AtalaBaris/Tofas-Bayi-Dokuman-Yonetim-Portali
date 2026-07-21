@@ -1,0 +1,204 @@
+<aside class="definition-drawer" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+  <header class="definition-drawer__header">
+    <h2>{{ title() }}</h2>
+    <button type="button" aria-label="Kapat" (click)="closed.emit()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </header>
+
+  <div class="definition-drawer__body">
+    @if (formError()) {
+      <p class="definition-drawer__error">{{ formError() }}</p>
+    }
+
+    @if (section() === 'users') {
+      <label>
+        <span>Ad Soyad <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: Ali Veli"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>E-posta <span class="definition-drawer__required">*</span></span>
+        <input
+          type="email"
+          placeholder="ornek@sirket.com"
+          [disabled]="isEdit()"
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+        />
+        @if (isEdit()) {
+          <small>E-posta güncellenemez.</small>
+        }
+      </label>
+      @if (!isEdit()) {
+        <label>
+          <span>Şifre <span class="definition-drawer__required">*</span></span>
+          <input
+            type="password"
+            placeholder="••••••••"
+            autocomplete="new-password"
+            [class.definition-drawer__invalid]="!!passwordError()"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event); showErrors.set(false)"
+          />
+        </label>
+        <label>
+          <span>Şifre Tekrar <span class="definition-drawer__required">*</span></span>
+          <input
+            type="password"
+            placeholder="Şifreyi tekrar giriniz"
+            autocomplete="new-password"
+            [class.definition-drawer__invalid]="!!passwordError()"
+            [ngModel]="passwordConfirm()"
+            (ngModelChange)="passwordConfirm.set($event); showErrors.set(false)"
+          />
+          @if (passwordError(); as error) {
+            <small class="definition-drawer__error">{{ error }}</small>
+          } @else if (password() && passwordConfirm() && passwordsMatch()) {
+            <small class="definition-drawer__ok">Şifreler eşleşiyor.</small>
+          }
+        </label>
+      }
+      <label>
+        <span>Rol <span class="definition-drawer__required">*</span></span>
+        <select [ngModel]="role()" (ngModelChange)="role.set($event)">
+          <option value="" disabled>Rol Seçiniz</option>
+          @for (opt of roleOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>
+          Bağlı Olduğu Bayi
+          @if (role() === 'DealerUser') {
+            <span class="definition-drawer__required">*</span>
+          }
+        </span>
+        <select
+          [ngModel]="dealerId() ?? ''"
+          (ngModelChange)="onDealerChange($event)"
+        >
+          <option value="">Bayi Seçiniz</option>
+          @for (dealer of dealers(); track dealer.id) {
+            <option [value]="dealer.id">{{ dealer.name }}</option>
+          }
+        </select>
+        <small>Sadece bayi kullanıcılarında zorunludur.</small>
+        @if (showErrors() && role() === 'DealerUser' && !dealerId()) {
+          <small class="definition-drawer__error">Bayi seçimi zorunludur.</small>
+        }
+      </label>
+    } @else if (section() === 'dealers') {
+      <label>
+        <span>Bayi Adı <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: Marmara Otomotiv"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>Kod <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: MRM"
+          [ngModel]="code()"
+          (ngModelChange)="code.set($event)"
+        />
+      </label>
+      <div class="definition-drawer__brands">
+        <span>Markalar</span>
+        <div class="definition-drawer__brand-list">
+          @for (brand of brands(); track brand.id) {
+            <label class="definition-drawer__brand-item">
+              <input
+                type="checkbox"
+                [checked]="isBrandSelected(brand.id)"
+                (change)="toggleBrand(brand.id, $any($event.target).checked)"
+              />
+              {{ brand.name }}
+            </label>
+          } @empty {
+            <small>Önce marka tanımlayın.</small>
+          }
+        </div>
+      </div>
+    } @else if (section() === 'brands') {
+      <label>
+        <span>Marka Adı <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: Fiat"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>Kod <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: FIAT"
+          [ngModel]="code()"
+          (ngModelChange)="code.set($event)"
+        />
+      </label>
+    } @else {
+      <label>
+        <span>Kategori Adı <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: Pazarlama"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </label>
+      <label>
+        <span>Açıklama</span>
+        <textarea
+          rows="4"
+          placeholder="Kısa açıklama giriniz"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+        ></textarea>
+      </label>
+    }
+
+    <div class="definition-drawer__status">
+      <span>Durum <span class="definition-drawer__required">*</span></span>
+      <div class="definition-drawer__status-toggle" role="group" aria-label="Durum">
+        <button
+          type="button"
+          [class.definition-drawer__status-btn--active]="active()"
+          (click)="setActive(true)"
+        >
+          Aktif
+        </button>
+        <button
+          type="button"
+          [class.definition-drawer__status-btn--active]="!active()"
+          (click)="setActive(false)"
+        >
+          Pasif
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="definition-drawer__footer">
+    <button type="button" class="definition-drawer__cancel" (click)="closed.emit()">İptal</button>
+    <button
+      type="button"
+      class="definition-drawer__save"
+      [disabled]="saving()"
+      (click)="save()"
+    >
+      {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
+    </button>
+  </footer>
+</aside>
