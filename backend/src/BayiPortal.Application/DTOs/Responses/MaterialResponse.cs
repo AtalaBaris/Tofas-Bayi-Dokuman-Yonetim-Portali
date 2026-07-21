@@ -11,6 +11,7 @@ public class MaterialResponse
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public string Status { get; set; } = string.Empty;
+    public int Version { get; set; } = 1;
     public DateTime PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -24,4 +25,10 @@ public class MaterialResponse
     /// zaman "unread" döner (onlar için anlamlı bir kavram değil).
     /// </summary>
     public string MyAccessStatus { get; set; } = "unread";
+
+    /// <summary>Bu materyali görüntülemiş benzersiz kullanıcı sayısı (AccessLog "Döküman Görüntüleme" kayıtlarından).</summary>
+    public int ViewedCount { get; set; }
+
+    /// <summary>Hedef kitle: materyalin markalarıyla eşleşen bayilerdeki aktif DealerUser sayısı.</summary>
+    public int AudienceCount { get; set; }
 }
