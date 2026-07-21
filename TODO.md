@@ -123,10 +123,13 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
                                    │    frontend hâlâ ayrı ekip arkadaşında, ayrı dal)
                                    │
-✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
+✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu)
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
-        │                               kuralı + expiry + validasyon DAHİL; frontend
-        │                               hâlâ mock veride, bağlama işi ayrı kalıyor)
+        │                               kuralı + expiry + validasyon DAHİL)
+        ▼
+🔄 11. feature-frontend-admin-dokuman-listesi-entegrasyonu  (4'ün frontend'ini gerçek
+        │                                                   API'ye bağladı — henüz
+        │                                                   `Develop`'a merge olmadı)
         ▼
 ✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
         │                          tamamlandı — ayrı dal açılmadı)
@@ -257,12 +260,11 @@ bağlanınca uçtan uca tamamlanmış olacak.)
   kaydı, arşivleme (`DELETE` → soft delete). Marka kesişim kuralı da bu PR'da
   (bkz. madde 5). `ExpiresAt` uygulanıyor, Create/Update girdi doğrulaması var
   (bkz. yukarıdaki "Mevcut durum özeti"). `dotnet-ef` migration gerekmedi.
-- ❌ Frontend: `features/admin/shared-docs-list-page/` (madde başındaki dal ile
-  merge oldu) hâlâ `MOCK_DOCUMENTS` üzerinde çalışıyor, gerçek
-  `GET /api/materials`'a bağlı değil. Eski `material-form`/`material-list`/
-  `material-detail` stub'ları da hâlâ boş. Materials backend'i merge olduğuna göre
-  bu ekranı gerçek API'ye bağlamak artık **sıradaki iş** — ayrı bir küçük
-  `feature-frontend-*` dalı olarak açılabilir.
+- ✅ Frontend: `features/admin/shared-docs-list-page/` artık gerçek
+  `GET/DELETE /api/materials`'a bağlı — bkz. madde 11
+  (`feature-frontend-admin-dokuman-listesi-entegrasyonu`, henüz `Develop`'a
+  merge olmadı). Eski `material-form`/`material-list`/`material-detail`
+  stub'ları hâlâ boş.
 - ⚠️ Takip: dosya türü/boyutu doğrulaması backend'de hâlâ yok (yukarıda
   detaylandırıldı).
 
@@ -467,6 +469,49 @@ yok. Ekran görüntüleriyle doğrulandı.
 
 **Bitti sayılır:** PDF sayfa 7'deki 10 maddelik "Minimum kabul kriterleri"
 listesinin tamamı işaretlenebiliyor.
+
+---
+
+## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — 🔄 devam ediyor (henüz merge olmadı)
+
+**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu).
+
+**Kapsam:** Admin "Paylaşılan Dökümanlar" listesini (`features/admin/shared-docs-list-page/`)
+`MOCK_DOCUMENTS`'ten kurtarıp gerçek `MaterialsController`'a bağlamak.
+
+- **Backend (küçük, additive):** `MaterialResponse`'a `CreatedByName` eklendi;
+  `MaterialRepository.BaseQuery()` artık `Creator` navigasyonunu include ediyor.
+  Salt-okunur bir join olduğu için mevcut davranışı bozmuyor, migration gerekmedi.
+- **`MaterialsService`'e `archive(id)`** eklendi (`DELETE /api/materials/{id}`).
+- **`document-list.model.ts`:** `toAdminDocumentListItem(material: Material)`
+  mapper'ı eklendi. `MOCK_DOCUMENTS`/`MOCK_VIEWERS`/`SEED_DOCUMENTS` **silinmedi**
+  — `document-access-report-page` hâlâ bunlara bağlı (bkz. aşağıdaki bilinen sınır).
+- **`docs-list-page.ts`:** `MaterialsService.list()`'e bağlandı, loading/error
+  state eklendi; `archiveDoc()` artık gerçek `DELETE` çağırıyor. Kategori/marka
+  filtre seçenekleri artık yüklenen veriden türetiliyor — önceden
+  `docs-list-filters.ts`'te sabit bir liste vardı (`['Pazarlama','Satış',...]` ve
+  `BRAND_FILTER_OPTIONS = ['Fiat','Jeep','Peugeot','Opel','Citroen']`, gerçek
+  marka isimleri ama şu anki dev seed'i — `SeedData.cs` — yalnızca placeholder
+  "Marka A"/"Marka B" tanımlıyor); dinamik türetme sayesinde filtre hangi
+  ortamda hangi markalar/kategoriler seed edilmişse onlarla çalışıyor.
+- **Bilinen sınır (kapsam dışı bırakıldı):** `viewedCount`/`audienceCount`/
+  `version` alanları UI'da korundu ama şimdilik 0/0/boş dönüyor — `AccessLog`
+  entitesinde `MaterialId` bağlantısı olmadığından doküman bazlı görüntülenme
+  istatistiği/versiyon kavramı backend'de hesaplanamıyor. `document-access-report-page`
+  (`/admin/documents/:id/access-report`) de aynı sebeple hâlâ `MOCK_DOCUMENTS`
+  üzerinde çalışıyor. Bunu çözmek `AccessLog`'a nullable `MaterialId` kolonu
+  eklemek (migration) ve `MaterialService`'in her `_accessLogService.LogAsync(...)`
+  çağrısını güncellemek anlamına geliyor — ayrı bir backend işi olarak
+  planlanmalı, bu dala dahil edilmedi (canlı feature'a migration riski taşımamak
+  için bilinçli olarak ertelendi).
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` ve `tsc --noEmit` temiz;
+gerçek backend'e karşı curl ile uçtan uca doğrulandı (materyal oluştur → gerçek
+`createdByName` dönüyor → `DELETE /api/materials/{id}` → status `Archived`'a
+dönüyor).
+
+**Bitti sayılır:** Admin, gerçek yüklenmiş bir dokümanı listede görüp
+arşivleyebiliyor; kategori/marka filtreleri gerçek veriyle çalışıyor.
 
 ---
 
