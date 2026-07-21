@@ -18,6 +18,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(x => x.FilePath).HasMaxLength(500).IsRequired();
         builder.Property(x => x.MimeType).HasMaxLength(150).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Version).HasDefaultValue(1).IsRequired();
         builder.Property(x => x.RecurrenceKind).HasConversion<string>().HasMaxLength(50).IsRequired();
 
         builder.HasIndex(x => new { x.Status, x.ScheduledPublishAt });

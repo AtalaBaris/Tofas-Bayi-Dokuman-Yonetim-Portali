@@ -16,6 +16,7 @@ export interface Material {
   mimeType: string;
   fileSize: number;
   status: string;
+  version: number;
   publishedAt: string;
   expiresAt?: string | null;
   scheduledPublishAt?: string | null;
@@ -28,8 +29,13 @@ export interface Material {
   brandIds: number[];
   brandNames: string[];
   brands: MaterialBrandBadge[];
+  createdByName: string;
   /** İsteği atan kullanıcının bu materyale erişim durumu (DealerUser için anlamlı; Admin/ContentManager için hep "unread"). */
   myAccessStatus: 'unread' | 'viewed' | 'downloaded';
+  /** Görüntüleyen benzersiz kullanıcı sayısı. */
+  viewedCount: number;
+  /** Hedef kitle: materyalin markalarıyla eşleşen bayilerdeki aktif kullanıcı sayısı. */
+  audienceCount: number;
 }
 
 export interface MaterialScheduleItem {

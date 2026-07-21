@@ -66,6 +66,11 @@ public sealed class MaterialService : IMaterialService
             }
         }
 
+        if (responses.Count > 0)
+        {
+            await ApplyCoverageCountsAsync(responses, cancellationToken);
+        }
+
         return responses;
     }
 
@@ -74,7 +79,22 @@ public sealed class MaterialService : IMaterialService
     {
         var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
         await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Görüntüleme", $"\"{material.Title}\" dökümanı görüntülendi.", "N/A", cancellationToken);
-        return ToResponse(material);
+        var response = ToResponse(material);
+        await ApplyCoverageCountsAsync(new List<MaterialResponse> { response }, cancellationToken);
+        return response;
+    }
+
+    private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)
+    {
+        var materialIds = responses.Select(r => r.Id).ToList();
+        var viewedCounts = await _materialRepository.GetViewedCountsAsync(materialIds, cancellationToken);
+        var audienceCounts = await _materialRepository.GetAudienceCountsAsync(materialIds, cancellationToken);
+
+        foreach (var response in responses)
+        {
+            response.ViewedCount = viewedCounts.GetValueOrDefault(response.Id);
+            response.AudienceCount = audienceCounts.GetValueOrDefault(response.Id);
+        }
     }
 
     public async Task<MaterialResponse> CreateAsync(
@@ -145,6 +165,7 @@ public sealed class MaterialService : IMaterialService
         material.CategoryId = request.CategoryId;
         material.ExpiresAt = request.ExpiresAt;
         material.UpdatedAt = DateTime.UtcNow;
+        material.Version += 1;
 
         material.MaterialBrands.Clear();
         foreach (var brandId in request.BrandIds.Distinct())
@@ -601,6 +622,7 @@ public sealed class MaterialService : IMaterialService
         MimeType = material.MimeType,
         FileSize = material.FileSize,
         Status = material.Status.ToString(),
+        Version = material.Version,
         PublishedAt = material.PublishedAt,
         ExpiresAt = material.ExpiresAt,
         ScheduledPublishAt = material.ScheduledPublishAt,
@@ -618,6 +640,7 @@ public sealed class MaterialService : IMaterialService
             Name = mb.Brand.Name,
             BadgeLabel = string.IsNullOrWhiteSpace(mb.Brand.BadgeLabel) ? mb.Brand.Name : mb.Brand.BadgeLabel,
             BadgeColor = string.IsNullOrWhiteSpace(mb.Brand.BadgeColor) ? "#374151" : mb.Brand.BadgeColor
-        }).ToList()
+        }).ToList(),
+        CreatedByName = material.Creator?.Name ?? string.Empty
     };
 }

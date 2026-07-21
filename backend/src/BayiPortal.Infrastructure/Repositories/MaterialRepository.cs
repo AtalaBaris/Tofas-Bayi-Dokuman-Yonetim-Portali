@@ -18,6 +18,7 @@ public sealed class MaterialRepository : IMaterialRepository
     private IQueryable<Material> BaseQuery() =>
         _dbContext.Materials
             .Include(m => m.Category)
+            .Include(m => m.Creator)
             .Include(m => m.MaterialBrands).ThenInclude(mb => mb.Brand);
 
     public Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
@@ -133,6 +134,35 @@ public sealed class MaterialRepository : IMaterialRepository
             .Where(b => brandIds.Contains(b.Id))
             .Select(b => b.Id)
             .ToListAsync(cancellationToken);
+
+    public async Task<Dictionary<int, int>> GetViewedCountsAsync(
+        IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default)
+    {
+        var rows = await _dbContext.AccessLogs
+            .Where(a => a.MaterialId != null && a.UserId != null
+                && materialIds.Contains(a.MaterialId.Value) && a.Action == "Döküman Görüntüleme")
+            .Select(a => new { MaterialId = a.MaterialId!.Value, UserId = a.UserId!.Value })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return rows.GroupBy(r => r.MaterialId).ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    public async Task<Dictionary<int, int>> GetAudienceCountsAsync(
+        IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default)
+    {
+        var rows = await (
+            from mb in _dbContext.MaterialBrands
+            where materialIds.Contains(mb.MaterialId)
+            join db in _dbContext.DealerBrands on mb.BrandId equals db.BrandId
+            join u in _dbContext.Users on db.DealerId equals u.DealerId
+            where u.Role == RoleType.DealerUser && u.IsActive
+            select new { mb.MaterialId, u.Id })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return rows.GroupBy(r => r.MaterialId).ToDictionary(g => g.Key, g => g.Count());
+    }
 
     public void Add(Material material) => _dbContext.Materials.Add(material);
 

@@ -94,6 +94,12 @@ farklı çıktı, aşağıda düzeltildi).
   marka-eşleşme kuralı ve 401/403 ayrımı da regresyon kontrolü olarak yeniden
   doğrulandı (etkilenmemiş). **Frontend tarafı bu dalda yok** — ayrı bir ekip
   arkadaşı üzerinde çalışıyor.
+- **Doküman görüntülenme/hedef kitle sayacı + versiyon** (PR #17
+  `feature-backend-dokuman-goruntulenme-sayaci` → `063ea45`, ardından PR #18
+  `feature-frontend-admin-dokuman-listesi-entegrasyonu` → `d48727e`, ikisi de
+  2026-07-21'de `Develop`'a merge oldu, bu sırayla — backend önce): madde 11'in
+  "AccessLog'da MaterialId bağlantısı yok" diye kapsam dışı bıraktığı
+  `viewedCount`/`audienceCount`/`version` çözüldü. Ayrıntı için madde 12'ye bakın.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
@@ -123,16 +129,24 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 3. feature-*-tanim-yonetimi ─────┤   (backend merge oldu — PR #6, feature-backend-tanim-yonetimi;
                                    │    frontend hâlâ ayrı ekip arkadaşında, ayrı dal)
                                    │
-✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu, mock veride)
+✅ 4. feature-frontend-paylasilan-dokuman-listesi  (frontend merge oldu)
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
-        │                               kuralı + expiry + validasyon DAHİL; frontend
-        │                               hâlâ mock veride, bağlama işi ayrı kalıyor)
+        │                               kuralı + expiry + validasyon DAHİL)
+        ▼
+✅ 11. feature-frontend-admin-dokuman-listesi-entegrasyonu  (4'ün frontend'ini gerçek
+        │                                                   API'ye bağladı — PR #18 ile
+        │                                                   `Develop`'a merge oldu)
         ▼
 ✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
         │                          tamamlandı — ayrı dal açılmadı)
         ▼
 ✅ 6. feature-*-access-logs          (tamamlandı — veritabanı loglama, API ve ön yüz entegrasyonu bitti)
         │
+        ▼
+✅ 12. feature-backend-dokuman-goruntulenme-sayaci  (6'nın ürettiği AccessLog.MaterialId'yi
+        │                                           kullanarak 11'in placeholder bıraktığı
+        │                                           viewedCount/audienceCount/version'ı çözdü —
+        │                                           PR #17 ile `Develop`'a merge oldu, PR #18'den önce)
         ▼
 ✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
         │
@@ -257,12 +271,11 @@ bağlanınca uçtan uca tamamlanmış olacak.)
   kaydı, arşivleme (`DELETE` → soft delete). Marka kesişim kuralı da bu PR'da
   (bkz. madde 5). `ExpiresAt` uygulanıyor, Create/Update girdi doğrulaması var
   (bkz. yukarıdaki "Mevcut durum özeti"). `dotnet-ef` migration gerekmedi.
-- ❌ Frontend: `features/admin/shared-docs-list-page/` (madde başındaki dal ile
-  merge oldu) hâlâ `MOCK_DOCUMENTS` üzerinde çalışıyor, gerçek
-  `GET /api/materials`'a bağlı değil. Eski `material-form`/`material-list`/
-  `material-detail` stub'ları da hâlâ boş. Materials backend'i merge olduğuna göre
-  bu ekranı gerçek API'ye bağlamak artık **sıradaki iş** — ayrı bir küçük
-  `feature-frontend-*` dalı olarak açılabilir.
+- ✅ Frontend: `features/admin/shared-docs-list-page/` artık gerçek
+  `GET/DELETE /api/materials`'a bağlı — bkz. madde 11
+  (`feature-frontend-admin-dokuman-listesi-entegrasyonu`, henüz `Develop`'a
+  merge olmadı). Eski `material-form`/`material-list`/`material-detail`
+  stub'ları hâlâ boş.
 - ⚠️ Takip: dosya türü/boyutu doğrulaması backend'de hâlâ yok (yukarıda
   detaylandırıldı).
 
@@ -467,6 +480,98 @@ yok. Ekran görüntüleriyle doğrulandı.
 
 **Bitti sayılır:** PDF sayfa 7'deki 10 maddelik "Minimum kabul kriterleri"
 listesinin tamamı işaretlenebiliyor.
+
+---
+
+## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — ✅ tamamlandı, `Develop`'a merge oldu (PR #18 → `d48727e`, 2026-07-21)
+
+**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu) ve 12
+(`feature-backend-dokuman-goruntulenme-sayaci`, PR #17 ile merge oldu —
+`viewedCount`/`audienceCount`/`version` bu dal olmadan backend'den gelmezdi;
+merge sırası doğru şekilde 12 önce, 11 sonra oldu).
+
+**Kapsam:** Admin "Paylaşılan Dökümanlar" listesini (`features/admin/shared-docs-list-page/`)
+`MOCK_DOCUMENTS`'ten kurtarıp gerçek `MaterialsController`'a bağlamak.
+
+- **Backend (küçük, additive):** `MaterialResponse`'a `CreatedByName` eklendi;
+  `MaterialRepository.BaseQuery()` artık `Creator` navigasyonunu include ediyor.
+  Salt-okunur bir join olduğu için mevcut davranışı bozmuyor, migration gerekmedi.
+- **`MaterialsService`'e `archive(id)`** eklendi (`DELETE /api/materials/{id}`).
+- **`document-list.model.ts`:** `toAdminDocumentListItem(material: Material)`
+  mapper'ı eklendi. `MOCK_DOCUMENTS`/`MOCK_VIEWERS`/`SEED_DOCUMENTS` **silinmedi**
+  — `document-access-report-page` hâlâ bunlara bağlı (bkz. aşağıdaki bilinen sınır).
+- **`docs-list-page.ts`:** `MaterialsService.list()`'e bağlandı, loading/error
+  state eklendi; `archiveDoc()` artık gerçek `DELETE` çağırıyor. Kategori/marka
+  filtre seçenekleri artık yüklenen veriden türetiliyor — önceden
+  `docs-list-filters.ts`'te sabit bir liste vardı (`['Pazarlama','Satış',...]` ve
+  `BRAND_FILTER_OPTIONS = ['Fiat','Jeep','Peugeot','Opel','Citroen']`, gerçek
+  marka isimleri ama şu anki dev seed'i — `SeedData.cs` — yalnızca placeholder
+  "Marka A"/"Marka B" tanımlıyor); dinamik türetme sayesinde filtre hangi
+  ortamda hangi markalar/kategoriler seed edilmişse onlarla çalışıyor.
+- **`viewedCount`/`audienceCount`/`version` artık gerçek veri (madde 12 ile
+  çözüldü):** `toAdminDocumentListItem`, `MaterialResponse.ViewedCount`/
+  `AudienceCount`/`Version` alanlarını doğrudan kullanıyor; `document-list.model.ts`
+  içindeki eski "backend'de karşılığı yok" placeholder yorumu kaldırıldı.
+- **Hâlâ mock kalan:** `document-access-report-page` (`/admin/documents/:id/access-report`)
+  — kişi bazlı görüntüleyen listesi (`MOCK_VIEWERS`) için `AccessLog`'dan
+  materyal başına viewer detayı döndüren ayrı bir endpoint gerekiyor; madde 12
+  yalnızca toplu sayaçları (`ViewedCount`/`AudienceCount`) çözdü, satır satır
+  viewer dökümünü değil. Ayrı bir backend işi olarak planlanmalı.
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` ve `tsc --noEmit` temiz;
+gerçek backend'e karşı curl ile uçtan uca doğrulandı (materyal oluştur → gerçek
+`createdByName` dönüyor → `DELETE /api/materials/{id}` → status `Archived`'a
+dönüyor).
+
+**Bitti sayılır:** Admin, gerçek yüklenmiş bir dokümanı listede görüp
+arşivleyebiliyor; kategori/marka filtreleri gerçek veriyle çalışıyor.
+
+---
+
+## 12. `feature-backend-dokuman-goruntulenme-sayaci` — ✅ tamamlandı, `Develop`'a merge oldu (PR #17 → `063ea45`, 2026-07-21)
+
+**Bağımlılık:** 6 (`feature-*-access-logs`, merge oldu — `AccessLog.MaterialId`
+zaten dolu geliyor). `Develop`'tan dallandı.
+
+**Kapsam:** `MaterialResponse`'a `ViewedCount`, `AudienceCount`, `Version`
+eklemek — madde 11'de "AccessLog'da MaterialId bağlantısı yok" diye kapsam
+dışı bırakılan sınırın aslında `feature-backend-access-logs` ile zaten
+çözülmüş olduğu fark edildi (bkz. `AccessLog.MaterialId`, `AccessLogService`).
+Yalnızca `Version` gerçekten eksikti.
+
+- **`Material.Version`** (yeni `int` kolon, varsayılan `1`) — migration
+  `AddVersionToMaterials`; `MaterialService.UpdateAsync` her güncellemede
+  `+1` artırıyor. Versiyon geçmişi/dosya arşivi **yok**, sadece artan sayaç
+  (frontend `v{version}.0` olarak gösteriyor — mock'taki "v1.2 (Son)" gibi
+  minor/major veya "Son" etiketleme kavramı yok, bilinçli olarak MVP'de basit
+  tutuldu).
+- **`MaterialRepository.GetViewedCountsAsync`** — `AccessLog` üzerinde
+  `MaterialId` + `Action == "Döküman Görüntüleme"` filtresiyle, `UserId`'ye
+  göre `Distinct()` sonrası `MaterialId` bazında `GroupBy`/`Count` (benzersiz
+  görüntüleyen sayısı).
+- **`MaterialRepository.GetAudienceCountsAsync`** — `MaterialBrands` ⋈
+  `DealerBrands` ⋈ `Users` (yalnızca `Role == DealerUser && IsActive`) join'i
+  ile materyalin markalarıyla eşleşen aktif bayi kullanıcı sayısı.
+- **`MaterialService`** — `GetListAsync`/`GetByIdAsync` sonunda
+  `ApplyCoverageCountsAsync` ile bu iki sözlüğü response'lara uyguluyor
+  (N+1 yok, `materialIds` listesi için tek sorgu).
+- **Frontend (bu daldan `feature-frontend-admin-dokuman-listesi-entegrasyonu`'na
+  taşındı, ayrı bağımlılık):** `Material` arayüzüne `viewedCount`/`audienceCount`/
+  `version` eklendi; `toAdminDocumentListItem` artık gerçek değerleri kullanıyor.
+
+**Bilinçli kapsam dışı:** Kişi bazlı "kim görüntüledi" listesi
+(`document-access-report-page`/`MOCK_VIEWERS`) — bkz. madde 11'deki not, ayrı
+bir iş.
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` temiz; migration lokal
+Postgres'e (`bayi`/`BayiPortalDb`) uygulandı; frontend `tsc --noEmit` temiz.
+Merge sonrası birleşmiş `Develop` üzerinde tekrar doğrulandı: 4 migration da
+(`InitialCreate`, `UpdateAccessLogsForSystemLogging`, `AddPhoneToUsers`,
+`AddVersionToMaterials`) sırayla uygulanmış durumda, hiçbiri pending değil.
+Canlı sunucuya karşı uçtan uca (curl) doğrulama hâlâ **yapılmadı**.
+
+**Bitti sayılır:** Admin doküman listesinde her satır gerçek
+görüntülenme/hedef kitle sayacını ve versiyon numarasını gösteriyor.
 
 ---
 

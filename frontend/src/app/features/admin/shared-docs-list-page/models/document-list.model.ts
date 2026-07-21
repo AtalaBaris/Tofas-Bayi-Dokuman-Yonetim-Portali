@@ -112,12 +112,16 @@ export function materialToDocumentListItem(material: {
   mimeType: string;
   fileSize: number;
   status: string;
+  version?: number;
   publishedAt: string;
   expiresAt?: string | null;
   scheduledPublishAt?: string | null;
   recurrenceKind?: string;
   brandNames: string[];
   brands?: { badgeLabel: string; badgeColor: string; name: string }[];
+  createdByName?: string;
+  viewedCount?: number;
+  audienceCount?: number;
 }): DocumentListItem {
   const sizeLabel = formatBytes(material.fileSize);
   const scheduleIso = material.scheduledPublishAt ?? null;
@@ -131,6 +135,7 @@ export function materialToDocumentListItem(material: {
           color: b.badgeColor || '#374151',
         }))
       : material.brandNames.map((label) => ({ label, color: '#374151' }));
+  const version = material.version && material.version > 0 ? material.version : 1;
   return {
     id: material.id,
     title: material.title,
@@ -138,18 +143,18 @@ export function materialToDocumentListItem(material: {
     category: material.categoryName,
     sizeLabel,
     brands,
-    viewedCount: 0,
-    audienceCount: 0,
+    viewedCount: material.viewedCount ?? 0,
+    audienceCount: material.audienceCount ?? 0,
     status: mapStatus(material.status),
     fileKind: fileKindFromMime(material.mimeType, material.fileName),
     description: material.description,
-    uploader: '—',
+    uploader: material.createdByName?.trim() || '—',
     uploadedAt: formatTrDate(material.publishedAt),
     expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
     scheduledPublishAt: scheduleIso,
     recurrenceKind: material.recurrenceKind ?? 'None',
     fileSizeDetail: sizeLabel,
-    version: 'v1',
+    version: `v${version}.0`,
     fileName: material.fileName,
   };
 }
