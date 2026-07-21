@@ -21,6 +21,10 @@ public interface IMaterialRepository
 
     Task<IReadOnlyCollection<int>> GetExistingBrandIdsAsync(IReadOnlyCollection<int> brandIds, CancellationToken cancellationToken = default);
 
+    Task<Dictionary<int, int>> GetViewedCountsAsync(IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default);
+
+    Task<Dictionary<int, int>> GetAudienceCountsAsync(IReadOnlyCollection<int> materialIds, CancellationToken cancellationToken = default);
+
     void Add(Material material);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
