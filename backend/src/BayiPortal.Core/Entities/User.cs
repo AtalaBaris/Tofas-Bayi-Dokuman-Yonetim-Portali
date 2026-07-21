@@ -17,4 +17,5 @@ public class User
     public Dealer? Dealer { get; set; }
     public ICollection<Material> CreatedMaterials { get; set; } = new List<Material>();
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

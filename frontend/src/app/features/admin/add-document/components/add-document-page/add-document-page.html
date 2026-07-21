@@ -4,6 +4,18 @@
     <div class="add-doc__inner">
       <app-add-document-header (libraryClick)="goToLibrary()" />
 
+      @if (loadError()) {
+        <p class="add-doc__banner add-doc__banner--error" role="alert">{{ loadError() }}</p>
+      }
+
+      @if (submitError()) {
+        <p class="add-doc__banner add-doc__banner--error" role="alert">{{ submitError() }}</p>
+      }
+
+      @if (fileError()) {
+        <p class="add-doc__banner add-doc__banner--error" role="alert">{{ fileError() }}</p>
+      }
+
       <div class="add-doc__grid">
         <div class="add-doc__main">
           <app-add-document-basic
@@ -13,22 +25,40 @@
             (titleChange)="title.set($event)"
             (descriptionChange)="description.set($event)"
           />
-          <app-add-document-upload [file]="file()" (fileChange)="file.set($event)" />
+          <app-add-document-upload
+            [file]="file()"
+            (fileChange)="file.set($event); fileError.set('')"
+            (fileErrorChange)="fileError.set($event)"
+          />
         </div>
 
         <div class="add-doc__side">
           <app-add-document-meta
             [category]="category()"
-            [brands]="brands()"
+            [brandIds]="brandIds()"
             [publishedAt]="publishedAt()"
+            [scheduledAt]="scheduledAt()"
             [expiresAt]="expiresAt()"
             [status]="status()"
+            [recurrenceKind]="recurrenceKind()"
+            [recurrenceDayOfWeek]="recurrenceDayOfWeek()"
+            [recurrenceDayOfMonth]="recurrenceDayOfMonth()"
+            [categories]="categoryOptions()"
+            [allBrands]="brandOptions()"
+            [showErrors]="showErrors()"
             (categoryChange)="category.set($event)"
-            (brandsChange)="brands.set($event)"
+            (brandIdsChange)="brandIds.set($event)"
             (publishedAtChange)="publishedAt.set($event)"
+            (scheduledAtChange)="scheduledAt.set($event)"
             (expiresAtChange)="expiresAt.set($event)"
             (statusChange)="status.set($event)"
+            (recurrenceKindChange)="recurrenceKind.set($event)"
+            (recurrenceDayOfWeekChange)="recurrenceDayOfWeek.set($event)"
+            (recurrenceDayOfMonthChange)="recurrenceDayOfMonth.set($event)"
           />
+          @if (loadingMeta()) {
+            <p class="add-doc__meta-loading">Marka ve kategoriler yükleniyor…</p>
+          }
         </div>
       </div>
     </div>

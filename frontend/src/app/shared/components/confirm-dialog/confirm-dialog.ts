@@ -1,11 +1,12 @@
 /** Uygulama genelinde tekrar kullanılabilir onay modalı. */
-import { Component, input, output } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
 
 @Component({
   selector: 'app-confirm-dialog',
   templateUrl: './confirm-dialog.html',
   styleUrl: './confirm-dialog.scss',
+  standalone: true,
   animations: [
     trigger('overlay', [
       transition(':enter', [
@@ -31,11 +32,35 @@ export class ConfirmDialog {
   readonly message = input('Bu işlem geri alınamaz.');
   readonly confirmLabel = input('Sil');
   readonly cancelLabel = input('Vazgeç');
+  /** Opsiyonel orta aksiyon (ör. Yeni Kullanıcı Ekle). */
+  readonly secondaryLabel = input<string | null>(null);
+  /**
+   * Doluysa onay kutusu gösterilir; işaretlenmeden confirm disabled kalır.
+   * Okumadan yanlışlıkla onaylamayı engeller.
+   */
+  readonly acknowledgeLabel = input<string | null>(null);
   /** true: kırmızı silme stili (varsayılan). */
   readonly danger = input(true);
+  readonly showHint = input(true);
 
   readonly confirmed = output<void>();
+  readonly secondaryConfirmed = output<void>();
   readonly cancelled = output<void>();
+
+  readonly acknowledged = signal(false);
+
+  readonly canConfirm = computed(() => {
+    const label = this.acknowledgeLabel();
+    return !label || this.acknowledged();
+  });
+
+  constructor() {
+    effect(() => {
+      if (this.open()) {
+        this.acknowledged.set(false);
+      }
+    });
+  }
 
   onOverlayClick(): void {
     this.cancelled.emit();
@@ -45,7 +70,18 @@ export class ConfirmDialog {
     this.cancelled.emit();
   }
 
+  onSecondary(): void {
+    this.secondaryConfirmed.emit();
+  }
+
+  onAcknowledgeChange(checked: boolean): void {
+    this.acknowledged.set(checked);
+  }
+
   onConfirm(): void {
+    if (!this.canConfirm()) {
+      return;
+    }
     this.confirmed.emit();
   }
 }

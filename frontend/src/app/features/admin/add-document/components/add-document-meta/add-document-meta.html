@@ -2,65 +2,90 @@
   <h2 class="add-doc__card-title">Sınıflandırma &amp; Yayın</h2>
 
   <div class="add-meta">
-    <div class="add-meta__field">
-      <label class="add-meta__label" for="add-doc-category">Kategori</label>
-      <div class="add-meta__select-wrap">
-        <select
-          id="add-doc-category"
-          class="add-meta__select"
-          [ngModel]="category()"
-          (ngModelChange)="categoryChange.emit($event)"
-        >
-          <option disabled value="">Kategori Seçiniz</option>
-          @for (opt of categories; track opt.value) {
-            <option [value]="opt.value">{{ opt.label }}</option>
-          }
-        </select>
-        <span class="material-symbols-outlined add-meta__caret">expand_more</span>
-      </div>
-    </div>
-
-    <div class="add-meta__field">
-      <span class="add-meta__label">Markalar</span>
-      <div class="add-meta__brands">
-        @for (brand of brands(); track brand) {
-          <button type="button" class="add-meta__pill" (click)="removeBrand(brand)">
-            {{ brand }}
-            <span class="material-symbols-outlined">close</span>
-          </button>
+  <div class="add-meta__field">
+    <label class="add-meta__label" for="add-doc-category">Kategori</label>
+    <div class="add-meta__select-wrap">
+      <select
+        id="add-doc-category"
+        class="add-meta__select"
+        [class.add-meta__select--invalid]="showErrors() && !category()"
+        [ngModel]="category()"
+        (ngModelChange)="categoryChange.emit($event)"
+      >
+        <option disabled value="">Kategori Seçiniz</option>
+        @for (opt of categories(); track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
         }
+      </select>
+      <span class="material-symbols-outlined add-meta__caret">expand_more</span>
+    </div>
+    @if (showErrors() && !category()) {
+      <p class="add-meta__error">Kategori zorunludur.</p>
+    }
+  </div>
 
-        <div class="add-meta__brand-menu-wrap">
-          <button
-            type="button"
-            class="add-meta__pill-add"
-            [disabled]="availableBrands().length === 0"
-            (click)="toggleBrandMenu(); $event.stopPropagation()"
-          >
-            <span class="material-symbols-outlined">add</span>
-            Ekle
-          </button>
+  <div class="add-meta__field">
+    <span class="add-meta__label">Markalar</span>
+    <div class="add-meta__brands">
+      @for (brand of selectedBrands(); track brand.id) {
+        <button type="button" class="add-meta__pill" (click)="removeBrand(brand.id)">
+          {{ brand.label }}
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      }
 
-          @if (brandMenuOpen()) {
-            <div class="add-meta__brand-menu" @brandMenu>
-              @for (opt of availableBrands(); track opt.id) {
-                <button
-                  type="button"
-                  class="add-meta__brand-option"
-                  (click)="addBrand(opt.label)"
-                >
-                  {{ opt.label }}
-                </button>
-              }
-            </div>
-          }
-        </div>
+      <div class="add-meta__brand-menu-wrap">
+        <button
+          type="button"
+          class="add-meta__pill-add"
+          [disabled]="availableBrands().length === 0"
+          (click)="toggleBrandMenu(); $event.stopPropagation()"
+        >
+          <span class="material-symbols-outlined">add</span>
+          Ekle
+        </button>
+
+        @if (brandMenuOpen()) {
+          <div class="add-meta__brand-menu" @brandMenu>
+            @for (opt of availableBrands(); track opt.id) {
+              <button
+                type="button"
+                class="add-meta__brand-option"
+                (click)="addBrand(opt.id)"
+              >
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        }
       </div>
     </div>
+    @if (showErrors() && brandIds().length === 0) {
+      <p class="add-meta__error">En az bir marka seçilmelidir.</p>
+    }
+  </div>
 
-    <hr class="add-meta__divider" />
+  <hr class="add-meta__divider" />
 
-    <div class="add-meta__dates">
+  <div class="add-meta__dates">
+    @if (isScheduled()) {
+      <div class="add-meta__field add-meta__field--full">
+        <label class="add-meta__label" for="add-doc-scheduled">Yayın Tarihi / Saati</label>
+        <div class="add-meta__date-wrap">
+          <span class="material-symbols-outlined add-meta__date-icon">schedule</span>
+          <input
+            id="add-doc-scheduled"
+            class="add-meta__date"
+            type="datetime-local"
+            [ngModel]="scheduledAt()"
+            (ngModelChange)="scheduledAtChange.emit($event)"
+          />
+        </div>
+        @if (showErrors() && !scheduledAt()) {
+          <p class="add-meta__error">Zamanlanmış yayın için tarih/saat zorunludur.</p>
+        }
+      </div>
+    } @else if (status() !== 'pool') {
       <div class="add-meta__field">
         <label class="add-meta__label" for="add-doc-published">Yayın Tarihi</label>
         <div class="add-meta__date-wrap">
@@ -74,27 +99,87 @@
           />
         </div>
       </div>
+    } @else {
       <div class="add-meta__field">
-        <label class="add-meta__label" for="add-doc-expires">Bitiş Tarihi</label>
-        <div class="add-meta__date-wrap">
-          <span class="material-symbols-outlined add-meta__date-icon">event_busy</span>
-          <input
-            id="add-doc-expires"
-            class="add-meta__date"
-            type="date"
-            [ngModel]="expiresAt()"
-            (ngModelChange)="expiresAtChange.emit($event)"
-          />
-        </div>
+        <p class="add-meta__error" style="margin:0; padding:0;">
+          Havuz seçiliyse yayınlanma tarihi, doküman takvime (gün+saat) sürüklendiğinde otomatik güncellenir.
+        </p>
+      </div>
+    }
+    <div class="add-meta__field">
+      <label class="add-meta__label" for="add-doc-expires">Bitiş Tarihi</label>
+      <div class="add-meta__date-wrap">
+        <span class="material-symbols-outlined add-meta__date-icon">event_busy</span>
+        <input
+          id="add-doc-expires"
+          class="add-meta__date"
+          type="date"
+          [ngModel]="expiresAt()"
+          (ngModelChange)="expiresAtChange.emit($event)"
+        />
+      </div>
+    </div>
+  </div>
+
+  @if (isScheduled()) {
+    <div class="add-meta__field">
+      <span class="add-meta__label">Tekrar</span>
+      <div class="add-meta__status" role="group" aria-label="Tekrar türü">
+        @for (opt of recurrenceOptions; track opt.value) {
+          <button
+            type="button"
+            class="add-meta__status-btn"
+            [class.add-meta__status-btn--active]="recurrenceKind() === opt.value"
+            (click)="recurrenceKindChange.emit(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        }
       </div>
     </div>
 
-    <hr class="add-meta__divider" />
+    @if (recurrenceKind() === 'Weekly') {
+      <div class="add-meta__field">
+        <label class="add-meta__label" for="add-doc-weekday">Haftanın günü</label>
+        <div class="add-meta__select-wrap">
+          <select
+            id="add-doc-weekday"
+            class="add-meta__select"
+            [ngModel]="recurrenceDayOfWeek()"
+            (ngModelChange)="recurrenceDayOfWeekChange.emit(+$event)"
+          >
+            @for (opt of weekdayOptions; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined add-meta__caret">expand_more</span>
+        </div>
+      </div>
+    }
 
-    <div class="add-meta__field">
-      <span class="add-meta__label">Durum</span>
-      <div class="add-meta__status" role="group" aria-label="İçerik durumu">
-        @for (opt of statuses; track opt.value) {
+    @if (recurrenceKind() === 'MonthlyDay') {
+      <div class="add-meta__field">
+        <label class="add-meta__label" for="add-doc-monthday">Ayın günü (1–28)</label>
+        <input
+          id="add-doc-monthday"
+          class="add-meta__date"
+          type="number"
+          min="1"
+          max="28"
+          [ngModel]="recurrenceDayOfMonth()"
+          (ngModelChange)="recurrenceDayOfMonthChange.emit(+$event)"
+        />
+      </div>
+    }
+  }
+
+  <hr class="add-meta__divider" />
+
+  <div class="add-meta__field">
+    <span class="add-meta__label">Durum</span>
+    <div class="add-meta__status" role="group" aria-label="İçerik durumu">
+      @for (opt of statuses; track opt.value) {
+        @if (opt.value !== 'archived') {
           <button
             type="button"
             class="add-meta__status-btn"
@@ -104,7 +189,8 @@
             {{ opt.label }}
           </button>
         }
-      </div>
+      }
     </div>
   </div>
+</div>
 </div>

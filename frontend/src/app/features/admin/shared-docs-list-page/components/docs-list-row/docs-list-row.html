@@ -4,6 +4,7 @@
   [class.docs-row--active]="doc().status === 'active'"
   [class.docs-row--draft]="doc().status === 'draft'"
   [class.docs-row--archived]="doc().status === 'archived'"
+  [class.docs-row--scheduled]="doc().status === 'scheduled'"
   (click)="select.emit(doc())"
   (keydown.enter)="select.emit(doc())"
   tabindex="0"
@@ -37,7 +38,10 @@
         <span class="docs-row__dot" aria-hidden="true"></span>
         <div class="docs-row__brands">
           @for (brand of doc().brands; track brand.label) {
-            <span class="docs-row__brand" [attr.data-tone]="brand.tone">{{ brand.label }}</span>
+            <span
+              class="docs-row__brand"
+              [style.background]="brand.color"
+            >{{ brand.label }}</span>
           }
         </div>
         @if (remainingLabel(); as remaining) {

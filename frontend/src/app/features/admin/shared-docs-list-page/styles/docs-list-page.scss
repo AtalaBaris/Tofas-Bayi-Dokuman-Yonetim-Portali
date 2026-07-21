@@ -61,6 +61,10 @@
   text-align: center;
   color: var(--color-on-surface-variant);
   font-size: var(--font-size-body-lg);
+
+  &--error {
+    color: var(--color-error);
+  }
 }
 
 .docs-page__paging {

@@ -74,8 +74,12 @@
             <h3 class="bayi-home__card-title">{{ doc.title }}</h3>
 
             <div class="bayi-home__brands">
-              @for (brand of doc.brands; track brand) {
-                <span class="bayi-home__brand">{{ brand }}</span>
+              @for (brand of doc.brands; track brand.id) {
+                <span
+                  class="bayi-home__brand"
+                  [style.background]="brand.badgeColor"
+                  [style.color]="'#fff'"
+                >{{ brand.badgeLabel || brand.name }}</span>
               }
             </div>
 

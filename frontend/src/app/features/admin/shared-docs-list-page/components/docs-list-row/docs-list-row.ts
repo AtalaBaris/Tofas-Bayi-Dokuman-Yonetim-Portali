@@ -12,6 +12,7 @@ const STATUS_LABEL: Record<DocumentStatus, string> = {
   active: 'Aktif',
   draft: 'Taslak',
   archived: 'Arşiv',
+  scheduled: 'Zamanlanmış',
 };
 
 @Component({

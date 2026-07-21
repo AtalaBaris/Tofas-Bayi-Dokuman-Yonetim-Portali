@@ -34,12 +34,20 @@ export interface DealerDto {
   isActive: boolean;
   brandIds: number[];
   brandNames: string[];
+  /** Aktif DealerUser sayısı — 0 ise bayi kullanıcıssız. */
+  activeUserCount: number;
 }
 
 export interface CreateDealerDto {
   name: string;
   code: string;
   brandIds: number[];
+  /** Bayi create sırasında zorunlu ilk DealerUser. */
+  initialUser: {
+    name: string;
+    email: string;
+    password: string;
+  };
 }
 
 export interface UpdateDealerDto {
@@ -53,17 +61,23 @@ export interface BrandDto {
   id: number;
   name: string;
   code: string;
+  badgeLabel: string;
+  badgeColor: string;
   isActive: boolean;
 }
 
 export interface CreateBrandDto {
   name: string;
   code: string;
+  badgeLabel?: string;
+  badgeColor?: string;
 }
 
 export interface UpdateBrandDto {
   name: string;
   code: string;
+  badgeLabel?: string;
+  badgeColor?: string;
   isActive: boolean;
 }
 

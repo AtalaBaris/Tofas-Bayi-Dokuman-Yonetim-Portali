@@ -1,4 +1,4 @@
-/** Arama + kategori + çoklu marka (checkbox) filtreleri — seçenekler gerçek veriden türetilir. */
+/** Arama + kategori + çoklu marka (checkbox) filtreleri. */
 import { Component, computed, HostListener, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -12,8 +12,8 @@ export class DocsListFilters {
   readonly search = input('');
   readonly category = input('');
   readonly brands = input<string[]>([]);
-  readonly categoryOptions = input<readonly string[]>([]);
-  readonly brandOptions = input<readonly string[]>([]);
+  readonly categoryOptions = input<string[]>([]);
+  readonly brandOptions = input<string[]>([]);
 
   readonly searchChange = output<string>();
   readonly categoryChange = output<string>();
@@ -42,9 +42,7 @@ export class DocsListFilters {
 
   toggleBrand(brand: string, checked: boolean): void {
     const current = this.brands();
-    const next = checked
-      ? [...current, brand]
-      : current.filter((b) => b !== brand);
+    const next = checked ? [...current, brand] : current.filter((b) => b !== brand);
     this.brandsChange.emit(next);
   }
 

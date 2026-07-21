@@ -1,5 +1,5 @@
 /** Bayi portalı doküman kartı — gerçek Materials API'sinden (Material) türetilir. */
-import type { Material } from '../../../../core/models/material.interface';
+import type { Material, MaterialBrandBadge } from '../../../../core/models/material.interface';
 
 export type BayiDocFileKind = 'pdf' | 'video' | 'doc';
 
@@ -10,7 +10,7 @@ export interface BayiDocumentCard {
   id: number;
   title: string;
   category: string;
-  brands: string[];
+  brands: MaterialBrandBadge[];
   fileKind: BayiDocFileKind;
   dateLabel: string;
   /** Kaç gün önce eklendi — “bu hafta” hesabı için. */
@@ -72,7 +72,15 @@ export function toBayiDocumentCard(material: Material): BayiDocumentCard {
     id: material.id,
     title: material.title,
     category: material.categoryName,
-    brands: material.brandNames,
+    brands:
+      material.brands?.length > 0
+        ? material.brands
+        : material.brandNames.map((name, index) => ({
+            id: material.brandIds[index] ?? index,
+            name,
+            badgeLabel: name,
+            badgeColor: '#374151',
+          })),
     fileKind: fileKindFromMimeType(material.mimeType),
     dateLabel: formatDateLabel(material.publishedAt),
     daysAgo,

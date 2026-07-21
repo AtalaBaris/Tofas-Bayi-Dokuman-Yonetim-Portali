@@ -18,6 +18,7 @@ import {
 import { definitionManagementAnimations } from '../../animations/definition-management.animations';
 import {
   DEFINITION_LABELS,
+  initials,
   isDefinitionSection,
   mapBrand,
   mapCategory,
@@ -49,12 +50,23 @@ export class DefinitionManagementPage {
   readonly search = signal('');
   readonly drawerOpen = signal(false);
   readonly editTarget = signal<DefinitionEditTarget>(null);
+  /** Drawer'ı geçici olarak başka section'da açmak için (ör. bayiden kullanıcı ekleme). */
+  readonly forcedDrawerSection = signal<DefinitionSection | null>(null);
+  readonly userCreatePreset = signal<{ role: string; dealerId: number } | null>(null);
   readonly confirmOpen = signal(false);
   readonly pendingDelete = signal<DefinitionRowTarget | null>(null);
+  /** Bayi “Pasif Yap” onayı (kalıcı silmeden ayırt etmek için). */
+  readonly pendingDealerPassivate = signal<SimpleDefinitionItem | null>(null);
+  /** Son aktif kullanıcı silinmek istenince: yeni kullanıcı eklemeye yönlendir. */
+  readonly recoveryDealerId = signal<number | null>(null);
+  readonly recoveryUserName = signal<string | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly listError = signal<string | null>(null);
+  readonly listSuccess = signal<string | null>(null);
   readonly formError = signal<string | null>(null);
+  /** Bayi kullanıcıları yan paneli. */
+  readonly dealerUsersTarget = signal<SimpleDefinitionItem | null>(null);
 
   readonly allUsers = signal<DefinitionUser[]>([]);
   readonly allDealers = signal<SimpleDefinitionItem[]>([]);
@@ -70,16 +82,56 @@ export class DefinitionManagementPage {
 
   readonly title = computed(() => DEFINITION_LABELS[this.section()]);
   readonly searchPlaceholder = computed(() => `${this.title()} içinde ara...`);
+  readonly drawerSection = computed(
+    () => this.forcedDrawerSection() ?? this.section()
+  );
 
   readonly confirmTitle = computed(() => {
+    const recoveryId = this.recoveryDealerId();
+    if (recoveryId != null) {
+      const name = this.recoveryUserName();
+      return name
+        ? `"${name}" bu bayinin son aktif kullanıcısı`
+        : 'Son aktif kullanıcı kaldırılamaz';
+    }
+    const passivate = this.pendingDealerPassivate();
+    if (passivate) {
+      return `"${passivate.name}" bayisi pasife alınsın mı?`;
+    }
     const pending = this.pendingDelete();
     if (!pending) {
       return 'Kaydı sil';
+    }
+    if (pending.kind === 'user') {
+      return `"${pending.item.name}" kalıcı silinsin mi?`;
+    }
+    if (pending.kind === 'item' && this.section() === 'dealers') {
+      return `"${pending.item.name}" kalıcı silinsin mi?`;
     }
     return `"${pending.item.name}" pasife alınsın mı?`;
   });
 
   readonly confirmMessage = computed(() => {
+    if (this.recoveryDealerId() != null) {
+      const dealerId = this.recoveryDealerId()!;
+      const count = this.countDealerUsers(dealerId);
+      const dealerName =
+        this.allDealers().find((d) => d.id === dealerId)?.name ?? 'bu bayi';
+      return `Tek kullanıcıyı silerseniz bayi kullanıcıssız kalır. Yeni kullanıcı ekleyebilir veya “${dealerName}” bayisini ve bağlı ${count} kullanıcıyı kalıcı silebilirsiniz.`;
+    }
+    const passivate = this.pendingDealerPassivate();
+    if (passivate) {
+      const count = this.countDealerUsers(passivate.id);
+      return `Bayi pasife alınır; bağlı ${count} bayi kullanıcısı da birlikte pasife alınır. Listeden tamamen kaldırmak için “Sil” kullanın.`;
+    }
+    const pending = this.pendingDelete();
+    if (pending?.kind === 'user') {
+      return `“${pending.item.name}” kullanıcısı veritabanından kalıcı olarak silinecek. Pasife almak için menüden “Pasif Yap”ı kullanın.`;
+    }
+    if (pending?.kind === 'item' && this.section() === 'dealers') {
+      const count = this.countDealerUsers(pending.item.id);
+      return `“${pending.item.name}” bayisi kalıcı silinecek. Bu işleme bağlı ${count} kullanıcı da veritabanından kalıcı olarak silinir. Pasife almak için menüden “Pasif Yap”ı kullanın.`;
+    }
     const labels: Record<DefinitionSection, string> = {
       users: 'Kullanıcı soft delete ile pasife alınır; listede Pasif olarak kalır.',
       dealers: 'Bayi soft delete ile pasife alınır; listede Pasif olarak kalır.',
@@ -88,6 +140,43 @@ export class DefinitionManagementPage {
     };
     return labels[this.section()];
   });
+
+  readonly confirmLabel = computed(() => {
+    if (this.recoveryDealerId() != null) {
+      return 'Bayiyi Kalıcı Sil';
+    }
+    if (this.pendingDealerPassivate()) {
+      return 'Pasife Al';
+    }
+    if (
+      this.pendingDelete()?.kind === 'user' ||
+      (this.pendingDelete()?.kind === 'item' && this.section() === 'dealers')
+    ) {
+      return 'Kalıcı Sil';
+    }
+    return 'Pasife Al';
+  });
+
+  readonly confirmSecondaryLabel = computed(() =>
+    this.recoveryDealerId() != null ? 'Yeni Kullanıcı Ekle' : null
+  );
+
+  readonly confirmAcknowledgeLabel = computed(() => {
+    if (this.recoveryDealerId() != null) {
+      return 'Bayi silindiğinde bağlı kullanıcıların da kalıcı olarak silineceğini okudum ve onaylıyorum.';
+    }
+    if (this.pendingDelete()?.kind === 'item' && this.section() === 'dealers') {
+      return 'Bayi silindiğinde bağlı kullanıcıların da kalıcı olarak silineceğini okudum ve onaylıyorum.';
+    }
+    if (this.pendingDelete()?.kind === 'user') {
+      return 'Bu kullanıcının kalıcı olarak silineceğini okudum ve onaylıyorum.';
+    }
+    return null;
+  });
+
+  readonly confirmDanger = computed(() => true);
+
+  readonly confirmShowHint = computed(() => this.recoveryDealerId() == null);
 
   readonly users = computed(() => {
     const query = this.search().trim().toLocaleLowerCase('tr-TR');
@@ -111,10 +200,25 @@ export class DefinitionManagementPage {
     const list = this.listForSection(section)();
     return query
       ? list.filter((item) =>
-          `${item.name} ${item.detail}`.toLocaleLowerCase('tr-TR').includes(query)
+          `${item.name} ${item.detail} ${item.code ?? ''} ${(item.brandNames ?? []).join(' ')}`
+            .toLocaleLowerCase('tr-TR')
+            .includes(query)
         )
       : list;
   });
+
+  readonly dealerUsersPanelUsers = computed(() => {
+    const dealer = this.dealerUsersTarget();
+    if (!dealer) {
+      return [];
+    }
+    return this.allUsers()
+      .filter((user) => user.dealerId === dealer.id && user.role === 'DealerUser')
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr-TR'));
+  });
+
+  readonly initials = initials;
 
   constructor() {
     effect(() => {
@@ -125,17 +229,39 @@ export class DefinitionManagementPage {
 
   openDrawer(): void {
     this.editTarget.set(null);
+    this.forcedDrawerSection.set(null);
+    this.userCreatePreset.set(null);
     this.formError.set(null);
     this.drawerOpen.set(true);
+  }
+
+  openAddUserForDealer(dealer: SimpleDefinitionItem): void {
+    this.editTarget.set(null);
+    this.forcedDrawerSection.set('users');
+    this.userCreatePreset.set({ role: 'DealerUser', dealerId: dealer.id });
+    this.formError.set(null);
+    this.drawerOpen.set(true);
+  }
+
+  openDealerUsers(dealer: SimpleDefinitionItem): void {
+    this.dealerUsersTarget.set(dealer);
+  }
+
+  closeDealerUsers(): void {
+    this.dealerUsersTarget.set(null);
   }
 
   closeDrawer(): void {
     this.drawerOpen.set(false);
     this.editTarget.set(null);
+    this.forcedDrawerSection.set(null);
+    this.userCreatePreset.set(null);
     this.formError.set(null);
   }
 
   onEdit(target: DefinitionRowTarget): void {
+    this.forcedDrawerSection.set(null);
+    this.userCreatePreset.set(null);
     this.editTarget.set(target);
     this.formError.set(null);
     this.drawerOpen.set(true);
@@ -204,6 +330,7 @@ export class DefinitionManagementPage {
             name: payload.name,
             code: payload.code,
             brandIds: payload.brandIds,
+            initialUser: payload.initialUser!,
           })
           .subscribe({
             next: (created) => {
@@ -237,27 +364,38 @@ export class DefinitionManagementPage {
 
     if (payload.section === 'brands') {
       if (payload.id == null) {
-        this.brandsApi.create({ name: payload.name, code: payload.code }).subscribe({
-          next: (created) => {
-            if (payload.active) {
-              done.next();
-              return;
-            }
-            this.brandsApi
-              .update(created.id, {
-                name: payload.name,
-                code: payload.code,
-                isActive: false,
-              })
-              .subscribe(done);
-          },
-          error: done.error,
-        });
+        this.brandsApi
+          .create({
+            name: payload.name,
+            code: payload.code,
+            badgeLabel: payload.badgeLabel,
+            badgeColor: payload.badgeColor,
+          })
+          .subscribe({
+            next: (created) => {
+              if (payload.active) {
+                done.next();
+                return;
+              }
+              this.brandsApi
+                .update(created.id, {
+                  name: payload.name,
+                  code: payload.code,
+                  badgeLabel: payload.badgeLabel,
+                  badgeColor: payload.badgeColor,
+                  isActive: false,
+                })
+                .subscribe(done);
+            },
+            error: done.error,
+          });
       } else {
         this.brandsApi
           .update(payload.id, {
             name: payload.name,
             code: payload.code,
+            badgeLabel: payload.badgeLabel,
+            badgeColor: payload.badgeColor,
             isActive: payload.active,
           })
           .subscribe(done);
@@ -299,6 +437,11 @@ export class DefinitionManagementPage {
     const nextActive = !target.item.active;
 
     if (target.kind === 'user') {
+      if (!nextActive && this.isLastActiveDealerUser(target.item)) {
+        this.openLastUserRecovery(target.item);
+        return;
+      }
+
       this.usersApi
         .update(target.item.id, {
           name: target.item.name,
@@ -315,11 +458,21 @@ export class DefinitionManagementPage {
 
     const section = this.section();
     if (section === 'dealers') {
+      // Pasife alma: kullanıcılar da cascade soft-delete — onay diyaloğu.
+      if (!nextActive) {
+        this.recoveryDealerId.set(null);
+        this.recoveryUserName.set(null);
+        this.pendingDealerPassivate.set(target.item);
+        this.pendingDelete.set(null);
+        this.confirmOpen.set(true);
+        return;
+      }
+
       this.dealersApi
         .update(target.item.id, {
           name: target.item.name,
           code: target.item.code ?? '',
-          isActive: nextActive,
+          isActive: true,
           brandIds: target.item.brandIds ?? [],
         })
         .subscribe({
@@ -334,6 +487,8 @@ export class DefinitionManagementPage {
         .update(target.item.id, {
           name: target.item.name,
           code: target.item.code ?? '',
+          badgeLabel: target.item.badgeLabel,
+          badgeColor: target.item.badgeColor,
           isActive: nextActive,
         })
         .subscribe({
@@ -358,6 +513,15 @@ export class DefinitionManagementPage {
   }
 
   onDeleteRequest(target: DefinitionRowTarget): void {
+    if (target.kind === 'user' && this.isLastActiveDealerUser(target.item)) {
+      this.openLastUserRecovery(target.item);
+      return;
+    }
+
+    this.listSuccess.set(null);
+    this.recoveryDealerId.set(null);
+    this.recoveryUserName.set(null);
+    this.pendingDealerPassivate.set(null);
     this.pendingDelete.set(target);
     this.confirmOpen.set(true);
   }
@@ -365,17 +529,102 @@ export class DefinitionManagementPage {
   closeConfirm(): void {
     this.confirmOpen.set(false);
     this.pendingDelete.set(null);
+    this.pendingDealerPassivate.set(null);
+    this.recoveryDealerId.set(null);
+    this.recoveryUserName.set(null);
   }
 
   confirmDelete(): void {
+    const recoveryDealerId = this.recoveryDealerId();
+    if (recoveryDealerId != null) {
+      const dealerName =
+        this.allDealers().find((d) => d.id === recoveryDealerId)?.name ?? 'Bayi';
+      const userCount = this.countDealerUsers(recoveryDealerId);
+      this.dealersApi.remove(recoveryDealerId).subscribe({
+        next: () => {
+          this.closeConfirm();
+          this.setListSuccess(
+            `“${dealerName}” kalıcı silindi. Bağlı ${userCount} kullanıcı da silindi.`
+          );
+          this.reload();
+        },
+        error: (err) => {
+          this.listError.set(this.readError(err));
+          this.closeConfirm();
+        },
+      });
+      return;
+    }
+
+    const passivate = this.pendingDealerPassivate();
+    if (passivate) {
+      const userCount = this.countDealerUsers(passivate.id);
+      this.dealersApi
+        .update(passivate.id, {
+          name: passivate.name,
+          code: passivate.code ?? '',
+          isActive: false,
+          brandIds: passivate.brandIds ?? [],
+        })
+        .subscribe({
+          next: () => {
+            this.closeConfirm();
+            this.setListSuccess(
+              `“${passivate.name}” pasife alındı. Bağlı ${userCount} kullanıcı da pasife alındı.`
+            );
+            this.reload();
+          },
+          error: (err) => {
+            this.listError.set(this.readError(err));
+            this.closeConfirm();
+          },
+        });
+      return;
+    }
+
     const pending = this.pendingDelete();
     if (!pending) {
+      return;
+    }
+
+    if (pending.kind === 'user') {
+      this.usersApi.remove(pending.item.id).subscribe({
+        next: () => {
+          this.closeConfirm();
+          this.setListSuccess(`“${pending.item.name}” kalıcı silindi.`);
+          this.reload();
+        },
+        error: (err: unknown) => {
+          this.listError.set(this.readError(err));
+          this.closeConfirm();
+        },
+      });
+      return;
+    }
+
+    const section = this.section();
+    if (section === 'dealers') {
+      const userCount = this.countDealerUsers(pending.item.id);
+      this.dealersApi.remove(pending.item.id).subscribe({
+        next: () => {
+          this.closeConfirm();
+          this.setListSuccess(
+            `“${pending.item.name}” kalıcı silindi. Bağlı ${userCount} kullanıcı da silindi.`
+          );
+          this.reload();
+        },
+        error: (err: unknown) => {
+          this.listError.set(this.readError(err));
+          this.closeConfirm();
+        },
+      });
       return;
     }
 
     const done = {
       next: () => {
         this.closeConfirm();
+        this.setListSuccess(`“${pending.item.name}” pasife alındı.`);
         this.reload();
       },
       error: (err: unknown) => {
@@ -384,19 +633,63 @@ export class DefinitionManagementPage {
       },
     };
 
-    if (pending.kind === 'user') {
-      this.usersApi.remove(pending.item.id).subscribe(done);
-      return;
-    }
-
-    const section = this.section();
-    if (section === 'dealers') {
-      this.dealersApi.remove(pending.item.id).subscribe(done);
-    } else if (section === 'brands') {
+    if (section === 'brands') {
       this.brandsApi.remove(pending.item.id).subscribe(done);
     } else if (section === 'categories') {
       this.categoriesApi.remove(pending.item.id).subscribe(done);
     }
+  }
+
+  confirmSecondary(): void {
+    const recoveryDealerId = this.recoveryDealerId();
+    if (recoveryDealerId == null) {
+      return;
+    }
+    const dealer =
+      this.allDealers().find((d) => d.id === recoveryDealerId) ??
+      ({
+        id: recoveryDealerId,
+        name: '',
+        detail: '',
+        active: true,
+      } satisfies SimpleDefinitionItem);
+    this.closeConfirm();
+    this.openAddUserForDealer(dealer);
+  }
+
+  private openLastUserRecovery(user: DefinitionUser): void {
+    if (user.dealerId == null) {
+      return;
+    }
+    this.pendingDelete.set(null);
+    this.pendingDealerPassivate.set(null);
+    this.recoveryDealerId.set(user.dealerId);
+    this.recoveryUserName.set(user.name);
+    this.confirmOpen.set(true);
+  }
+
+  private isLastActiveDealerUser(user: DefinitionUser): boolean {
+    if (!user.active || user.role !== 'DealerUser' || user.dealerId == null) {
+      return false;
+    }
+    return !this.allUsers().some(
+      (other) =>
+        other.id !== user.id &&
+        other.active &&
+        other.role === 'DealerUser' &&
+        other.dealerId === user.dealerId
+    );
+  }
+
+  private countDealerUsers(dealerId: number): number {
+    return this.allUsers().filter(
+      (user) => user.dealerId === dealerId && user.role === 'DealerUser'
+    ).length;
+  }
+
+  private setListSuccess(message: string): void {
+    this.listError.set(null);
+    this.listSuccess.set(message);
   }
 
   private reload(): void {

@@ -49,9 +49,9 @@ public class DealersController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        await _dealerService.DeactivateAsync(id, cancellationToken);
+        await _dealerService.DeleteAsync(id, cancellationToken);
         return NoContent();
     }
 }

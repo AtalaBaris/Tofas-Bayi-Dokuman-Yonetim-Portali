@@ -3,6 +3,7 @@ using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Repositories;
 using BayiPortal.Application.Interfaces.Services;
 using BayiPortal.Core.Entities;
+using BayiPortal.Core.Enums;
 using BayiPortal.Core.Exceptions;
 using Microsoft.AspNetCore.Identity;
 
@@ -35,6 +36,14 @@ public sealed class AuthService : IAuthService
         if (user is null || !user.IsActive)
         {
             await _accessLogService.LogAsync(null, request.Email, null, "Giriş", "Başarısız giriş denemesi.", "Başarısız", cancellationToken);
+            throw new InvalidCredentialsException();
+        }
+
+        // Bayi kullanıcısı: bağlı bayi yoksa veya pasifse giriş yok (bayisiz / ölü bayi hesabı).
+        if (user.Role == RoleType.DealerUser
+            && (user.DealerId is null || user.Dealer is null || !user.Dealer.IsActive))
+        {
+            await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Pasif veya tanımsız bayi ile giriş denemesi.", "Başarısız", cancellationToken);
             throw new InvalidCredentialsException();
         }
 

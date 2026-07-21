@@ -18,8 +18,8 @@
         (ngModelChange)="categoryChange.emit($event)"
       >
         <option value="">Kategori</option>
-        @for (option of categoryOptions(); track option) {
-          <option [value]="option">{{ option }}</option>
+        @for (opt of categoryOptions(); track opt) {
+          <option [value]="opt">{{ opt }}</option>
         }
       </select>
       <span class="material-symbols-outlined docs-filters__caret">arrow_drop_down</span>
@@ -57,6 +57,9 @@
               />
               <span>{{ option }}</span>
             </label>
+          }
+          @if (brandOptions().length === 0) {
+            <p class="docs-filters__brand-empty">Marka yok</p>
           }
         </div>
       }

@@ -27,6 +27,13 @@ export interface SimpleDefinitionItem {
   code?: string;
   description?: string;
   brandIds?: number[];
+  /** Bayi satırı — atanmış marka adları. */
+  brandNames?: string[];
+  /** Yalnızca bayiler — aktif DealerUser sayısı. */
+  activeUserCount?: number;
+  /** Marka badge ayarları. */
+  badgeLabel?: string;
+  badgeColor?: string;
 }
 
 export const DEFINITION_LABELS: Record<DefinitionSection, string> = {
@@ -60,14 +67,18 @@ export function mapUser(dto: UserDto): DefinitionUser {
 }
 
 export function mapDealer(dto: DealerDto): SimpleDefinitionItem {
-  const brands = dto.brandNames?.length ? dto.brandNames.join(', ') : 'Marka yok';
+  const brandNames = [...(dto.brandNames ?? [])];
+  const brandsLabel = brandNames.length ? brandNames.join(', ') : 'Marka yok';
+  const activeUserCount = dto.activeUserCount ?? 0;
   return {
     id: dto.id,
     name: dto.name,
-    detail: `${dto.code} · ${brands}`,
+    detail: `${dto.code} ${brandsLabel}`,
     active: dto.isActive,
     code: dto.code,
     brandIds: [...(dto.brandIds ?? [])],
+    brandNames,
+    activeUserCount,
   };
 }
 
@@ -78,6 +89,8 @@ export function mapBrand(dto: BrandDto): SimpleDefinitionItem {
     detail: dto.code,
     active: dto.isActive,
     code: dto.code,
+    badgeLabel: dto.badgeLabel || dto.name,
+    badgeColor: dto.badgeColor || '#374151',
   };
 }
 
