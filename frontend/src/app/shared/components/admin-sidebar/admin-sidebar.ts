@@ -22,13 +22,17 @@ export class AdminSidebar {
 
   readonly mobileOpen = input(false);
   readonly closed = output<void>();
+  readonly documentsMenuOpen = signal(this.router.url.startsWith('/admin/documents'));
   readonly usersMenuOpen = signal(this.router.url.startsWith('/admin/definitions'));
 
   readonly navItems: AdminNavItem[] = [
     { label: 'Ana Sayfa', icon: 'dashboard', link: '/admin/dashboard' },
-    { label: 'Dokümanlar', icon: 'description', link: '/admin/documents' },
     { label: 'Son Yüklenenler', icon: 'history', link: null },
   ];
+
+  toggleDocumentsMenu(): void {
+    this.documentsMenuOpen.update((open) => !open);
+  }
 
   toggleUsersMenu(): void {
     this.usersMenuOpen.update((open) => !open);

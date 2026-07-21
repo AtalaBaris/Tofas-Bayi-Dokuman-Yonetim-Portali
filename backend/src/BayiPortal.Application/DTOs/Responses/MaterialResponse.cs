@@ -14,10 +14,16 @@ public class MaterialResponse
     public int Version { get; set; } = 1;
     public DateTime PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
+    public DateTime? ScheduledPublishAt { get; set; }
+    public string RecurrenceKind { get; set; } = "None";
+    public int? RecurrenceDayOfWeek { get; set; }
+    public int? RecurrenceDayOfMonth { get; set; }
+    public int? ScheduleTemplateId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public List<string> BrandNames { get; set; } = new();
+    public List<MaterialBrandBadgeResponse> Brands { get; set; } = new();
     public string CreatedByName { get; set; } = string.Empty;
 
     /// <summary>

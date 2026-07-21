@@ -1,0 +1,71 @@
+<article class="dash-cal">
+  <div class="dash-cal__head">
+    <div>
+      <h2 class="dash-cal__title">Aylık Yayın Programı</h2>
+      <p class="dash-cal__subtitle">
+        Zamanlanmış ve bu ay yayımlanan dokümanlar — salt okunur özet.
+      </p>
+    </div>
+    <div class="dash-cal__head-actions">
+      <a class="dash-cal__link" routerLink="/admin/documents">Takvimi düzenle</a>
+    </div>
+  </div>
+
+  <div class="dash-cal__toolbar">
+    <div class="dash-cal__nav">
+      <button type="button" class="dash-cal__nav-btn" (click)="prevMonth()" aria-label="Önceki ay">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <h3 class="dash-cal__month">{{ monthLabel() }}</h3>
+      <button type="button" class="dash-cal__nav-btn" (click)="nextMonth()" aria-label="Sonraki ay">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+    </div>
+    <button type="button" class="dash-cal__today-btn" (click)="goToday()">Bugün</button>
+    <div class="dash-cal__legend" aria-label="Renk açıklamaları">
+      <span class="dash-cal__legend-item dash-cal__legend-item--scheduled">
+        Zamanlanmış ({{ scheduledCount() }})
+      </span>
+      <span class="dash-cal__legend-item dash-cal__legend-item--active">
+        Yayımlandı ({{ publishedCount() }})
+      </span>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="dash-cal__empty">Takvim yükleniyor…</p>
+  } @else if (error()) {
+    <p class="dash-cal__empty dash-cal__empty--error" role="alert">{{ error() }}</p>
+  } @else {
+    <div class="dash-cal__weekdays">
+      @for (label of ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; track label) {
+        <span>{{ label }}</span>
+      }
+    </div>
+
+    <div class="dash-cal__grid">
+      @for (day of days(); track day.dateKey) {
+        <div
+          class="dash-cal__day"
+          [class.dash-cal__day--muted]="!day.inMonth"
+          [class.dash-cal__day--today]="day.isToday"
+        >
+          <span class="dash-cal__day-num">{{ day.day }}</span>
+          <div class="dash-cal__events">
+            @for (ev of eventsFor(day); track ev.id) {
+              <div
+                class="dash-cal__event"
+                [class.dash-cal__event--scheduled]="isScheduled(ev)"
+                [class.dash-cal__event--active]="!isScheduled(ev)"
+                [title]="ev.title"
+              >
+                <span class="dash-cal__event-time">{{ timeLabel(ev.at) }}</span>
+                <span class="dash-cal__event-title">{{ ev.title }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</article>

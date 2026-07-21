@@ -1,0 +1,196 @@
+<section class="poolcal-split" [class.poolcal-split--resizing]="resizing()">
+  <aside class="poolcal-split__left" [style.width.px]="poolWidth()">
+    <div class="poolcal-split__left-head">
+      <div class="poolcal-split__left-title">
+        <span class="material-symbols-outlined">description</span>
+        <span>Doküman Havuzu</span>
+      </div>
+    </div>
+
+    <div class="poolcal-split__left-body">
+      <p class="poolcal-split__hint">
+        Havuzdan sürükleyince aynı doküman yeni bir tarihe eklenir. Takvimden sürükleyince gün/saat değişir.
+      </p>
+
+      @if (poolLoading()) {
+        <p class="poolcal__empty">Yükleniyor…</p>
+      } @else if (poolError()) {
+        <p class="poolcal__empty poolcal__empty--error" role="alert">{{ poolError() }}</p>
+      } @else {
+        <div class="poolcal__pool-list">
+          @for (doc of pool(); track doc.id) {
+            <div
+              class="poolcal__pool-item"
+              [class.poolcal__pool-item--scheduled]="doc.status === 'scheduled'"
+              draggable="true"
+              (dragstart)="onDragStart(doc.id, $event, 'pool')"
+              (dragend)="onDragEnd()"
+              (click)="openDetails(doc.id)"
+              role="button"
+              tabindex="0"
+            >
+              <span
+                class="poolcal__pool-badge"
+                [class.poolcal__pool-badge--scheduled]="doc.status === 'scheduled'"
+              >
+                {{ doc.status === 'scheduled' ? 'Zamanlanmış' : 'Taslak' }}
+              </span>
+              <span class="poolcal__pool-title">{{ doc.title }}</span>
+              <span class="poolcal__pool-date">
+                {{ doc.status === 'scheduled' ? doc.dateLabel : 'Tarih yok' }}
+              </span>
+            </div>
+          } @empty {
+            <p class="poolcal__empty">Havuzda doküman yok.</p>
+          }
+        </div>
+      }
+    </div>
+
+    <div
+      class="poolcal-split__resize-handle"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Havuz genişliğini ayarla"
+      (pointerdown)="startResize($event)"
+    ></div>
+  </aside>
+
+  <section class="poolcal-split__right">
+    <div class="poolcal__calendar-head">
+      <div class="poolcal__calendar-nav">
+        <button type="button" class="poolcal__nav-btn" (click)="prevMonth()">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <h2 class="poolcal__month-label">{{ monthLabel() }}</h2>
+        <button type="button" class="poolcal__nav-btn" (click)="nextMonth()">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+
+    @if (calendarError()) {
+      <p class="poolcal__empty poolcal__empty--error" role="alert">{{ calendarError() }}</p>
+    }
+
+    @if (calendarLoading()) {
+      <p class="poolcal__empty">Takvim yükleniyor…</p>
+    } @else {
+      <div class="poolcal__weekdays">
+        @for (label of ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; track label) {
+          <span>{{ label }}</span>
+        }
+      </div>
+
+      <div class="poolcal__grid">
+        @for (day of days(); track day.dateKey) {
+          <div
+            class="poolcal__day"
+            [class.poolcal__day--muted]="!day.inMonth"
+            [class.poolcal__day--today]="day.isToday"
+            (dragover)="onDayDragOver($event)"
+            (drop)="onDayDrop(day, $event)"
+          >
+            <span class="poolcal__day-num">{{ day.day }}</span>
+            <div class="poolcal__day-events">
+              @for (ev of eventsFor(day); track ev.id) {
+                <button
+                  type="button"
+                  class="poolcal__event"
+                  [class.poolcal__event--scheduled]="ev.status.toLowerCase() === 'scheduled'"
+                  draggable="true"
+                  (dragstart)="onDragStart(ev.id, $event, 'calendar')"
+                  (dragend)="onDragEnd()"
+                  (click)="openDetails(ev.id)"
+                >
+                  <span class="poolcal__event-time">{{ timeLabel(ev.at) }}</span>
+                  <span class="poolcal__event-title">{{ ev.title }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div
+        class="poolcal__remove-zone"
+        (dragover)="onRemoveDragOver($event)"
+        (drop)="onRemoveDrop($event)"
+      >
+        Boş alana bırak: Takvimden kaldırmak istiyor musun?
+      </div>
+    }
+  </section>
+
+  @if (modal(); as m) {
+    <div class="poolcal-modal" role="dialog" aria-modal="true">
+      <button type="button" class="poolcal-modal__backdrop" aria-label="Kapat" (click)="closeModal()"></button>
+      <div class="poolcal-modal__card">
+        <h3 class="poolcal-modal__title">
+          {{ m.mode === 'create' ? 'Yeni yayın zamanı' : 'Yayın zamanını değiştir' }}
+        </h3>
+        <p class="poolcal-modal__doc">{{ m.title }}</p>
+
+        <label class="poolcal-modal__label" for="poolcal-time">Saat</label>
+        <input
+          id="poolcal-time"
+          class="poolcal-modal__input"
+          type="time"
+          [ngModel]="m.time"
+          (ngModelChange)="setModalTime($event)"
+        />
+
+        <p class="poolcal-modal__date">{{ m.dateKey }}</p>
+
+        <div class="poolcal-modal__actions">
+          <button type="button" class="poolcal-modal__btn" (click)="closeModal()">Vazgeç</button>
+          <button
+            type="button"
+            class="poolcal-modal__btn poolcal-modal__btn--primary"
+            [disabled]="savingSchedule()"
+            (click)="confirmSchedule()"
+          >
+            {{
+              savingSchedule()
+                ? 'Kaydediliyor…'
+                : m.mode === 'create'
+                  ? 'Takvime ekle'
+                  : 'Kaydet'
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <app-confirm-dialog
+    [open]="confirmOpen()"
+    title="Takvimden kaldır"
+    message="Takvimden kaldırmak istiyor musun? Bu yayın kaydı silinir; havuzdaki doküman kalır."
+    confirmLabel="Kaldır"
+    cancelLabel="Vazgeç"
+    [danger]="true"
+    [showHint]="false"
+    (confirmed)="removeFromCalendar()"
+    (cancelled)="cancelRemove()"
+  />
+
+  @if (detailsDoc(); as doc) {
+    <button
+      type="button"
+      class="poolcal__overlay"
+      aria-label="Detayı kapat"
+      @overlayFade
+      (click)="closeDetails()"
+    ></button>
+
+    <div class="poolcal__drawer" @drawerSlide>
+      <app-docs-detail-drawer
+        [doc]="doc"
+        [viewers]="viewers()"
+        (closed)="closeDetails()"
+        (archive)="archiveDoc($event)"
+      />
+    </div>
+  }
+</section>

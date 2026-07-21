@@ -67,7 +67,36 @@ public sealed class MaterialRepository : IMaterialRepository
             query = query.Where(m => m.ExpiresAt == null || m.ExpiresAt > now);
         }
 
-        return await query.OrderByDescending(m => m.PublishedAt).ToListAsync(cancellationToken);
+        return await query
+            .OrderByDescending(m => m.ScheduledPublishAt ?? m.PublishedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<Material>> GetDueScheduledAsync(
+        DateTime utcNow, int take, CancellationToken cancellationToken = default) =>
+        await BaseQuery()
+            .Where(m => m.Status == MaterialStatus.Scheduled
+                        && m.ScheduledPublishAt != null
+                        && m.ScheduledPublishAt <= utcNow)
+            .OrderBy(m => m.ScheduledPublishAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<Material>> GetScheduleCalendarAsync(
+        DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default)
+    {
+        return await BaseQuery()
+            .Where(m =>
+                (m.Status == MaterialStatus.Scheduled
+                 && m.ScheduledPublishAt != null
+                 && m.ScheduledPublishAt >= fromUtc
+                 && m.ScheduledPublishAt < toUtc)
+                ||
+                (m.Status == MaterialStatus.Active
+                 && m.PublishedAt >= fromUtc
+                 && m.PublishedAt < toUtc))
+            .OrderBy(m => m.ScheduledPublishAt ?? m.PublishedAt)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<int>> GetDealerBrandIdsAsync(int dealerId, CancellationToken cancellationToken = default) =>
@@ -75,6 +104,26 @@ public sealed class MaterialRepository : IMaterialRepository
             .Where(db => db.DealerId == dealerId)
             .Select(db => db.BrandId)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyCollection<int>> GetActiveDealerUserIdsForBrandsAsync(
+        IReadOnlyCollection<int> brandIds, CancellationToken cancellationToken = default)
+    {
+        if (brandIds.Count == 0)
+        {
+            return Array.Empty<int>();
+        }
+
+        return await _dbContext.Users
+            .Where(u => u.IsActive
+                        && u.Role == RoleType.DealerUser
+                        && u.DealerId != null
+                        && u.Dealer!.IsActive
+                        && _dbContext.DealerBrands.Any(db =>
+                            db.DealerId == u.DealerId && brandIds.Contains(db.BrandId)))
+            .Select(u => u.Id)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
 
     public Task<bool> CategoryExistsAsync(int categoryId, CancellationToken cancellationToken = default) =>
         _dbContext.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken);

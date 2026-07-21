@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<MaterialBrand> MaterialBrands => Set<MaterialBrand>();
     public DbSet<AccessLog> AccessLogs => Set<AccessLog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

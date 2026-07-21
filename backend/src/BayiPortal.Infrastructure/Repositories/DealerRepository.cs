@@ -41,6 +41,8 @@ public sealed class DealerRepository : IDealerRepository
 
     public void Add(Dealer dealer) => _dbContext.Dealers.Add(dealer);
 
+    public void Remove(Dealer dealer) => _dbContext.Dealers.Remove(dealer);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _dbContext.SaveChangesAsync(cancellationToken);
 }

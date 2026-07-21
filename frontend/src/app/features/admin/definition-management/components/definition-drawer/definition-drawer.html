@@ -113,7 +113,7 @@
         />
       </label>
       <div class="definition-drawer__brands">
-        <span>Markalar</span>
+        <span>Markalar <span class="definition-drawer__required">*</span></span>
         <div class="definition-drawer__brand-list">
           @for (brand of brands(); track brand.id) {
             <label class="definition-drawer__brand-item">
@@ -128,7 +128,75 @@
             <small>Önce marka tanımlayın.</small>
           }
         </div>
+        @if (showErrors() && !isEdit() && brandIds().length === 0) {
+          <small class="definition-drawer__error">
+            En az bir marka seçin. Marka olmadan kullanıcılar doküman göremez.
+          </small>
+        }
       </div>
+
+      @if (!isEdit()) {
+        <div class="definition-drawer__section">
+          <div class="definition-drawer__section-head">
+            <h3>İlk bayi kullanıcısı</h3>
+            <p>
+              Bu bayinin giriş yapabilmesi için en az bir kullanıcı gerekir. Rol otomatik
+              <strong>Bayi Kullanıcısı</strong> olarak atanır.
+            </p>
+          </div>
+
+          <label>
+            <span>Ad Soyad <span class="definition-drawer__required">*</span></span>
+            <input
+              type="text"
+              placeholder="Örn: Ali Veli"
+              [ngModel]="initialUserName()"
+              (ngModelChange)="initialUserName.set($event)"
+            />
+          </label>
+          <label>
+            <span>E-posta <span class="definition-drawer__required">*</span></span>
+            <input
+              type="email"
+              placeholder="bayi@sirket.com"
+              autocomplete="off"
+              [ngModel]="initialUserEmail()"
+              (ngModelChange)="initialUserEmail.set($event)"
+            />
+          </label>
+          <label>
+            <span>Şifre <span class="definition-drawer__required">*</span></span>
+            <input
+              type="password"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              [class.definition-drawer__invalid]="!!initialUserPasswordError()"
+              [ngModel]="initialUserPassword()"
+              (ngModelChange)="initialUserPassword.set($event); showErrors.set(false)"
+            />
+          </label>
+          <label>
+            <span>Şifre Tekrar <span class="definition-drawer__required">*</span></span>
+            <input
+              type="password"
+              placeholder="Şifreyi tekrar giriniz"
+              autocomplete="new-password"
+              [class.definition-drawer__invalid]="!!initialUserPasswordError()"
+              [ngModel]="initialUserPasswordConfirm()"
+              (ngModelChange)="initialUserPasswordConfirm.set($event); showErrors.set(false)"
+            />
+            @if (initialUserError(); as error) {
+              <small class="definition-drawer__error">{{ error }}</small>
+            } @else if (
+              initialUserPassword() &&
+              initialUserPasswordConfirm() &&
+              initialUserPasswordsMatch()
+            ) {
+              <small class="definition-drawer__ok">Şifreler eşleşiyor.</small>
+            }
+          </label>
+        </div>
+      }
     } @else if (section() === 'brands') {
       <label>
         <span>Marka Adı <span class="definition-drawer__required">*</span></span>
@@ -147,7 +215,65 @@
           [ngModel]="code()"
           (ngModelChange)="code.set($event)"
         />
+        <small>Sistem içi benzersiz kod.</small>
       </label>
+
+      <div class="definition-drawer__badge-block">
+        <span class="definition-drawer__badge-title">Doküman badge’i</span>
+        <p class="definition-drawer__badge-hint">
+          Doküman listelerinde görünecek kısa isim ve renk.
+        </p>
+
+        <label>
+          <span>Badge yazısı</span>
+          <input
+            type="text"
+            maxlength="50"
+            placeholder="Boş bırakılırsa marka adı kullanılır"
+            [ngModel]="badgeLabel()"
+            (ngModelChange)="badgeLabel.set($event)"
+          />
+        </label>
+
+        <div class="definition-drawer__badge-color">
+          <span>Badge rengi</span>
+          <div class="definition-drawer__badge-swatches">
+            @for (color of badgeColorPresets; track color) {
+              <button
+                type="button"
+                class="definition-drawer__swatch"
+                [class.definition-drawer__swatch--active]="badgeColor() === color"
+                [style.background]="color"
+                [attr.aria-label]="'Renk ' + color"
+                (click)="setBadgeColor(color)"
+              ></button>
+            }
+          </div>
+          <div class="definition-drawer__badge-custom">
+            <input
+              type="color"
+              [ngModel]="badgeColor()"
+              (ngModelChange)="setBadgeColor($event)"
+              aria-label="Özel renk seç"
+            />
+            <input
+              type="text"
+              maxlength="7"
+              placeholder="#374151"
+              [ngModel]="badgeColor()"
+              (ngModelChange)="setBadgeColor($event)"
+            />
+          </div>
+        </div>
+
+        <div class="definition-drawer__badge-preview">
+          <span>Önizleme</span>
+          <span
+            class="definition-drawer__badge-chip"
+            [style.background]="badgeColor()"
+          >{{ badgePreviewLabel() }}</span>
+        </div>
+      </div>
     } @else {
       <label>
         <span>Kategori Adı <span class="definition-drawer__required">*</span></span>

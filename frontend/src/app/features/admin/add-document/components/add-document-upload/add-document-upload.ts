@@ -1,7 +1,11 @@
 /** Dosya sürükle-bırak / seçim alanı. */
 import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import type { SelectedFileInfo } from '../../models/add-document.model';
-import { detectFileKind, formatFileSize } from '../../models/add-document.model';
+import {
+  detectFileKind,
+  formatFileSize,
+  validateSelectedFile,
+} from '../../models/add-document.model';
 
 @Component({
   selector: 'app-add-document-upload',
@@ -11,6 +15,7 @@ import { detectFileKind, formatFileSize } from '../../models/add-document.model'
 export class AddDocumentUpload {
   readonly file = input<SelectedFileInfo | null>(null);
   readonly fileChange = output<SelectedFileInfo | null>();
+  readonly fileErrorChange = output<string>();
 
   readonly dragOver = signal(false);
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
@@ -49,14 +54,25 @@ export class AddDocumentUpload {
 
   clearFile(event: Event): void {
     event.stopPropagation();
+    this.fileErrorChange.emit('');
     this.fileChange.emit(null);
   }
 
   private emitFile(file: File): void {
+    const error = validateSelectedFile(file);
+    if (error) {
+      this.fileErrorChange.emit(error);
+      this.fileChange.emit(null);
+      return;
+    }
+
+    this.fileErrorChange.emit('');
     this.fileChange.emit({
       name: file.name,
       sizeLabel: formatFileSize(file.size),
       kind: detectFileKind(file.name),
+      file,
+      sizeBytes: file.size,
     });
   }
 }

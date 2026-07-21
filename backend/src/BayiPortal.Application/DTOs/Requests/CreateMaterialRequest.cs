@@ -9,4 +9,11 @@ public class CreateMaterialRequest
     public int CategoryId { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
+    /// <summary>Draft | Active | Scheduled (varsayılan Active). Archived create'te kabul edilmez.</summary>
+    public string? Status { get; set; }
+    public DateTime? ScheduledPublishAt { get; set; }
+    /// <summary>None | Weekly | MonthlyDay</summary>
+    public string? RecurrenceKind { get; set; }
+    public int? RecurrenceDayOfWeek { get; set; }
+    public int? RecurrenceDayOfMonth { get; set; }
 }

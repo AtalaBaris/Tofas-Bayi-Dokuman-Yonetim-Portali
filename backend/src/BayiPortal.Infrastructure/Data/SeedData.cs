@@ -88,13 +88,36 @@ public static class SeedData
         var existing = await db.Brands.FirstOrDefaultAsync(b => b.Code == code);
         if (existing is not null)
         {
+            if (string.IsNullOrWhiteSpace(existing.BadgeLabel))
+            {
+                existing.BadgeLabel = existing.Name;
+            }
+            if (string.IsNullOrWhiteSpace(existing.BadgeColor))
+            {
+                existing.BadgeColor = DefaultBadgeColorFor(code);
+            }
             return existing;
         }
 
-        var brand = new Brand { Name = name, Code = code, IsActive = true };
+        var brand = new Brand
+        {
+            Name = name,
+            Code = code,
+            BadgeLabel = name,
+            BadgeColor = DefaultBadgeColorFor(code),
+            IsActive = true
+        };
         db.Brands.Add(brand);
         return brand;
     }
+
+    private static string DefaultBadgeColorFor(string code) =>
+        code.ToUpperInvariant() switch
+        {
+            "MRK-A" => "#1E3A8A",
+            "MRK-B" => "#14532D",
+            _ => "#374151"
+        };
 
     private static async Task EnsureCategoryAsync(ApplicationDbContext db, string name, string description)
     {
