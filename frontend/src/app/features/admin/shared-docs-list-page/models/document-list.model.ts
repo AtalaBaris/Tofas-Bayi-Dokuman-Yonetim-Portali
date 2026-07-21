@@ -127,12 +127,7 @@ function brandTone(name: string): DocumentBrandTag['tone'] {
   return 'default';
 }
 
-/**
- * Backend MaterialResponse'unu admin doküman listesinin kullandığı karta çevirir.
- * viewedCount/audienceCount/version alanları henüz backend'de karşılığı olmadığından
- * (AccessLog'da MaterialId bağlantısı yok) 0/boş döner — satır ve drawer bu durumda
- * ilgili göstergeyi gizler.
- */
+/** Backend MaterialResponse'unu admin doküman listesinin kullandığı karta çevirir. */
 export function toAdminDocumentListItem(material: Material): DocumentListItem {
   return {
     id: material.id,
@@ -141,8 +136,8 @@ export function toAdminDocumentListItem(material: Material): DocumentListItem {
     category: material.categoryName,
     sizeLabel: formatFileSize(material.fileSize),
     brands: material.brandNames.map((name) => ({ label: name, tone: brandTone(name) })),
-    viewedCount: 0,
-    audienceCount: 0,
+    viewedCount: material.viewedCount,
+    audienceCount: material.audienceCount,
     status: material.status.toLowerCase() as DocumentStatus,
     fileKind: fileKindFromMimeType(material.mimeType),
     description: material.description,
@@ -150,7 +145,7 @@ export function toAdminDocumentListItem(material: Material): DocumentListItem {
     uploadedAt: formatDateLabel(material.publishedAt),
     expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
     fileSizeDetail: formatFileSize(material.fileSize),
-    version: '',
+    version: `v${material.version}.0`,
     fileName: material.fileName,
   };
 }

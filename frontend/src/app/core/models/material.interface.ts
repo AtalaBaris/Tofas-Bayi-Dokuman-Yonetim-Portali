@@ -9,6 +9,7 @@ export interface Material {
   mimeType: string;
   fileSize: number;
   status: string;
+  version: number;
   publishedAt: string;
   expiresAt?: string | null;
   createdAt: string;
@@ -18,4 +19,8 @@ export interface Material {
   createdByName: string;
   /** İsteği atan kullanıcının bu materyale erişim durumu (DealerUser için anlamlı; Admin/ContentManager için hep "unread"). */
   myAccessStatus: 'unread' | 'viewed' | 'downloaded';
+  /** Görüntüleyen benzersiz kullanıcı sayısı. */
+  viewedCount: number;
+  /** Hedef kitle: materyalin markalarıyla eşleşen bayilerdeki aktif kullanıcı sayısı. */
+  audienceCount: number;
 }

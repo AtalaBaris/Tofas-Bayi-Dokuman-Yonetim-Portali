@@ -105,6 +105,9 @@ farklı çıktı, aşağıda düzeltildi).
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
+- `feature-backend-dokuman-goruntulenme-sayaci` — madde 12, lokal olarak tamamlandı
+  (2026-07-21), henüz push/PR edilmedi. `feature-frontend-admin-dokuman-listesi-entegrasyonu`
+  bu dala bağımlı hale geldi (bkz. madde 11).
 
 ---
 
@@ -136,6 +139,11 @@ farklı çıktı, aşağıda düzeltildi).
         ▼
 ✅ 6. feature-*-access-logs          (tamamlandı — veritabanı loglama, API ve ön yüz entegrasyonu bitti)
         │
+        ▼
+✅ 12. feature-backend-dokuman-goruntulenme-sayaci  (6'nın ürettiği AccessLog.MaterialId'yi
+        │                                           kullanarak 11'in placeholder bıraktığı
+        │                                           viewedCount/audienceCount/version'ı çözdü —
+        │                                           lokal tamamlandı, henüz push/PR edilmedi)
         ▼
 ✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
         │
@@ -474,7 +482,10 @@ listesinin tamamı işaretlenebiliyor.
 
 ## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — 🔄 devam ediyor (henüz merge olmadı)
 
-**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu).
+**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu) ve artık ayrıca
+12 (`feature-backend-dokuman-goruntulenme-sayaci`, henüz merge olmadı) —
+`viewedCount`/`audienceCount`/`version` alanları bu dal olmadan backend'den
+gelmez, `Material` arayüzü derlenir ama sahadaki değerler `undefined` kalır.
 
 **Kapsam:** Admin "Paylaşılan Dökümanlar" listesini (`features/admin/shared-docs-list-page/`)
 `MOCK_DOCUMENTS`'ten kurtarıp gerçek `MaterialsController`'a bağlamak.
@@ -494,16 +505,15 @@ listesinin tamamı işaretlenebiliyor.
   marka isimleri ama şu anki dev seed'i — `SeedData.cs` — yalnızca placeholder
   "Marka A"/"Marka B" tanımlıyor); dinamik türetme sayesinde filtre hangi
   ortamda hangi markalar/kategoriler seed edilmişse onlarla çalışıyor.
-- **Bilinen sınır (kapsam dışı bırakıldı):** `viewedCount`/`audienceCount`/
-  `version` alanları UI'da korundu ama şimdilik 0/0/boş dönüyor — `AccessLog`
-  entitesinde `MaterialId` bağlantısı olmadığından doküman bazlı görüntülenme
-  istatistiği/versiyon kavramı backend'de hesaplanamıyor. `document-access-report-page`
-  (`/admin/documents/:id/access-report`) de aynı sebeple hâlâ `MOCK_DOCUMENTS`
-  üzerinde çalışıyor. Bunu çözmek `AccessLog`'a nullable `MaterialId` kolonu
-  eklemek (migration) ve `MaterialService`'in her `_accessLogService.LogAsync(...)`
-  çağrısını güncellemek anlamına geliyor — ayrı bir backend işi olarak
-  planlanmalı, bu dala dahil edilmedi (canlı feature'a migration riski taşımamak
-  için bilinçli olarak ertelendi).
+- **`viewedCount`/`audienceCount`/`version` artık gerçek veri (madde 12 ile
+  çözüldü):** `toAdminDocumentListItem`, `MaterialResponse.ViewedCount`/
+  `AudienceCount`/`Version` alanlarını doğrudan kullanıyor; `document-list.model.ts`
+  içindeki eski "backend'de karşılığı yok" placeholder yorumu kaldırıldı.
+- **Hâlâ mock kalan:** `document-access-report-page` (`/admin/documents/:id/access-report`)
+  — kişi bazlı görüntüleyen listesi (`MOCK_VIEWERS`) için `AccessLog`'dan
+  materyal başına viewer detayı döndüren ayrı bir endpoint gerekiyor; madde 12
+  yalnızca toplu sayaçları (`ViewedCount`/`AudienceCount`) çözdü, satır satır
+  viewer dökümünü değil. Ayrı bir backend işi olarak planlanmalı.
 
 **Doğrulama:** `dotnet build backend/BayiPortal.sln` ve `tsc --noEmit` temiz;
 gerçek backend'e karşı curl ile uçtan uca doğrulandı (materyal oluştur → gerçek
@@ -512,6 +522,51 @@ dönüyor).
 
 **Bitti sayılır:** Admin, gerçek yüklenmiş bir dokümanı listede görüp
 arşivleyebiliyor; kategori/marka filtreleri gerçek veriyle çalışıyor.
+
+---
+
+## 12. `feature-backend-dokuman-goruntulenme-sayaci` — ✅ lokal olarak tamamlandı (henüz push/PR edilmedi, 2026-07-21)
+
+**Bağımlılık:** 6 (`feature-*-access-logs`, merge oldu — `AccessLog.MaterialId`
+zaten dolu geliyor). `Develop`'tan dallandı.
+
+**Kapsam:** `MaterialResponse`'a `ViewedCount`, `AudienceCount`, `Version`
+eklemek — madde 11'de "AccessLog'da MaterialId bağlantısı yok" diye kapsam
+dışı bırakılan sınırın aslında `feature-backend-access-logs` ile zaten
+çözülmüş olduğu fark edildi (bkz. `AccessLog.MaterialId`, `AccessLogService`).
+Yalnızca `Version` gerçekten eksikti.
+
+- **`Material.Version`** (yeni `int` kolon, varsayılan `1`) — migration
+  `AddVersionToMaterials`; `MaterialService.UpdateAsync` her güncellemede
+  `+1` artırıyor. Versiyon geçmişi/dosya arşivi **yok**, sadece artan sayaç
+  (frontend `v{version}.0` olarak gösteriyor — mock'taki "v1.2 (Son)" gibi
+  minor/major veya "Son" etiketleme kavramı yok, bilinçli olarak MVP'de basit
+  tutuldu).
+- **`MaterialRepository.GetViewedCountsAsync`** — `AccessLog` üzerinde
+  `MaterialId` + `Action == "Döküman Görüntüleme"` filtresiyle, `UserId`'ye
+  göre `Distinct()` sonrası `MaterialId` bazında `GroupBy`/`Count` (benzersiz
+  görüntüleyen sayısı).
+- **`MaterialRepository.GetAudienceCountsAsync`** — `MaterialBrands` ⋈
+  `DealerBrands` ⋈ `Users` (yalnızca `Role == DealerUser && IsActive`) join'i
+  ile materyalin markalarıyla eşleşen aktif bayi kullanıcı sayısı.
+- **`MaterialService`** — `GetListAsync`/`GetByIdAsync` sonunda
+  `ApplyCoverageCountsAsync` ile bu iki sözlüğü response'lara uyguluyor
+  (N+1 yok, `materialIds` listesi için tek sorgu).
+- **Frontend (bu daldan `feature-frontend-admin-dokuman-listesi-entegrasyonu`'na
+  taşındı, ayrı bağımlılık):** `Material` arayüzüne `viewedCount`/`audienceCount`/
+  `version` eklendi; `toAdminDocumentListItem` artık gerçek değerleri kullanıyor.
+
+**Bilinçli kapsam dışı:** Kişi bazlı "kim görüntüledi" listesi
+(`document-access-report-page`/`MOCK_VIEWERS`) — bkz. madde 11'deki not, ayrı
+bir iş.
+
+**Doğrulama:** `dotnet build backend/BayiPortal.sln` temiz; migration lokal
+Postgres'e (`bayi`/`BayiPortalDb`) uygulandı; frontend `tsc --noEmit` temiz.
+Canlı sunucuya karşı uçtan uca (curl) doğrulama **yapılmadı** — PR açılmadan
+önce yapılmalı.
+
+**Bitti sayılır:** Admin doküman listesinde her satır gerçek
+görüntülenme/hedef kitle sayacını ve versiyon numarasını gösteriyor.
 
 ---
 
