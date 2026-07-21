@@ -17,6 +17,7 @@ public class MaterialResponse
     public DateTime UpdatedAt { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public List<string> BrandNames { get; set; } = new();
+    public string CreatedByName { get; set; } = string.Empty;
 
     /// <summary>
     /// İsteği atan kullanıcının bu materyale erişim durumu: "unread" | "viewed" | "downloaded".

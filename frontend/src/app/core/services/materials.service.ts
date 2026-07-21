@@ -38,4 +38,8 @@ export class MaterialsService {
       responseType: 'blob',
     });
   }
+
+  archive(id: number) {
+    return this.api.delete<void>(`/materials/${id}`);
+  }
 }

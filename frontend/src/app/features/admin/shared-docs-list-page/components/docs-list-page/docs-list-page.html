@@ -7,6 +7,8 @@
         [search]="search()"
         [category]="category()"
         [brands]="brands()"
+        [categoryOptions]="categoryOptions()"
+        [brandOptions]="brandOptions()"
         (searchChange)="search.set($event)"
         (categoryChange)="category.set($event)"
         (brandsChange)="brands.set($event)"
@@ -17,14 +19,20 @@
 
   <div class="docs-page__list" (scroll)="onListScroll($event)">
     <div class="docs-page__list-inner">
-      @for (doc of visibleDocs(); track doc.id) {
-        <app-docs-list-row
-          [doc]="doc"
-          [selected]="selected()?.id === doc.id"
-          (select)="selectDoc($event)"
-        />
-      } @empty {
-        <p class="docs-page__empty">Bu sekmede gösterilecek doküman yok.</p>
+      @if (loading()) {
+        <p class="docs-page__empty">Dokümanlar yükleniyor…</p>
+      } @else if (error()) {
+        <p class="docs-page__empty">{{ error() }}</p>
+      } @else {
+        @for (doc of visibleDocs(); track doc.id) {
+          <app-docs-list-row
+            [doc]="doc"
+            [selected]="selected()?.id === doc.id"
+            (select)="selectDoc($event)"
+          />
+        } @empty {
+          <p class="docs-page__empty">Bu sekmede gösterilecek doküman yok.</p>
+        }
       }
 
       @if (visibleDocs().length > 0) {
