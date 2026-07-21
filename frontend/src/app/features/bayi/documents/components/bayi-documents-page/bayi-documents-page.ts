@@ -48,13 +48,13 @@ export class BayiDocumentsPage {
   });
 
   readonly brands = computed(() => {
-    const set = new Set<string>();
+    const set = new Map<string, string>();
     for (const doc of this.allDocs()) {
       for (const brand of doc.brands) {
-        set.add(brand);
+        set.set(brand.badgeLabel || brand.name, brand.badgeLabel || brand.name);
       }
     }
-    return [...set].sort();
+    return [...set.values()].sort();
   });
 
   readonly statusCounts = computed(() => {
@@ -75,14 +75,20 @@ export class BayiDocumentsPage {
       if (cat && d.category !== cat) {
         return false;
       }
-      if (brand && !d.brands.includes(brand)) {
+      if (brand && !d.brands.some((b) => (b.badgeLabel || b.name) === brand)) {
         return false;
       }
       if (access && d.accessStatus !== access) {
         return false;
       }
       if (q) {
-        const haystack = [d.title, d.category, ...d.brands].join(' ').toLowerCase();
+        const haystack = [
+          d.title,
+          d.category,
+          ...d.brands.map((b) => `${b.badgeLabel} ${b.name}`),
+        ]
+          .join(' ')
+          .toLowerCase();
         if (!haystack.includes(q)) {
           return false;
         }

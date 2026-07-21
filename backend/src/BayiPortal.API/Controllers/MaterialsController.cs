@@ -31,6 +31,15 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<List<MaterialScheduleItemResponse>>> GetSchedule(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetScheduleCalendarAsync(from, to, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<MaterialResponse>> GetById(int id, CancellationToken cancellationToken)
     {
@@ -50,18 +59,28 @@ public class MaterialsController : ControllerBase
     public async Task<ActionResult<MaterialResponse>> Create(
         [FromForm] CreateMaterialForm form, CancellationToken cancellationToken)
     {
+        if (form.File is null || form.File.Length == 0)
+        {
+            return BadRequest(new { message = "Dosya zorunludur." });
+        }
+
         var request = new CreateMaterialRequest
         {
             Title = form.Title,
             Description = form.Description,
             CategoryId = form.CategoryId,
-            BrandIds = form.BrandIds,
-            ExpiresAt = form.ExpiresAt
+            BrandIds = form.BrandIds ?? new List<int>(),
+            ExpiresAt = form.ExpiresAt,
+            Status = form.Status,
+            ScheduledPublishAt = form.ScheduledPublishAt,
+            RecurrenceKind = form.RecurrenceKind,
+            RecurrenceDayOfWeek = form.RecurrenceDayOfWeek,
+            RecurrenceDayOfMonth = form.RecurrenceDayOfMonth
         };
 
         await using var stream = form.File.OpenReadStream();
         var result = await _materialService.CreateAsync(
-            request, stream, form.File.FileName, form.File.ContentType, form.File.Length,
+            request, stream, form.File.FileName, form.File.ContentType ?? string.Empty, form.File.Length,
             GetRequestingUser(), cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
@@ -73,6 +92,31 @@ public class MaterialsController : ControllerBase
         int id, [FromBody] UpdateMaterialRequest request, CancellationToken cancellationToken)
     {
         var result = await _materialService.UpdateAsync(id, request, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("{id:int}/schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> UpdateSchedule(
+        int id, [FromBody] UpdateMaterialScheduleRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.UpdateScheduleAsync(id, request, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/publish-now")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> PublishNow(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.PublishNowAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/cancel-schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> CancelSchedule(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.CancelScheduleAsync(id, GetRequestingUser(), cancellationToken);
         return Ok(result);
     }
 
@@ -102,5 +146,10 @@ public class CreateMaterialForm
     public int CategoryId { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
-    public IFormFile File { get; set; } = null!;
+    public string? Status { get; set; }
+    public DateTime? ScheduledPublishAt { get; set; }
+    public string? RecurrenceKind { get; set; }
+    public int? RecurrenceDayOfWeek { get; set; }
+    public int? RecurrenceDayOfMonth { get; set; }
+    public IFormFile? File { get; set; }
 }

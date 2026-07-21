@@ -62,3 +62,21 @@
     grid-column: span 5;
   }
 }
+
+.add-doc__banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body-md);
+
+  &--error {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+  }
+}
+
+.add-doc__meta-loading {
+  margin: 0;
+  font-size: var(--font-size-body-md);
+  color: var(--color-on-surface-variant);
+}

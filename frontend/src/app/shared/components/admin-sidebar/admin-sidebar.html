@@ -48,6 +48,47 @@
       <button
         type="button"
         class="admin-sidebar__link admin-sidebar__group-trigger"
+        [class.admin-sidebar__link--active]="documentsMenuOpen()"
+        [attr.aria-expanded]="documentsMenuOpen()"
+        aria-controls="admin-documents-submenu"
+        (click)="toggleDocumentsMenu()"
+      >
+        <span class="material-symbols-outlined">description</span>
+        <span>Dokümanlar</span>
+        <span
+          class="material-symbols-outlined admin-sidebar__chevron"
+          [class.admin-sidebar__chevron--open]="documentsMenuOpen()"
+        >
+          expand_more
+        </span>
+      </button>
+
+      @if (documentsMenuOpen()) {
+        <div id="admin-documents-submenu" class="admin-sidebar__submenu">
+          <a
+            class="admin-sidebar__sublink"
+            routerLink="/admin/documents"
+            routerLinkActive="admin-sidebar__sublink--active"
+            (click)="onNavClick()"
+          >
+            Döküman Listeleme
+          </a>
+          <a
+            class="admin-sidebar__sublink"
+            routerLink="/admin/documents/pool-calendar"
+            routerLinkActive="admin-sidebar__sublink--active"
+            (click)="onNavClick()"
+          >
+            Havuz &amp; Takvim
+          </a>
+        </div>
+      }
+    </div>
+
+    <div class="admin-sidebar__group">
+      <button
+        type="button"
+        class="admin-sidebar__link admin-sidebar__group-trigger"
         [class.admin-sidebar__link--active]="usersMenuOpen()"
         [attr.aria-expanded]="usersMenuOpen()"
         aria-controls="admin-users-submenu"

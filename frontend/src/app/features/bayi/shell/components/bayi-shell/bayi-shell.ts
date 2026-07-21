@@ -1,6 +1,7 @@
 /** Bayi alanı kabuğu — üst bar + içerik. */
 import {
   Component,
+  OnInit,
   computed,
   ElementRef,
   HostListener,
@@ -10,8 +11,9 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { NotificationsService } from '../../../../../core/services/notifications.service';
 import {
-  BAYI_MOCK_NOTIFICATIONS,
+  mapNotificationDto,
   type BayiNotification,
 } from '../../models/bayi-notifications.model';
 
@@ -21,16 +23,15 @@ import {
   templateUrl: './bayi-shell.html',
   styleUrl: './bayi-shell.scss',
 })
-export class BayiShell {
+export class BayiShell implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly notificationsApi = inject(NotificationsService);
   private readonly notificationsRoot = viewChild<ElementRef<HTMLElement>>('notificationsRoot');
 
   readonly menuOpen = signal(false);
   readonly notificationsOpen = signal(false);
-  readonly notifications = signal<BayiNotification[]>(
-    BAYI_MOCK_NOTIFICATIONS.map((n) => ({ ...n }))
-  );
+  readonly notifications = signal<BayiNotification[]>([]);
 
   readonly unreadCount = computed(
     () => this.notifications().filter((notification) => !notification.isRead).length
@@ -49,6 +50,10 @@ export class BayiShell {
     }
     return name.slice(0, 2).toUpperCase() || 'BK';
   };
+
+  ngOnInit(): void {
+    this.loadNotifications();
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -73,15 +78,27 @@ export class BayiShell {
   }
 
   toggleNotifications(): void {
-    this.notificationsOpen.update((value) => !value);
+    const opening = !this.notificationsOpen();
+    this.notificationsOpen.set(opening);
     this.closeMenu();
+    if (opening) {
+      this.loadNotifications();
+    }
   }
 
   markAllRead(): void {
-    this.notifications.update((items) => items.map((item) => ({ ...item, isRead: true })));
+    this.notificationsApi.markAllRead().subscribe({
+      next: () => {
+        this.notifications.update((items) => items.map((item) => ({ ...item, isRead: true })));
+      },
+    });
   }
 
   openNotification(notification: BayiNotification): void {
+    if (!notification.isRead) {
+      this.notificationsApi.markRead(notification.id).subscribe();
+    }
+
     this.notifications.update((items) =>
       items.map((item) =>
         item.id === notification.id ? { ...item, isRead: true } : item
@@ -111,6 +128,17 @@ export class BayiShell {
     this.auth.logout().subscribe({
       next: () => this.afterLogout(),
       error: () => this.afterLogout(),
+    });
+  }
+
+  private loadNotifications(): void {
+    this.notificationsApi.list().subscribe({
+      next: (items) => {
+        this.notifications.set(items.map(mapNotificationDto));
+      },
+      error: () => {
+        this.notifications.set([]);
+      },
     });
   }
 

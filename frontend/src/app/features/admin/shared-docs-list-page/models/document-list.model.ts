@@ -1,12 +1,13 @@
-/** Doküman listesi mock / UI modelleri. */
-export type DocumentStatus = 'active' | 'draft' | 'archived';
+/** Doküman listesi UI modelleri. */
+export type DocumentStatus = 'active' | 'draft' | 'archived' | 'scheduled';
 /** Liste sekmesi: tüm durumlar + All. */
 export type DocumentStatusTab = DocumentStatus | 'all';
 export type DocumentFileKind = 'pdf' | 'doc' | 'video';
 
 export interface DocumentBrandTag {
   label: string;
-  tone: 'fiat' | 'jeep' | 'all' | 'default';
+  /** Badge arka plan rengi (#RRGGBB). */
+  color: string;
 }
 
 export interface DocumentListItem {
@@ -27,6 +28,8 @@ export interface DocumentListItem {
   uploadedAt: string;
   /** ISO tarih (YYYY-MM-DD); yoksa sadece yükleme tarihi geçerli. */
   expiresAt?: string | null;
+  scheduledPublishAt?: string | null;
+  recurrenceKind?: string;
   fileSizeDetail: string;
   version: string;
   fileName: string;
@@ -48,6 +51,126 @@ export function viewCoveragePercent(viewed: number, audience: number): number {
 export function viewCoveragePercentLabel(viewed: number, audience: number): string {
   return `%${viewCoveragePercent(viewed, audience)} görüldü`;
 }
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTrDate(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+}
+
+function fileKindFromMime(mimeType: string, fileName: string): DocumentFileKind {
+  const mime = mimeType.toLowerCase();
+  const name = fileName.toLowerCase();
+  if (mime.includes('pdf') || name.endsWith('.pdf')) {
+    return 'pdf';
+  }
+  if (mime.startsWith('video/') || name.endsWith('.mp4')) {
+    return 'video';
+  }
+  return 'doc';
+}
+
+function mapStatus(status: string): DocumentStatus {
+  switch (status.toLowerCase()) {
+    case 'draft':
+      return 'draft';
+    case 'archived':
+      return 'archived';
+    case 'scheduled':
+      return 'scheduled';
+    default:
+      return 'active';
+  }
+}
+
+/** Backend MaterialResponse → liste kartı. */
+export function materialToDocumentListItem(material: {
+  id: number;
+  title: string;
+  description: string;
+  categoryName: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  publishedAt: string;
+  expiresAt?: string | null;
+  scheduledPublishAt?: string | null;
+  recurrenceKind?: string;
+  brandNames: string[];
+  brands?: { badgeLabel: string; badgeColor: string; name: string }[];
+}): DocumentListItem {
+  const sizeLabel = formatBytes(material.fileSize);
+  const scheduleIso = material.scheduledPublishAt ?? null;
+  const dateLabel = formatTrDateTime(scheduleIso) !== '—'
+    ? formatTrDateTime(scheduleIso)
+    : formatTrDate(material.publishedAt);
+  const brands: DocumentBrandTag[] =
+    material.brands?.length
+      ? material.brands.map((b) => ({
+          label: b.badgeLabel || b.name,
+          color: b.badgeColor || '#374151',
+        }))
+      : material.brandNames.map((label) => ({ label, color: '#374151' }));
+  return {
+    id: material.id,
+    title: material.title,
+    dateLabel,
+    category: material.categoryName,
+    sizeLabel,
+    brands,
+    viewedCount: 0,
+    audienceCount: 0,
+    status: mapStatus(material.status),
+    fileKind: fileKindFromMime(material.mimeType, material.fileName),
+    description: material.description,
+    uploader: '—',
+    uploadedAt: formatTrDate(material.publishedAt),
+    expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
+    scheduledPublishAt: scheduleIso,
+    recurrenceKind: material.recurrenceKind ?? 'None',
+    fileSizeDetail: sizeLabel,
+    version: 'v1',
+    fileName: material.fileName,
+  };
+}
+
+function formatTrDateTime(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  return new Intl.DateTimeFormat('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
+}
+
 
 /** Bitiş tarihine kalan gün; tarih yoksa null. */
 export function daysUntilExpiry(expiresAt: string | null | undefined): number | null {
@@ -108,8 +231,8 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     category: 'Pazarlama',
     sizeLabel: '2.4 MB',
     brands: [
-      { label: 'Fiat', tone: 'fiat' },
-      { label: 'Jeep', tone: 'jeep' },
+      { label: 'Fiat', color: '#1E3A8A' },
+      { label: 'Jeep', color: '#14532D' },
     ],
     viewedCount: 1000,
     audienceCount: 1200,
@@ -130,7 +253,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     dateLabel: '05 Haz 2023',
     category: 'Kurumsal',
     sizeLabel: '1.1 MB',
-    brands: [{ label: 'Tüm Markalar', tone: 'all' }],
+    brands: [{ label: 'Tüm Markalar', color: '#1F2937' }],
     viewedCount: 890,
     audienceCount: 1200,
     status: 'active',
@@ -149,7 +272,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     dateLabel: '28 May 2023',
     category: 'Strateji',
     sizeLabel: '45 MB',
-    brands: [{ label: 'Jeep', tone: 'jeep' }],
+    brands: [{ label: 'Jeep', color: '#14532D' }],
     viewedCount: 340,
     audienceCount: 480,
     status: 'active',
@@ -168,7 +291,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     dateLabel: '20 May 2023',
     category: 'Teknik',
     sizeLabel: '800 KB',
-    brands: [{ label: 'Peugeot', tone: 'default' }],
+    brands: [{ label: 'Peugeot', color: '#374151' }],
     viewedCount: 0,
     audienceCount: 220,
     status: 'draft',
@@ -187,7 +310,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     dateLabel: '10 Oca 2023',
     category: 'Pazarlama',
     sizeLabel: '3.2 MB',
-    brands: [{ label: 'Opel', tone: 'default' }],
+    brands: [{ label: 'Opel', color: '#374151' }],
     viewedCount: 120,
     audienceCount: 350,
     status: 'archived',

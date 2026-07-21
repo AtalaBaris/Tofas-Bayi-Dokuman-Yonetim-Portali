@@ -118,6 +118,233 @@
           }
         </tbody>
       </table>
+    } @else if (section() === 'dealers') {
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <button
+                type="button"
+                class="definition-table__sort"
+                (click)="toggleSort('name')"
+              >
+                Bayi Adı
+                <span class="material-symbols-outlined">{{ sortIcon('name') }}</span>
+              </button>
+            </th>
+            <th>Kod</th>
+            <th>Markalar</th>
+            <th>Kullanıcılar</th>
+            <th>
+              <button
+                type="button"
+                class="definition-table__sort"
+                (click)="toggleSort('status')"
+              >
+                Durum
+                <span class="material-symbols-outlined">{{ sortIcon('status') }}</span>
+              </button>
+            </th>
+            <th class="definition-table__actions-heading">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of sortedItems(); track item.id) {
+            <tr [class.definition-table__row--warn]="isOrphanDealer(item)">
+              <td>
+                <div class="definition-table__name-cell">
+                  <strong>{{ item.name }}</strong>
+                  @if (isOrphanDealer(item)) {
+                    <span class="definition-table__warn-badge">Kullanıcısız</span>
+                  }
+                </div>
+              </td>
+              <td class="definition-table__muted">{{ item.code || '—' }}</td>
+              <td class="definition-table__muted definition-table__brands">
+                {{ brandNamesLabel(item) }}
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="definition-table__user-count"
+                  [class.definition-table__user-count--empty]="dealerUserCount(item) === 0"
+                  [attr.aria-label]="item.name + ' kullanıcılarını göster'"
+                  (click)="onDealerUsersClick(item, $event)"
+                >
+                  <span class="material-symbols-outlined">group</span>
+                  <span>{{ dealerUserCount(item) }}</span>
+                </button>
+              </td>
+              <td>
+                <span
+                  class="definition-table__status"
+                  [class.definition-table__status--inactive]="!item.active"
+                >{{ item.active ? 'Aktif' : 'Pasif' }}</span>
+              </td>
+              <td class="definition-table__actions">
+                <div class="definition-table__menu">
+                  <button
+                    type="button"
+                    aria-label="İşlemler"
+                    [attr.aria-expanded]="isMenuOpen('item', item.id)"
+                    (click)="toggleMenu('item', item.id, $event)"
+                  >
+                    <span class="material-symbols-outlined">more_vert</span>
+                  </button>
+
+                  @if (isMenuOpen('item', item.id)) {
+                    <div
+                      class="definition-table__menu-panel"
+                      [class.definition-table__menu-panel--up]="menuOpensUp()"
+                      role="menu"
+                    >
+                      @if (isOrphanDealer(item)) {
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="onAddUserForDealer(item, $event)"
+                        >
+                          <span class="material-symbols-outlined">person_add</span>
+                          Kullanıcı Ekle
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="onEdit({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">edit</span>
+                        Düzenle
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="onToggleActive({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">
+                          {{ item.active ? 'toggle_off' : 'toggle_on' }}
+                        </span>
+                        {{ item.active ? 'Pasif Yap' : 'Aktif Yap' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="definition-table__menu-danger"
+                        role="menuitem"
+                        (click)="onDelete({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">delete</span>
+                        Sil
+                      </button>
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="definition-table__empty">Kayıt bulunamadı.</td></tr>
+          }
+        </tbody>
+      </table>
+    } @else if (section() === 'brands') {
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <button
+                type="button"
+                class="definition-table__sort"
+                (click)="toggleSort('name')"
+              >
+                Marka Adı
+                <span class="material-symbols-outlined">{{ sortIcon('name') }}</span>
+              </button>
+            </th>
+            <th>Kod</th>
+            <th>Badge</th>
+            <th>
+              <button
+                type="button"
+                class="definition-table__sort"
+                (click)="toggleSort('status')"
+              >
+                Durum
+                <span class="material-symbols-outlined">{{ sortIcon('status') }}</span>
+              </button>
+            </th>
+            <th class="definition-table__actions-heading">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of sortedItems(); track item.id) {
+            <tr>
+              <td><strong>{{ item.name }}</strong></td>
+              <td class="definition-table__muted">{{ item.code || '—' }}</td>
+              <td>
+                <span
+                  class="definition-table__brand-badge"
+                  [style.background]="item.badgeColor || '#374151'"
+                >{{ item.badgeLabel || item.name }}</span>
+              </td>
+              <td>
+                <span
+                  class="definition-table__status"
+                  [class.definition-table__status--inactive]="!item.active"
+                >{{ item.active ? 'Aktif' : 'Pasif' }}</span>
+              </td>
+              <td class="definition-table__actions">
+                <div class="definition-table__menu">
+                  <button
+                    type="button"
+                    aria-label="İşlemler"
+                    [attr.aria-expanded]="isMenuOpen('item', item.id)"
+                    (click)="toggleMenu('item', item.id, $event)"
+                  >
+                    <span class="material-symbols-outlined">more_vert</span>
+                  </button>
+
+                  @if (isMenuOpen('item', item.id)) {
+                    <div
+                      class="definition-table__menu-panel"
+                      [class.definition-table__menu-panel--up]="menuOpensUp()"
+                      role="menu"
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="onEdit({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">edit</span>
+                        Düzenle
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="onToggleActive({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">
+                          {{ item.active ? 'toggle_off' : 'toggle_on' }}
+                        </span>
+                        {{ item.active ? 'Pasif Yap' : 'Aktif Yap' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="definition-table__menu-danger"
+                        role="menuitem"
+                        (click)="onDelete({ kind: 'item', item }, $event)"
+                      >
+                        <span class="material-symbols-outlined">delete</span>
+                        Sil
+                      </button>
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="definition-table__empty">Kayıt bulunamadı.</td></tr>
+          }
+        </tbody>
+      </table>
     } @else {
       <table>
         <thead>

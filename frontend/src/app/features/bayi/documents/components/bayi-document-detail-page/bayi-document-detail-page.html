@@ -15,8 +15,12 @@
         <div class="bayi-detail__tags">
           <span class="bayi-detail__cat">{{ d.category }}</span>
           <span class="bayi-detail__tag-dot" aria-hidden="true"></span>
-          @for (brand of d.brands; track brand) {
-            <span class="bayi-detail__brand">{{ brand }}</span>
+          @for (brand of d.brands; track brand.id) {
+            <span
+              class="bayi-detail__brand"
+              [style.background]="brand.badgeColor"
+              [style.color]="'#fff'"
+            >{{ brand.badgeLabel || brand.name }}</span>
           }
         </div>
       </div>

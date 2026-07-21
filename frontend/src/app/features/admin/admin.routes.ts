@@ -31,6 +31,27 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'documents/schedule',
+        loadComponent: () =>
+          import(
+            './shared-docs-list-page/components/docs-schedule-calendar-page/docs-schedule-calendar-page'
+          ).then((m) => m.DocsScheduleCalendarPage),
+      },
+      {
+        path: 'documents/pool-calendar',
+        loadComponent: () =>
+          import(
+            './shared-docs-list-page/components/docs-pool-calendar-page/docs-pool-calendar-page'
+          ).then((m) => m.DocsPoolCalendarPage),
+      },
+      {
+        path: 'documents/new',
+        loadComponent: () =>
+          import('./add-document/components/add-document-page/add-document-page').then(
+            (m) => m.AddDocumentPage
+          ),
+      },
+      {
         path: 'documents/:id/access-report',
         loadComponent: () =>
           import(
@@ -64,13 +85,6 @@ export const ADMIN_ROUTES: Routes = [
               ).then((m) => m.DefinitionManagementPage),
           },
         ],
-      },
-      {
-        path: 'documents/new',
-        loadComponent: () =>
-          import('./add-document/components/add-document-page/add-document-page').then(
-            (m) => m.AddDocumentPage
-          ),
       },
       {
         path: 'materials/new',

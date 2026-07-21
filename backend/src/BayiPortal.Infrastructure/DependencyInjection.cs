@@ -5,6 +5,7 @@ using BayiPortal.Infrastructure.Data.Contexts;
 using BayiPortal.Infrastructure.Repositories;
 using BayiPortal.Infrastructure.Services;
 using BayiPortal.Infrastructure.Storage;
+using BayiPortal.Infrastructure.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,15 +28,18 @@ public static class DependencyInjection
             : Path.Combine(Directory.GetCurrentDirectory(), storageRoot);
 
         services.AddSingleton<IFileStorageService>(_ => new FileStorageService(absoluteStorageRoot));
+        services.AddSingleton<IFileUploadPolicy, FileUploadPolicy>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IMaterialRepository, MaterialRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IAccessLogService, AccessLogService>();
         services.AddScoped<IDealerRepository, DealerRepository>();
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddHostedService<MaterialPublishWorker>();
 
         return services;
     }

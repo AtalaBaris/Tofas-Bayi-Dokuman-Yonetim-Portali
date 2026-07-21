@@ -14,6 +14,7 @@ export class DocsListTabs {
   readonly tabs: Array<{ id: DocumentStatusTab; label: string }> = [
     { id: 'all', label: 'All' },
     { id: 'active', label: 'Aktif' },
+    { id: 'scheduled', label: 'Hazır / Zamanlanmış' },
     { id: 'draft', label: 'Taslaklar' },
     { id: 'archived', label: 'Arşivlenenler' },
   ];

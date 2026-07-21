@@ -13,10 +13,16 @@ public class MaterialResponse
     public string Status { get; set; } = string.Empty;
     public DateTime PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
+    public DateTime? ScheduledPublishAt { get; set; }
+    public string RecurrenceKind { get; set; } = "None";
+    public int? RecurrenceDayOfWeek { get; set; }
+    public int? RecurrenceDayOfMonth { get; set; }
+    public int? ScheduleTemplateId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public List<string> BrandNames { get; set; } = new();
+    public List<MaterialBrandBadgeResponse> Brands { get; set; } = new();
 
     /// <summary>
     /// İsteği atan kullanıcının bu materyale erişim durumu: "unread" | "viewed" | "downloaded".

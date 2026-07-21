@@ -12,7 +12,10 @@
         <h2 class="docs-drawer__title">{{ doc().title }}</h2>
         <div class="docs-drawer__tags">
           @for (brand of doc().brands; track brand.label) {
-            <span class="docs-drawer__tag" [attr.data-tone]="brand.tone">{{ brand.label }}</span>
+            <span
+              class="docs-drawer__tag"
+              [style.background]="brand.color"
+            >{{ brand.label }}</span>
           }
           <span class="docs-drawer__tag docs-drawer__tag--muted">{{ doc().category }}</span>
         </div>

@@ -7,6 +7,8 @@
         [search]="search()"
         [category]="category()"
         [brands]="brands()"
+        [categoryOptions]="categoryOptions()"
+        [brandOptions]="brandOptions()"
         (searchChange)="search.set($event)"
         (categoryChange)="category.set($event)"
         (brandsChange)="brands.set($event)"
@@ -17,32 +19,39 @@
 
   <div class="docs-page__list" (scroll)="onListScroll($event)">
     <div class="docs-page__list-inner">
-      @for (doc of visibleDocs(); track doc.id) {
-        <app-docs-list-row
-          [doc]="doc"
-          [selected]="selected()?.id === doc.id"
-          (select)="selectDoc($event)"
-        />
-      } @empty {
-        <p class="docs-page__empty">Bu sekmede gösterilecek doküman yok.</p>
+      @if (loading()) {
+        <p class="docs-page__empty">Dokümanlar yükleniyor…</p>
+      } @else if (loadError()) {
+        <p class="docs-page__empty docs-page__empty--error" role="alert">{{ loadError() }}</p>
+      } @else {
+        @for (doc of visibleDocs(); track doc.id) {
+          <app-docs-list-row
+            [doc]="doc"
+            [selected]="selected()?.id === doc.id"
+            (select)="selectDoc($event)"
+          />
+        } @empty {
+          <p class="docs-page__empty">Bu sekmede gösterilecek doküman yok.</p>
+        }
+
+        @if (visibleDocs().length > 0) {
+          <div class="docs-page__paging">
+            <span>
+              {{ visibleDocs().length }} / {{ totalFiltered() }} doküman
+            </span>
+            @if (loadingMore()) {
+              <span class="docs-page__paging-status">Yükleniyor…</span>
+            } @else if (hasMore()) {
+              <button type="button" class="docs-page__paging-btn" (click)="loadMore()">
+                Daha fazla yükle
+              </button>
+            } @else {
+              <span class="docs-page__paging-status">Tümü yüklendi</span>
+            }
+          </div>
+        }
       }
 
-      @if (visibleDocs().length > 0) {
-        <div class="docs-page__paging">
-          <span>
-            {{ visibleDocs().length }} / {{ totalFiltered() }} doküman
-          </span>
-          @if (loadingMore()) {
-            <span class="docs-page__paging-status">Yükleniyor…</span>
-          } @else if (hasMore()) {
-            <button type="button" class="docs-page__paging-btn" (click)="loadMore()">
-              Daha fazla yükle
-            </button>
-          } @else {
-            <span class="docs-page__paging-status">Tümü yüklendi</span>
-          }
-        </div>
-      }
     </div>
   </div>
 
@@ -57,7 +66,7 @@
     <div @drawerSlide>
       <app-docs-detail-drawer
         [doc]="doc"
-        [viewers]="viewers"
+        [viewers]="viewers()"
         (closed)="closeDrawer()"
         (archive)="archiveDoc($event)"
       />

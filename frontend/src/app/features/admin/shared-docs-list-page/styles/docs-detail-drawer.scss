@@ -94,18 +94,6 @@
   color: #fff;
   background: #374151;
 
-  &[data-tone='fiat'] {
-    background: #1e3a8a;
-  }
-
-  &[data-tone='jeep'] {
-    background: #14532d;
-  }
-
-  &[data-tone='all'] {
-    background: #1f2937;
-  }
-
   &--muted {
     background: var(--color-surface-variant);
     color: var(--color-on-surface-variant);

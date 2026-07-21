@@ -14,6 +14,7 @@ import {
   MOCK_DOCUMENTS,
   type DocumentListItem,
 } from '../../../shared-docs-list-page/models/document-list.model';
+import { DashboardScheduleCalendar } from '../dashboard-schedule-calendar/dashboard-schedule-calendar';
 
 export interface DashboardActivityRow {
   id: number;
@@ -32,7 +33,7 @@ export interface TopDocumentRow {
 
 @Component({
   selector: 'app-admin-dashboard-page',
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, DashboardScheduleCalendar],
   templateUrl: './admin-dashboard-page.html',
   styleUrl: '../../styles/admin-dashboard-page.scss',
 })

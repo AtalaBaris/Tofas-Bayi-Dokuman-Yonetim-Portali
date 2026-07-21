@@ -18,6 +18,9 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(x => x.FilePath).HasMaxLength(500).IsRequired();
         builder.Property(x => x.MimeType).HasMaxLength(150).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.RecurrenceKind).HasConversion<string>().HasMaxLength(50).IsRequired();
+
+        builder.HasIndex(x => new { x.Status, x.ScheduledPublishAt });
 
         builder.HasOne(x => x.Category)
             .WithMany(c => c.Materials)
@@ -28,5 +31,10 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
             .WithMany(u => u.CreatedMaterials)
             .HasForeignKey(x => x.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.ScheduleTemplate)
+            .WithMany(m => m.ScheduleInstances)
+            .HasForeignKey(x => x.ScheduleTemplateId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -22,6 +22,18 @@ public interface IMaterialService
 
     Task<(Stream Content, string FileName, string MimeType)> GetDownloadStreamAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<List<MaterialScheduleItemResponse>> GetScheduleCalendarAsync(
+        DateTime fromUtc, DateTime toUtc, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> UpdateScheduleAsync(
+        int id, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> PublishNowAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> CancelScheduleAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task ProcessDueSchedulesAsync(CancellationToken cancellationToken = default);
 }
 
 // Controller'da JWT claim'lerinden doldurulur; brand-eşleşme ve rol kontrolleri bu bilgiye göre yapılır.

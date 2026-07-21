@@ -174,8 +174,13 @@
                 } @else if (doc.isNew) {
                   <span class="bayi-docs__new-badge">Yeni</span>
                 }
-                @for (brand of doc.brands; track brand) {
-                  <span class="bayi-docs__brand-badge">{{ brand }}</span>
+                @for (brand of doc.brands; track brand.id) {
+                  <span
+                    class="bayi-docs__brand-badge"
+                    [style.background]="brand.badgeColor"
+                    [style.color]="'#fff'"
+                    [style.borderColor]="brand.badgeColor"
+                  >{{ brand.badgeLabel || brand.name }}</span>
                 }
               </div>
             </div>

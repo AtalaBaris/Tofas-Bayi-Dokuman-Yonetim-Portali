@@ -83,6 +83,16 @@ namespace BayiPortal.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BadgeColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("BadgeLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -220,6 +230,23 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Property<DateTime>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("RecurrenceDayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RecurrenceDayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecurrenceKind")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("ScheduleTemplateId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ScheduledPublishAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -244,6 +271,10 @@ namespace BayiPortal.Infrastructure.Migrations
 
                     b.HasIndex("CreatedBy");
 
+                    b.HasIndex("ScheduleTemplateId");
+
+                    b.HasIndex("Status", "ScheduledPublishAt");
+
                     b.ToTable("Materials", (string)null);
                 });
 
@@ -260,6 +291,50 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.HasIndex("BrandId");
 
                     b.ToTable("MaterialBrands", (string)null);
+                });
+
+            modelBuilder.Entity("BayiPortal.Core.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("BayiPortal.Core.Entities.User", b =>
@@ -360,9 +435,16 @@ namespace BayiPortal.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BayiPortal.Core.Entities.Material", "ScheduleTemplate")
+                        .WithMany("ScheduleInstances")
+                        .HasForeignKey("ScheduleTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Category");
 
                     b.Navigation("Creator");
+
+                    b.Navigation("ScheduleTemplate");
                 });
 
             modelBuilder.Entity("BayiPortal.Core.Entities.MaterialBrand", b =>
@@ -382,6 +464,24 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Navigation("Brand");
 
                     b.Navigation("Material");
+                });
+
+            modelBuilder.Entity("BayiPortal.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("BayiPortal.Core.Entities.Material", "Material")
+                        .WithMany("Notifications")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BayiPortal.Core.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BayiPortal.Core.Entities.User", b =>
@@ -418,6 +518,10 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Navigation("AccessLogs");
 
                     b.Navigation("MaterialBrands");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("ScheduleInstances");
                 });
 
             modelBuilder.Entity("BayiPortal.Core.Entities.User", b =>
@@ -425,6 +529,8 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Navigation("AccessLogs");
 
                     b.Navigation("CreatedMaterials");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

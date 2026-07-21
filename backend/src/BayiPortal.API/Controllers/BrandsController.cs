@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace BayiPortal.API.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize]
 [Route("api/brands")]
 public class BrandsController : ControllerBase
 {
+    private const string ManagerRoles = "Admin,ContentManager";
+
     private readonly IBrandService _brandService;
 
     public BrandsController(IBrandService brandService)
@@ -19,6 +21,7 @@ public class BrandsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<List<BrandResponse>>> GetList(CancellationToken cancellationToken)
     {
         var result = await _brandService.GetListAsync(cancellationToken);
@@ -26,6 +29,7 @@ public class BrandsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<BrandResponse>> GetById(int id, CancellationToken cancellationToken)
     {
         var result = await _brandService.GetByIdAsync(id, cancellationToken);
@@ -33,6 +37,7 @@ public class BrandsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BrandResponse>> Create(
         [FromBody] CreateBrandRequest request, CancellationToken cancellationToken)
     {
@@ -41,6 +46,7 @@ public class BrandsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BrandResponse>> Update(
         int id, [FromBody] UpdateBrandRequest request, CancellationToken cancellationToken)
     {
@@ -49,6 +55,7 @@ public class BrandsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken)
     {
         await _brandService.DeactivateAsync(id, cancellationToken);
