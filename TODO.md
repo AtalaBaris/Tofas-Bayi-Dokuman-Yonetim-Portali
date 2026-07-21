@@ -94,6 +94,12 @@ farklı çıktı, aşağıda düzeltildi).
   marka-eşleşme kuralı ve 401/403 ayrımı da regresyon kontrolü olarak yeniden
   doğrulandı (etkilenmemiş). **Frontend tarafı bu dalda yok** — ayrı bir ekip
   arkadaşı üzerinde çalışıyor.
+- **Doküman görüntülenme/hedef kitle sayacı + versiyon** (PR #17
+  `feature-backend-dokuman-goruntulenme-sayaci` → `063ea45`, ardından PR #18
+  `feature-frontend-admin-dokuman-listesi-entegrasyonu` → `d48727e`, ikisi de
+  2026-07-21'de `Develop`'a merge oldu, bu sırayla — backend önce): madde 11'in
+  "AccessLog'da MaterialId bağlantısı yok" diye kapsam dışı bıraktığı
+  `viewedCount`/`audienceCount`/`version` çözüldü. Ayrıntı için madde 12'ye bakın.
 
 ### 📌 Ekibin şu anda üzerinde çalıştığı / açık dallar
 
@@ -105,9 +111,6 @@ farklı çıktı, aşağıda düzeltildi).
 - `feature-frontend-admin-login`, `feature-frontend-auth-login` — muhtemelen ilk
   denemeler, iş asıl `feature-frontend-bayilogin`'de tamamlanmış görünüyor. Bu ikisi
   muhtemelen artık gereksiz (silinebilir) — ekiple teyit edin.
-- `feature-backend-dokuman-goruntulenme-sayaci` — madde 12, lokal olarak tamamlandı
-  (2026-07-21), henüz push/PR edilmedi. `feature-frontend-admin-dokuman-listesi-entegrasyonu`
-  bu dala bağımlı hale geldi (bkz. madde 11).
 
 ---
 
@@ -130,9 +133,9 @@ farklı çıktı, aşağıda düzeltildi).
    + feature-backend-materials ────┘   (backend de merge oldu — PR #3, marka kesişim
         │                               kuralı + expiry + validasyon DAHİL)
         ▼
-🔄 11. feature-frontend-admin-dokuman-listesi-entegrasyonu  (4'ün frontend'ini gerçek
-        │                                                   API'ye bağladı — henüz
-        │                                                   `Develop`'a merge olmadı)
+✅ 11. feature-frontend-admin-dokuman-listesi-entegrasyonu  (4'ün frontend'ini gerçek
+        │                                                   API'ye bağladı — PR #18 ile
+        │                                                   `Develop`'a merge oldu)
         ▼
 ✅ 5. feature-*-bayi-marka-erisimi   (materials endpoint'leri için PR #3 ile fiilen
         │                          tamamlandı — ayrı dal açılmadı)
@@ -143,7 +146,7 @@ farklı çıktı, aşağıda düzeltildi).
 ✅ 12. feature-backend-dokuman-goruntulenme-sayaci  (6'nın ürettiği AccessLog.MaterialId'yi
         │                                           kullanarak 11'in placeholder bıraktığı
         │                                           viewedCount/audienceCount/version'ı çözdü —
-        │                                           lokal tamamlandı, henüz push/PR edilmedi)
+        │                                           PR #17 ile `Develop`'a merge oldu, PR #18'den önce)
         ▼
 ✅ 7. feature-frontend-bayi-dashboard (frontend merge oldu, PR #13 — tamamen mock veride)
         │
@@ -480,12 +483,12 @@ listesinin tamamı işaretlenebiliyor.
 
 ---
 
-## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — 🔄 devam ediyor (henüz merge olmadı)
+## 11. `feature-frontend-admin-dokuman-listesi-entegrasyonu` — ✅ tamamlandı, `Develop`'a merge oldu (PR #18 → `d48727e`, 2026-07-21)
 
-**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu) ve artık ayrıca
-12 (`feature-backend-dokuman-goruntulenme-sayaci`, henüz merge olmadı) —
-`viewedCount`/`audienceCount`/`version` alanları bu dal olmadan backend'den
-gelmez, `Material` arayüzü derlenir ama sahadaki değerler `undefined` kalır.
+**Bağımlılık:** 4 (`feature-backend-materials`, merge oldu) ve 12
+(`feature-backend-dokuman-goruntulenme-sayaci`, PR #17 ile merge oldu —
+`viewedCount`/`audienceCount`/`version` bu dal olmadan backend'den gelmezdi;
+merge sırası doğru şekilde 12 önce, 11 sonra oldu).
 
 **Kapsam:** Admin "Paylaşılan Dökümanlar" listesini (`features/admin/shared-docs-list-page/`)
 `MOCK_DOCUMENTS`'ten kurtarıp gerçek `MaterialsController`'a bağlamak.
@@ -525,7 +528,7 @@ arşivleyebiliyor; kategori/marka filtreleri gerçek veriyle çalışıyor.
 
 ---
 
-## 12. `feature-backend-dokuman-goruntulenme-sayaci` — ✅ lokal olarak tamamlandı (henüz push/PR edilmedi, 2026-07-21)
+## 12. `feature-backend-dokuman-goruntulenme-sayaci` — ✅ tamamlandı, `Develop`'a merge oldu (PR #17 → `063ea45`, 2026-07-21)
 
 **Bağımlılık:** 6 (`feature-*-access-logs`, merge oldu — `AccessLog.MaterialId`
 zaten dolu geliyor). `Develop`'tan dallandı.
@@ -562,8 +565,10 @@ bir iş.
 
 **Doğrulama:** `dotnet build backend/BayiPortal.sln` temiz; migration lokal
 Postgres'e (`bayi`/`BayiPortalDb`) uygulandı; frontend `tsc --noEmit` temiz.
-Canlı sunucuya karşı uçtan uca (curl) doğrulama **yapılmadı** — PR açılmadan
-önce yapılmalı.
+Merge sonrası birleşmiş `Develop` üzerinde tekrar doğrulandı: 4 migration da
+(`InitialCreate`, `UpdateAccessLogsForSystemLogging`, `AddPhoneToUsers`,
+`AddVersionToMaterials`) sırayla uygulanmış durumda, hiçbiri pending değil.
+Canlı sunucuya karşı uçtan uca (curl) doğrulama hâlâ **yapılmadı**.
 
 **Bitti sayılır:** Admin doküman listesinde her satır gerçek
 görüntülenme/hedef kitle sayacını ve versiyon numarasını gösteriyor.
