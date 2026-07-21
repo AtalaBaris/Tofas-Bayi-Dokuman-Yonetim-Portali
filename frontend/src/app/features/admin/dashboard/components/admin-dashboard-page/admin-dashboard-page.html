@@ -3,7 +3,7 @@
     <!-- Hoş geldiniz + CTA -->
     <section class="admin-dashboard__welcome">
       <div class="admin-dashboard__welcome-text">
-        <h1 class="admin-dashboard__title">Hoş Geldiniz, {{ displayName() }}</h1>
+        <h1 class="admin-dashboard__title">Siktirgit burdan, {{ displayName() }}</h1>
         <p class="admin-dashboard__subtitle">{{ statusLine() }}</p>
         <div class="admin-dashboard__meta">
           <span class="admin-dashboard__badge">{{ roleText() }}</span>
@@ -37,10 +37,8 @@
         <p class="admin-dashboard__kpi-value">{{ documentStats().total | number }}</p>
       </a>
 
-      <a
-        class="admin-dashboard__kpi admin-dashboard__kpi--link"
-        [routerLink]="isAdmin() ? '/admin/definitions/dealers' : '/admin/documents'"
-      >
+      <a class="admin-dashboard__kpi admin-dashboard__kpi--link"
+        [routerLink]="isAdmin() ? '/admin/definitions/dealers' : '/admin/documents'">
         <div class="admin-dashboard__kpi-top">
           <span class="admin-dashboard__kpi-icon">
             <span class="material-symbols-outlined">store</span>
@@ -49,17 +47,15 @@
         <p class="admin-dashboard__kpi-label">{{ isAdmin() ? 'Aktif Bayiler' : 'Aktif Doküman' }}</p>
         <p class="admin-dashboard__kpi-value">
           @if (isAdmin()) {
-            {{ dealerCount() ?? '—' }}
+          {{ dealerCount() ?? '—' }}
           } @else {
-            {{ documentStats().active | number }}
+          {{ documentStats().active | number }}
           }
         </p>
       </a>
 
-      <a
-        class="admin-dashboard__kpi admin-dashboard__kpi--link admin-dashboard__kpi--chart"
-        [routerLink]="isAdmin() ? '/admin/access-logs' : '/admin/documents'"
-      >
+      <a class="admin-dashboard__kpi admin-dashboard__kpi--link admin-dashboard__kpi--chart"
+        [routerLink]="isAdmin() ? '/admin/access-logs' : '/admin/documents'">
         <div class="admin-dashboard__kpi-top">
           <span class="admin-dashboard__kpi-icon">
             <span class="material-symbols-outlined">visibility</span>
@@ -69,12 +65,13 @@
         <p class="admin-dashboard__kpi-value">{{ formatViews(monthlyViews()) }}</p>
         <div class="admin-dashboard__spark" aria-hidden="true">
           @for (h of [30, 50, 40, 70, 60, 90, 100]; track $index) {
-            <span [style.height.%]="h"></span>
+          <span [style.height.%]="h"></span>
           }
         </div>
       </a>
 
-      <a class="admin-dashboard__kpi admin-dashboard__kpi--link admin-dashboard__kpi--alert" routerLink="/admin/documents">
+      <a class="admin-dashboard__kpi admin-dashboard__kpi--link admin-dashboard__kpi--alert"
+        routerLink="/admin/documents">
         <div class="admin-dashboard__kpi-top">
           <span class="admin-dashboard__kpi-icon admin-dashboard__kpi-icon--warn">
             <span class="material-symbols-outlined">warning</span>
@@ -95,11 +92,8 @@
       <article class="admin-dashboard__card admin-dashboard__card--wide">
         <div class="admin-dashboard__card-head">
           <h2 class="admin-dashboard__card-title">Doküman Yayılımı</h2>
-          <select
-            class="admin-dashboard__select"
-            [value]="chartPeriod()"
-            (change)="setChartPeriod($any($event.target).value)"
-          >
+          <select class="admin-dashboard__select" [value]="chartPeriod()"
+            (change)="setChartPeriod($any($event.target).value)">
             <option value="30">Son 30 Gün</option>
             <option value="year">Bu Yıl</option>
           </select>
@@ -107,9 +101,9 @@
         <div class="admin-dashboard__chart">
           <div class="admin-dashboard__chart-bars" aria-hidden="true">
             @for (bar of chartBars(); track bar.label) {
-              <div class="admin-dashboard__chart-bar" [style.height.%]="bar.height">
-                <span class="admin-dashboard__chart-dot"></span>
-              </div>
+            <div class="admin-dashboard__chart-bar" [style.height.%]="bar.height">
+              <span class="admin-dashboard__chart-dot"></span>
+            </div>
             }
           </div>
           <svg class="admin-dashboard__chart-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -123,25 +117,23 @@
         <h2 class="admin-dashboard__card-title admin-dashboard__card-title--spaced">En Çok İlgi Görenler</h2>
         <ul class="admin-dashboard__top-list">
           @for (item of topDocuments(); track item.doc.id) {
-            <li>
-              <a class="admin-dashboard__top-item" routerLink="/admin/documents">
-                <span
-                  class="admin-dashboard__top-icon"
-                  [class.admin-dashboard__top-icon--pdf]="item.doc.fileKind === 'pdf'"
-                  [class.admin-dashboard__top-icon--video]="item.doc.fileKind === 'video'"
-                >
-                  <span class="material-symbols-outlined">{{ docIcon(item.doc.fileKind) }}</span>
-                </span>
-                <span class="admin-dashboard__top-body">
-                  <span class="admin-dashboard__top-title">{{ item.doc.title }}</span>
-                  <span class="admin-dashboard__top-meta">Kategori: {{ item.doc.category }}</span>
-                </span>
-                <span class="admin-dashboard__top-stat">
-                  <span class="admin-dashboard__top-count">{{ formatViews(item.views) }}</span>
-                  <span class="admin-dashboard__top-label">Görüntülenme</span>
-                </span>
-              </a>
-            </li>
+          <li>
+            <a class="admin-dashboard__top-item" routerLink="/admin/documents">
+              <span class="admin-dashboard__top-icon"
+                [class.admin-dashboard__top-icon--pdf]="item.doc.fileKind === 'pdf'"
+                [class.admin-dashboard__top-icon--video]="item.doc.fileKind === 'video'">
+                <span class="material-symbols-outlined">{{ docIcon(item.doc.fileKind) }}</span>
+              </span>
+              <span class="admin-dashboard__top-body">
+                <span class="admin-dashboard__top-title">{{ item.doc.title }}</span>
+                <span class="admin-dashboard__top-meta">Kategori: {{ item.doc.category }}</span>
+              </span>
+              <span class="admin-dashboard__top-stat">
+                <span class="admin-dashboard__top-count">{{ formatViews(item.views) }}</span>
+                <span class="admin-dashboard__top-label">Görüntülenme</span>
+              </span>
+            </a>
+          </li>
           }
         </ul>
         <a class="admin-dashboard__card-footer-btn" routerLink="/admin/documents">Tümünü Gör</a>
@@ -154,44 +146,42 @@
         <div class="admin-dashboard__card-head">
           <h2 class="admin-dashboard__card-title">Son Bayi Aktiviteleri</h2>
           @if (isAdmin()) {
-            <a class="admin-dashboard__card-link" routerLink="/admin/access-logs" aria-label="Tüm kayıtlar">
-              <span class="material-symbols-outlined">more_horiz</span>
-            </a>
+          <a class="admin-dashboard__card-link" routerLink="/admin/access-logs" aria-label="Tüm kayıtlar">
+            <span class="material-symbols-outlined">more_horiz</span>
+          </a>
           }
         </div>
         @if (loading()) {
-          <p class="admin-dashboard__empty">Aktiviteler yükleniyor…</p>
+        <p class="admin-dashboard__empty">Aktiviteler yükleniyor…</p>
         } @else {
-          <div class="admin-dashboard__table-wrap">
-            <table class="admin-dashboard__table">
-              <thead>
-                <tr>
-                  <th>Bayi Adı</th>
-                  <th>Aksiyon</th>
-                  <th>Doküman Adı</th>
-                  <th>Zaman</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of activityRows(); track row.id; let odd = $odd) {
-                  <tr [class.admin-dashboard__row--alt]="odd">
-                    <td class="admin-dashboard__td-strong">{{ row.dealerName }}</td>
-                    <td>
-                      <span
-                        class="admin-dashboard__action-chip"
-                        [class.admin-dashboard__action-chip--download]="row.actionTone === 'download'"
-                      >
-                        <span class="material-symbols-outlined">{{ row.actionIcon }}</span>
-                        {{ row.action }}
-                      </span>
-                    </td>
-                    <td class="admin-dashboard__td-muted">{{ row.documentName }}</td>
-                    <td class="admin-dashboard__td-muted admin-dashboard__td-time">{{ row.when }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+        <div class="admin-dashboard__table-wrap">
+          <table class="admin-dashboard__table">
+            <thead>
+              <tr>
+                <th>Bayi Adı</th>
+                <th>Aksiyon</th>
+                <th>Doküman Adı</th>
+                <th>Zaman</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of activityRows(); track row.id; let odd = $odd) {
+              <tr [class.admin-dashboard__row--alt]="odd">
+                <td class="admin-dashboard__td-strong">{{ row.dealerName }}</td>
+                <td>
+                  <span class="admin-dashboard__action-chip"
+                    [class.admin-dashboard__action-chip--download]="row.actionTone === 'download'">
+                    <span class="material-symbols-outlined">{{ row.actionIcon }}</span>
+                    {{ row.action }}
+                  </span>
+                </td>
+                <td class="admin-dashboard__td-muted">{{ row.documentName }}</td>
+                <td class="admin-dashboard__td-muted admin-dashboard__td-time">{{ row.when }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
         }
       </article>
 
@@ -213,36 +203,31 @@
             <div>
               <div class="admin-dashboard__health-row">
                 <span>API Bağlantısı</span>
-                <span
-                  class="admin-dashboard__health-val"
-                  [class.admin-dashboard__health-val--ok]="apiHealthy()"
-                  [class.admin-dashboard__health-val--warn]="!apiHealthy()"
-                >
+                <span class="admin-dashboard__health-val" [class.admin-dashboard__health-val--ok]="apiHealthy()"
+                  [class.admin-dashboard__health-val--warn]="!apiHealthy()">
                   {{ apiHealthy() ? 'Stabil' : 'Kısıtlı' }}
                 </span>
               </div>
               <div class="admin-dashboard__progress">
-                <div
-                  class="admin-dashboard__progress-fill admin-dashboard__progress-fill--ok"
-                  [style.width.%]="apiHealthy() ? 100 : 35"
-                ></div>
+                <div class="admin-dashboard__progress-fill admin-dashboard__progress-fill--ok"
+                  [style.width.%]="apiHealthy() ? 100 : 35"></div>
               </div>
             </div>
             @if (isAdmin()) {
-              <div class="admin-dashboard__health-stats">
-                <div>
-                  <span class="admin-dashboard__health-stat-label">İşlem kaydı</span>
-                  <strong>{{ accessLogTotal() ?? '—' }}</strong>
-                </div>
-                <div>
-                  <span class="admin-dashboard__health-stat-label">Giriş kaydı</span>
-                  <strong>{{ loginLogTotal() ?? '—' }}</strong>
-                </div>
-                <div>
-                  <span class="admin-dashboard__health-stat-label">Kullanıcı</span>
-                  <strong>{{ userCount() ?? '—' }}</strong>
-                </div>
+            <div class="admin-dashboard__health-stats">
+              <div>
+                <span class="admin-dashboard__health-stat-label">İşlem kaydı</span>
+                <strong>{{ accessLogTotal() ?? '—' }}</strong>
               </div>
+              <div>
+                <span class="admin-dashboard__health-stat-label">Giriş kaydı</span>
+                <strong>{{ loginLogTotal() ?? '—' }}</strong>
+              </div>
+              <div>
+                <span class="admin-dashboard__health-stat-label">Kullanıcı</span>
+                <strong>{{ userCount() ?? '—' }}</strong>
+              </div>
+            </div>
             }
           </div>
         </div>
