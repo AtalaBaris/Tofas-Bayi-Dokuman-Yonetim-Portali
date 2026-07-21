@@ -1,7 +1,7 @@
 # ER Diyagramı
 
 `backend/src/BayiPortal.Core/Entities/*.cs` içindeki gerçek entity/ilişki tanımlarından
-çıkarıldı (2026-07-17). `README.md`'deki kavramsal veri modeliyle küçük farklar olabilir —
+çıkarıldı (2026-07-21). `README.md`'deki kavramsal veri modeliyle küçük farklar olabilir —
 buradaki diyagram kod ile birebir eşleşir.
 
 ![ER Diyagramı](er-diagram.png)
@@ -55,6 +55,7 @@ erDiagram
         string Role
         int DealerId FK "nullable"
         bool IsActive
+        string Phone "nullable"
     }
 
     MATERIAL {
@@ -68,6 +69,7 @@ erDiagram
         string MimeType
         long FileSize
         string Status
+        int Version
         datetime PublishedAt
         datetime ExpiresAt "nullable"
         int CreatedBy FK
@@ -105,3 +107,7 @@ erDiagram
 - `User.Role` (`string`) ve `Material.Status` (enum-backed `string` kolon) ayrı bir
   lookup tablosuna FK değil — `TODO.md`'deki "hâlâ string kullanıyor" notuyla
   tutarlı.
+- `Material.Version`, `AddVersionToMaterials` migration'ı ile eklendi; her
+  `UpdateAsync`'te `+1` artırılır (bkz. `feature-backend-dokuman-goruntulenme-sayaci`,
+  PR #17).
+- `User.Phone` (nullable), `AddPhoneToUsers` migration'ı ile eklendi.
