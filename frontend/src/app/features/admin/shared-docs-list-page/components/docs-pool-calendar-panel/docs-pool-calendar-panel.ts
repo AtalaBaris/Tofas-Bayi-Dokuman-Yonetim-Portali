@@ -23,6 +23,8 @@ interface ScheduleModalState {
   title: string;
   dateKey: string;
   time: string; // HH:mm
+  /** Havuzdan: yeni kopya; takvimden: mevcut kaydı taşı. */
+  mode: 'create' | 'move';
 }
 
 const POOL_WIDTH_KEY = 'admin.poolPanelWidth';
@@ -47,6 +49,9 @@ export class DocsPoolCalendarPanel {
   readonly pool = signal<DocumentListItem[]>([]);
   readonly poolLoading = signal(true);
   readonly poolError = signal('');
+
+  /** 'pool' | 'calendar' — bırakma anında create vs move ayrımı için. */
+  readonly dragSource = signal<'pool' | 'calendar' | null>(null);
 
   readonly cursor = signal(startOfMonth(new Date()));
   readonly events = signal<MaterialScheduleItem[]>([]);
@@ -131,25 +136,22 @@ export class DocsPoolCalendarPanel {
   reloadPool(): void {
     this.poolLoading.set(true);
     this.poolError.set('');
-    // Havuzda hem tarih atanmamış (Draft) hem takvime alınmış (Scheduled) kalsın.
+    // Havuz: taslak şablonlar + eski tekil zamanlanmışlar (kopya olmayanlar).
+    // Takvim kopyaları (scheduleTemplateId dolu) havuzda gösterilmez.
     forkJoin({
       drafts: this.materialsApi.list({ status: 'Draft' }),
       scheduled: this.materialsApi.list({ status: 'Scheduled' }),
     }).subscribe({
       next: ({ drafts, scheduled }) => {
-        const byId = new Map<number, DocumentListItem>();
-        for (const material of [...drafts, ...scheduled]) {
-          byId.set(material.id, materialToDocumentListItem(material));
-        }
-        const items = [...byId.values()].sort((a, b) => {
-          // Taslaklar üstte; sonra yayın zamanına göre.
-          if (a.status !== b.status) {
-            return a.status === 'draft' ? -1 : 1;
-          }
-          const aAt = a.scheduledPublishAt ? new Date(a.scheduledPublishAt).getTime() : 0;
-          const bAt = b.scheduledPublishAt ? new Date(b.scheduledPublishAt).getTime() : 0;
-          return aAt - bAt || a.title.localeCompare(b.title, 'tr');
-        });
+        const roots = scheduled.filter((m) => m.scheduleTemplateId == null);
+        const items = [...drafts, ...roots]
+          .map(materialToDocumentListItem)
+          .sort((a, b) => {
+            if (a.status !== b.status) {
+              return a.status === 'draft' ? -1 : 1;
+            }
+            return a.title.localeCompare(b.title, 'tr');
+          });
         this.pool.set(items);
         this.poolLoading.set(false);
       },
@@ -199,22 +201,25 @@ export class DocsPoolCalendarPanel {
     return this.eventsByDay().get(day.dateKey) ?? [];
   }
 
-  onDragStart(id: number, event: DragEvent): void {
+  onDragStart(id: number, event: DragEvent, source: 'pool' | 'calendar'): void {
     this.draggingId.set(id);
+    this.dragSource.set(source);
     event.dataTransfer?.setData('text/plain', String(id));
+    event.dataTransfer?.setData('application/x-drag-source', source);
     if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.effectAllowed = source === 'pool' ? 'copy' : 'move';
     }
   }
 
   onDragEnd(): void {
     this.draggingId.set(null);
+    this.dragSource.set(null);
   }
 
   onDayDragOver(event: DragEvent): void {
     event.preventDefault();
     if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
+      event.dataTransfer.dropEffect = this.dragSource() === 'pool' ? 'copy' : 'move';
     }
   }
 
@@ -227,15 +232,24 @@ export class DocsPoolCalendarPanel {
       return;
     }
 
+    const source =
+      (event.dataTransfer?.getData('application/x-drag-source') as 'pool' | 'calendar' | '') ||
+      this.dragSource() ||
+      (this.pool().some((p) => p.id === materialId) && !this.scheduledIdSet().has(materialId)
+        ? 'pool'
+        : 'calendar');
+
     const fromPool = this.pool().find((p) => p.id === materialId);
     const fromEvent = this.events().find((e) => e.id === materialId);
-    const existingTime = fromEvent ? formatTimeHHmm(new Date(fromEvent.at)) : '09:00';
+    const existingTime = fromEvent && source === 'calendar' ? formatTimeHHmm(new Date(fromEvent.at)) : '09:00';
+    const mode: 'create' | 'move' = source === 'pool' ? 'create' : 'move';
 
     this.modal.set({
       materialId,
       title: fromPool?.title ?? fromEvent?.title ?? `Doküman #${materialId}`,
       dateKey: day.dateKey,
       time: existingTime,
+      mode,
     });
   }
 
@@ -260,23 +274,28 @@ export class DocsPoolCalendarPanel {
       return;
     }
 
+    const payload = {
+      scheduledPublishAt: iso,
+      recurrenceKind: 'None' as const,
+    };
+
     this.savingSchedule.set(true);
-    this.materialsApi
-      .updateSchedule(state.materialId, {
-        scheduledPublishAt: iso,
-        recurrenceKind: 'None',
-      })
-      .subscribe({
-        next: () => {
-          this.savingSchedule.set(false);
-          this.modal.set(null);
-          this.reloadAll();
-        },
-        error: (err: { message?: string }) => {
-          this.savingSchedule.set(false);
-          this.calendarError.set(err?.message ?? 'Zamanlama kaydedilemedi.');
-        },
-      });
+    const request$ =
+      state.mode === 'create'
+        ? this.materialsApi.createScheduledCopy(state.materialId, payload)
+        : this.materialsApi.updateSchedule(state.materialId, payload);
+
+    request$.subscribe({
+      next: () => {
+        this.savingSchedule.set(false);
+        this.modal.set(null);
+        this.reloadAll();
+      },
+      error: (err: { message?: string }) => {
+        this.savingSchedule.set(false);
+        this.calendarError.set(err?.message ?? 'Zamanlama kaydedilemedi.');
+      },
+    });
   }
 
   // Takvimden boş alana bırakınca “kaldır” akışı.

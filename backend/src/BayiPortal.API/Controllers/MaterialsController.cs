@@ -104,6 +104,15 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("{id:int}/schedule-copies")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> CreateScheduledCopy(
+        int id, [FromBody] UpdateMaterialScheduleRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.CreateScheduledCopyAsync(id, request, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("{id:int}/publish-now")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> PublishNow(int id, CancellationToken cancellationToken)

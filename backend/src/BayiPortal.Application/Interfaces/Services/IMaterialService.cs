@@ -29,6 +29,12 @@ public interface IMaterialService
     Task<MaterialResponse> UpdateScheduleAsync(
         int id, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Havuzdaki kaynaktan yeni bir zamanlanmış kopya üretir; kaynak (taslak) havuzda kalır.
+    /// </summary>
+    Task<MaterialResponse> CreateScheduledCopyAsync(
+        int sourceId, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
     Task<MaterialResponse> PublishNowAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<MaterialResponse> CancelScheduleAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);

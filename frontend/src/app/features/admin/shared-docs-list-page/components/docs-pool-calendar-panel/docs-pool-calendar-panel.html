@@ -9,7 +9,7 @@
 
     <div class="poolcal-split__left-body">
       <p class="poolcal-split__hint">
-        Takvime (gün+saat ile) sürüklediğinizde yayınlanma tarihi/saat otomatik güncellenir.
+        Havuzdan sürükleyince aynı doküman yeni bir tarihe eklenir. Takvimden sürükleyince gün/saat değişir.
       </p>
 
       @if (poolLoading()) {
@@ -23,7 +23,7 @@
               class="poolcal__pool-item"
               [class.poolcal__pool-item--scheduled]="doc.status === 'scheduled'"
               draggable="true"
-              (dragstart)="onDragStart(doc.id, $event)"
+              (dragstart)="onDragStart(doc.id, $event, 'pool')"
               (dragend)="onDragEnd()"
               (click)="openDetails(doc.id)"
               role="button"
@@ -99,7 +99,7 @@
                   class="poolcal__event"
                   [class.poolcal__event--scheduled]="ev.status.toLowerCase() === 'scheduled'"
                   draggable="true"
-                  (dragstart)="onDragStart(ev.id, $event)"
+                  (dragstart)="onDragStart(ev.id, $event, 'calendar')"
                   (dragend)="onDragEnd()"
                   (click)="openDetails(ev.id)"
                 >
@@ -126,7 +126,9 @@
     <div class="poolcal-modal" role="dialog" aria-modal="true">
       <button type="button" class="poolcal-modal__backdrop" aria-label="Kapat" (click)="closeModal()"></button>
       <div class="poolcal-modal__card">
-        <h3 class="poolcal-modal__title">Yayın zamanı</h3>
+        <h3 class="poolcal-modal__title">
+          {{ m.mode === 'create' ? 'Yeni yayın zamanı' : 'Yayın zamanını değiştir' }}
+        </h3>
         <p class="poolcal-modal__doc">{{ m.title }}</p>
 
         <label class="poolcal-modal__label" for="poolcal-time">Saat</label>
@@ -148,7 +150,13 @@
             [disabled]="savingSchedule()"
             (click)="confirmSchedule()"
           >
-            {{ savingSchedule() ? 'Kaydediliyor…' : 'Kaydet' }}
+            {{
+              savingSchedule()
+                ? 'Kaydediliyor…'
+                : m.mode === 'create'
+                  ? 'Takvime ekle'
+                  : 'Kaydet'
+            }}
           </button>
         </div>
       </div>
@@ -158,7 +166,7 @@
   <app-confirm-dialog
     [open]="confirmOpen()"
     title="Takvimden kaldır"
-    message="Takvimden kaldırmak istiyor musun? Doküman havuza (Taslak) alınacaktır."
+    message="Takvimden kaldırmak istiyor musun? Bu yayın kaydı silinir; havuzdaki doküman kalır."
     confirmLabel="Kaldır"
     cancelLabel="Vazgeç"
     [danger]="true"

@@ -103,6 +103,10 @@ export class MaterialsService {
     return this.api.put<Material>(`/materials/${id}/schedule`, payload);
   }
 
+  createScheduledCopy(id: number, payload: UpdateMaterialSchedulePayload) {
+    return this.api.post<Material>(`/materials/${id}/schedule-copies`, payload);
+  }
+
   publishNow(id: number) {
     return this.api.post<Material>(`/materials/${id}/publish-now`, {});
   }

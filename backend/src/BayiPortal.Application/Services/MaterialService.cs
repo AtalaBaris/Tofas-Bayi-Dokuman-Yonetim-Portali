@@ -245,6 +245,58 @@ public sealed class MaterialService : IMaterialService
         return ToResponse(saved);
     }
 
+    public async Task<MaterialResponse> CreateScheduledCopyAsync(
+        int sourceId, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        EnsureManager(requestingUser);
+        var source = await _materialRepository.GetByIdAsync(sourceId, cancellationToken)
+            ?? throw new MaterialNotFoundException(sourceId);
+
+        if (source.Status is MaterialStatus.Archived)
+        {
+            throw new ValidationException("Arşivlenmiş dokümandan takvim kopyası oluşturulamaz.");
+        }
+
+        var (recurrenceKind, dayOfWeek, dayOfMonth, scheduledAt) = ParseScheduleFields(
+            MaterialStatus.Scheduled, request.ScheduledPublishAt, request.RecurrenceKind,
+            request.RecurrenceDayOfWeek, request.RecurrenceDayOfMonth);
+
+        var now = DateTime.UtcNow;
+        var brandIds = source.MaterialBrands.Select(mb => mb.BrandId).ToList();
+        var templateId = source.ScheduleTemplateId ?? source.Id;
+
+        var copy = new Material
+        {
+            Title = source.Title,
+            Description = source.Description,
+            CategoryId = source.CategoryId,
+            FileName = source.FileName,
+            StoredFileName = source.StoredFileName,
+            FilePath = source.FilePath,
+            MimeType = source.MimeType,
+            FileSize = source.FileSize,
+            Status = MaterialStatus.Scheduled,
+            PublishedAt = scheduledAt!.Value,
+            ExpiresAt = source.ExpiresAt,
+            ScheduledPublishAt = scheduledAt,
+            RecurrenceKind = recurrenceKind,
+            RecurrenceDayOfWeek = dayOfWeek,
+            RecurrenceDayOfMonth = dayOfMonth,
+            ScheduleTemplateId = templateId,
+            CreatedBy = requestingUser.UserId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            MaterialBrands = brandIds.Select(brandId => new MaterialBrand { BrandId = brandId }).ToList()
+        };
+
+        _materialRepository.Add(copy);
+        await _materialRepository.SaveChangesAsync(cancellationToken);
+
+        var saved = await _materialRepository.GetByIdAsync(copy.Id, cancellationToken)
+            ?? throw new MaterialNotFoundException(copy.Id);
+        return ToResponse(saved);
+    }
+
     public async Task<MaterialResponse> PublishNowAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
@@ -276,13 +328,27 @@ public sealed class MaterialService : IMaterialService
             throw new ValidationException("Yalnızca zamanlanmış dokümanlar iptal edilebilir.");
         }
 
-        material.Status = MaterialStatus.Draft;
-        // Takvimden çıkarılan doküman "havuz" gibi davranır: yüklenme tarihi (CreatedAt) görünmelidir.
-        material.PublishedAt = material.CreatedAt;
-        material.ScheduledPublishAt = null;
-        material.RecurrenceKind = RecurrenceKind.None;
-        material.RecurrenceDayOfWeek = null;
-        material.RecurrenceDayOfMonth = null;
+        // Havuzdan üretilmiş takvim kopyası: arşivle (havuzdaki şablon kalsın).
+        // Eski tekil zamanlama: tekrar taslağa düşür.
+        if (material.ScheduleTemplateId.HasValue)
+        {
+            material.Status = MaterialStatus.Archived;
+            material.ScheduledPublishAt = null;
+            material.RecurrenceKind = RecurrenceKind.None;
+            material.RecurrenceDayOfWeek = null;
+            material.RecurrenceDayOfMonth = null;
+        }
+        else
+        {
+            material.Status = MaterialStatus.Draft;
+            // Takvimden çıkarılan doküman "havuz" gibi davranır: yüklenme tarihi (CreatedAt) görünmelidir.
+            material.PublishedAt = material.CreatedAt;
+            material.ScheduledPublishAt = null;
+            material.RecurrenceKind = RecurrenceKind.None;
+            material.RecurrenceDayOfWeek = null;
+            material.RecurrenceDayOfMonth = null;
+        }
+
         material.UpdatedAt = DateTime.UtcNow;
         await _materialRepository.SaveChangesAsync(cancellationToken);
 
