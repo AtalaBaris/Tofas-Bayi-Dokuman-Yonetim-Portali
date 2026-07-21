@@ -1,4 +1,6 @@
 /** Doküman listesi mock / UI modelleri. */
+import type { Material } from '../../../../core/models/material.interface';
+
 export type DocumentStatus = 'active' | 'draft' | 'archived';
 /** Liste sekmesi: tüm durumlar + All. */
 export type DocumentStatusTab = DocumentStatus | 'all';
@@ -83,6 +85,69 @@ export function remainingDaysLabel(expiresAt: string | null | undefined): string
     return 'Bugün son gün';
   }
   return 'Süresi doldu';
+}
+
+function fileKindFromMimeType(mimeType: string): DocumentFileKind {
+  if (mimeType.startsWith('video/')) {
+    return 'video';
+  }
+  if (mimeType === 'application/pdf') {
+    return 'pdf';
+  }
+  return 'doc';
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes <= 0) {
+    return '0 B';
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateLabel(iso: string): string {
+  return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(iso)
+  );
+}
+
+function brandTone(name: string): DocumentBrandTag['tone'] {
+  const lower = name.toLowerCase();
+  if (lower.includes('fiat')) {
+    return 'fiat';
+  }
+  if (lower.includes('jeep')) {
+    return 'jeep';
+  }
+  return 'default';
+}
+
+/** Backend MaterialResponse'unu admin doküman listesinin kullandığı karta çevirir. */
+export function toAdminDocumentListItem(material: Material): DocumentListItem {
+  return {
+    id: material.id,
+    title: material.title,
+    dateLabel: formatDateLabel(material.publishedAt),
+    category: material.categoryName,
+    sizeLabel: formatFileSize(material.fileSize),
+    brands: material.brandNames.map((name) => ({ label: name, tone: brandTone(name) })),
+    viewedCount: material.viewedCount,
+    audienceCount: material.audienceCount,
+    status: material.status.toLowerCase() as DocumentStatus,
+    fileKind: fileKindFromMimeType(material.mimeType),
+    description: material.description,
+    uploader: material.createdByName,
+    uploadedAt: formatDateLabel(material.publishedAt),
+    expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
+    fileSizeDetail: formatFileSize(material.fileSize),
+    version: `v${material.version}.0`,
+    fileName: material.fileName,
+  };
 }
 
 function daysFromNow(days: number): string {

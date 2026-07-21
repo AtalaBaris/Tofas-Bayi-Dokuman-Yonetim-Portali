@@ -270,6 +270,7 @@ public sealed class MaterialService : IMaterialService
         CreatedAt = material.CreatedAt,
         UpdatedAt = material.UpdatedAt,
         BrandIds = material.MaterialBrands.Select(mb => mb.BrandId).ToList(),
-        BrandNames = material.MaterialBrands.Select(mb => mb.Brand.Name).ToList()
+        BrandNames = material.MaterialBrands.Select(mb => mb.Brand.Name).ToList(),
+        CreatedByName = material.Creator.Name
     };
 }
