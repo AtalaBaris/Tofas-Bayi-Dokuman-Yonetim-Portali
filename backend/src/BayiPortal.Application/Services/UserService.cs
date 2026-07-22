@@ -119,6 +119,10 @@ public sealed class UserService : IUserService
         user.Email = email;
         user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
 
+        if (request.EmailNotifications.HasValue) user.EmailNotifications = request.EmailNotifications.Value;
+        if (request.DocumentAlerts.HasValue) user.DocumentAlerts = request.DocumentAlerts.Value;
+        if (request.ExpiryReminders.HasValue) user.ExpiryReminders = request.ExpiryReminders.Value;
+
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         var saved = await _userRepository.GetByIdAsync(userId, cancellationToken)
@@ -255,6 +259,9 @@ public sealed class UserService : IUserService
         DealerId = user.DealerId,
         DealerName = user.Dealer?.Name,
         IsActive = user.IsActive,
-        Phone = user.Phone
+        Phone = user.Phone,
+        EmailNotifications = user.EmailNotifications,
+        DocumentAlerts = user.DocumentAlerts,
+        ExpiryReminders = user.ExpiryReminders
     };
 }

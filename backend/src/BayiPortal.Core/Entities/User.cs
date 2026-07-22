@@ -13,6 +13,9 @@ public class User
     public int? DealerId { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Phone { get; set; }
+    public bool EmailNotifications { get; set; } = true;
+    public bool DocumentAlerts { get; set; } = true;
+    public bool ExpiryReminders { get; set; } = true;
 
     public Dealer? Dealer { get; set; }
     public ICollection<Material> CreatedMaterials { get; set; } = new List<Material>();

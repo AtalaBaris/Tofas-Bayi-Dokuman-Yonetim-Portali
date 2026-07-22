@@ -8,4 +8,7 @@ export interface User {
   dealerName?: string | null;
   phone?: string | null;
   isActive?: boolean;
+  emailNotifications?: boolean;
+  documentAlerts?: boolean;
+  expiryReminders?: boolean;
 }

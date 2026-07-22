@@ -7,6 +7,9 @@ export interface UpdateOwnProfileRequest {
   name: string;
   email: string;
   phone?: string | null;
+  emailNotifications?: boolean;
+  documentAlerts?: boolean;
+  expiryReminders?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
