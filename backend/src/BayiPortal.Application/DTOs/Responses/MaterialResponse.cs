@@ -25,6 +25,7 @@ public class MaterialResponse
     public List<string> BrandNames { get; set; } = new();
     public List<MaterialBrandBadgeResponse> Brands { get; set; } = new();
     public string CreatedByName { get; set; } = string.Empty;
+    public List<MaterialFileResponse> Files { get; set; } = new();
 
     /// <summary>
     /// İsteği atan kullanıcının bu materyale erişim durumu: "unread" | "viewed" | "downloaded".

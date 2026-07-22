@@ -29,5 +29,11 @@ public class AccessLogConfiguration : IEntityTypeConfiguration<AccessLog>
             .HasForeignKey(x => x.MaterialId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.MaterialFile)
+            .WithMany(mf => mf.AccessLogs)
+            .HasForeignKey(x => x.MaterialFileId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

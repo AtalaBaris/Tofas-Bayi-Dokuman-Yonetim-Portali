@@ -102,15 +102,37 @@
 
   <div class="docs-drawer__footer">
     <section class="docs-drawer__file">
-      <h3 class="docs-drawer__section-title">Ekli Dosya</h3>
-      <div class="docs-drawer__file-card">
-        <div class="docs-drawer__file-info">
-          <div
-            class="docs-drawer__file-icon"
-            [class.docs-drawer__icon--pdf]="doc().fileKind === 'pdf'"
-          >
-            <span class="material-symbols-outlined">{{ iconFor(doc().fileKind) }}</span>
+      <h3 class="docs-drawer__section-title">
+        Ekli Dosyalar
+        @if (doc().files.length > 1) {
+          <span class="docs-drawer__file-count">({{ doc().files.length }})</span>
+        }
+      </h3>
+      <div class="docs-drawer__file-list">
+        @for (file of doc().files; track file.id) {
+          <div class="docs-drawer__file-card">
+            <div class="docs-drawer__file-info">
+              <div
+                class="docs-drawer__file-icon"
+                [class.docs-drawer__icon--pdf]="file.fileKind === 'pdf'"
+              >
+                <span class="material-symbols-outlined">{{ iconFor(file.fileKind) }}</span>
+              </div>
+              <div class="docs-drawer__file-text">
+                <div class="docs-drawer__file-name">{{ file.fileName }}</div>
+                <div class="docs-drawer__file-size">{{ file.sizeLabel }}</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="docs-drawer__download"
+              aria-label="İndir"
+              (click)="downloadFile.emit({ materialId: doc().id, fileId: file.id, fileName: file.fileName })"
+            >
+              <span class="material-symbols-outlined">download</span>
+            </button>
           </div>
+<<<<<<< HEAD
           <div class="docs-drawer__file-text">
             <div class="docs-drawer__file-name">{{ doc().fileName }}</div>
             <div class="docs-drawer__file-size">{{ doc().sizeLabel }}</div>
@@ -119,9 +141,18 @@
         <button type="button" class="docs-drawer__download" aria-label="İndir" (click)="download.emit(doc())">
           <span class="material-symbols-outlined">download</span>
         </button>
+=======
+        }
+>>>>>>> Develop
       </div>
     </section>
 
+    @if (doc().status === 'scheduled' || doc().status === 'draft') {
+      <button type="button" class="docs-drawer__publish" (click)="publishNow.emit(doc())">
+        <span class="material-symbols-outlined">publish</span>
+        Hemen Yayınla
+      </button>
+    }
     <button type="button" class="docs-drawer__archive" (click)="archive.emit(doc())">
       <span class="material-symbols-outlined">archive</span>
       Dokümanı Arşivle

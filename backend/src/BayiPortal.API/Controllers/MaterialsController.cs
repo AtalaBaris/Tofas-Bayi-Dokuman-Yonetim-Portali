@@ -54,14 +54,24 @@ public class MaterialsController : ControllerBase
         return File(content, mimeType, fileName);
     }
 
+    [HttpGet("{id:int}/files/{fileId:int}/download")]
+    public async Task<IActionResult> DownloadFile(int id, int fileId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetFileDownloadStreamAsync(id, fileId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Create(
         [FromForm] CreateMaterialForm form, CancellationToken cancellationToken)
     {
-        if (form.File is null || form.File.Length == 0)
+        // FormData alan adı (Files / File) veya model binder fark etmeksizin
+        // multipart içindeki tüm dosyaları al.
+        var formFiles = ResolveUploadedFiles(form);
+        if (formFiles.Count == 0)
         {
-            return BadRequest(new { message = "Dosya zorunludur." });
+            return BadRequest(new { message = "En az bir dosya zorunludur." });
         }
 
         var request = new CreateMaterialRequest
@@ -78,12 +88,27 @@ public class MaterialsController : ControllerBase
             RecurrenceDayOfMonth = form.RecurrenceDayOfMonth
         };
 
-        await using var stream = form.File.OpenReadStream();
-        var result = await _materialService.CreateAsync(
-            request, stream, form.File.FileName, form.File.ContentType ?? string.Empty, form.File.Length,
-            GetRequestingUser(), cancellationToken);
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            var result = await _materialService.CreateAsync(request, uploaded, GetRequestingUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
     }
 
     [HttpPut("{id:int}")]
@@ -145,6 +170,25 @@ public class MaterialsController : ControllerBase
         var dealerId = dealerIdClaim is null ? (int?)null : int.Parse(dealerIdClaim);
         return new RequestingUser(userId, role, dealerId);
     }
+
+    /// <summary>
+    /// Model binder bazen List&lt;IFormFile&gt; için boş gelebilir; Request.Form.Files yedek.
+    /// Eski istemcilerin "File" alanı da kabul edilir.
+    /// </summary>
+    private List<IFormFile> ResolveUploadedFiles(CreateMaterialForm form)
+    {
+        var fromModel = (form.Files ?? new List<IFormFile>())
+            .Where(f => f is { Length: > 0 })
+            .ToList();
+        if (fromModel.Count > 0)
+        {
+            return fromModel;
+        }
+
+        return Request.Form.Files
+            .Where(f => f.Length > 0)
+            .ToList();
+    }
 }
 
 // Multipart/form-data binding modeli (API katmanına özgü; Application katmanı IFormFile bilmez).
@@ -160,5 +204,5 @@ public class CreateMaterialForm
     public string? RecurrenceKind { get; set; }
     public int? RecurrenceDayOfWeek { get; set; }
     public int? RecurrenceDayOfMonth { get; set; }
-    public IFormFile? File { get; set; }
+    public List<IFormFile> Files { get; set; } = new();
 }

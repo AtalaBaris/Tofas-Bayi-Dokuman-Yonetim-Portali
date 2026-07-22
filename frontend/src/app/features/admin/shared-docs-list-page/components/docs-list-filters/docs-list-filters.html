@@ -4,7 +4,7 @@
     <input
       class="docs-filters__input"
       type="search"
-      placeholder="Dokümanlarda ara..."
+      placeholder="Dokümanlarda ara... (başlık veya tarih: 12.06.2023)"
       [ngModel]="search()"
       (ngModelChange)="searchChange.emit($event)"
     />
@@ -62,6 +62,36 @@
             <p class="docs-filters__brand-empty">Marka yok</p>
           }
         </div>
+      }
+    </div>
+
+    <div class="docs-filters__date-range">
+      <input
+        class="docs-filters__date-input"
+        type="date"
+        aria-label="Başlangıç tarihi"
+        [ngModel]="dateFrom()"
+        [max]="dateTo() || null"
+        (ngModelChange)="dateFromChange.emit($event)"
+      />
+      <span class="docs-filters__date-sep">–</span>
+      <input
+        class="docs-filters__date-input"
+        type="date"
+        aria-label="Bitiş tarihi"
+        [ngModel]="dateTo()"
+        [min]="dateFrom() || null"
+        (ngModelChange)="dateToChange.emit($event)"
+      />
+      @if (dateFrom() || dateTo()) {
+        <button
+          type="button"
+          class="docs-filters__date-clear"
+          aria-label="Tarih filtresini temizle"
+          (click)="clearDateRange()"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
       }
     </div>
   </div>

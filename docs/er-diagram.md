@@ -1,8 +1,9 @@
 # ER Diyagramı
 
 `backend/src/BayiPortal.Core/Entities/*.cs` içindeki gerçek entity/ilişki tanımlarından
-çıkarıldı (2026-07-21). `README.md`'deki kavramsal veri modeliyle küçük farklar olabilir —
-buradaki diyagram kod ile birebir eşleşir.
+çıkarıldı (2026-07-22, `Notification` + zamanlanmış yayın alanları + `Brand` badge alanları
+eklendi, `User.Role`/`Material.Status` enum olarak düzeltildi). `README.md`'deki kavramsal
+veri modeliyle küçük farklar olabilir — buradaki diyagram kod ile birebir eşleşir.
 
 ![ER Diyagramı](er-diagram.png)
 
@@ -18,8 +19,13 @@ erDiagram
     CATEGORY ||--o{ MATERIAL : "classifies"
     USER ||--o{ MATERIAL : "creates"
     MATERIAL ||--o{ MATERIAL_BRAND : "shared with"
+    MATERIAL ||--o{ MATERIAL_FILE : "has"
+    MATERIAL ||--o{ MATERIAL : "generates (schedule template)"
     USER ||--o{ ACCESS_LOG : "performs"
     MATERIAL ||--o{ ACCESS_LOG : "target of"
+    MATERIAL_FILE ||--o{ ACCESS_LOG : "target of"
+    USER ||--o{ NOTIFICATION : "receives"
+    MATERIAL ||--o{ NOTIFICATION : "about"
 
     DEALER {
         int Id PK
@@ -32,6 +38,8 @@ erDiagram
         int Id PK
         string Name
         string Code
+        string BadgeLabel
+        string BadgeColor
         bool IsActive
     }
 
@@ -52,7 +60,7 @@ erDiagram
         string Name
         string Email
         string PasswordHash
-        string Role
+        enum Role "RoleType: Admin/ContentManager/DealerUser"
         int DealerId FK "nullable"
         bool IsActive
         string Phone "nullable"
@@ -68,10 +76,15 @@ erDiagram
         string FilePath
         string MimeType
         long FileSize
-        string Status
+        enum Status "MaterialStatus: Draft/Active/Archived/Scheduled"
         int Version
         datetime PublishedAt
         datetime ExpiresAt "nullable"
+        datetime ScheduledPublishAt "nullable"
+        enum RecurrenceKind "None/Weekly/MonthlyDay"
+        int RecurrenceDayOfWeek "nullable, 0-6"
+        int RecurrenceDayOfMonth "nullable, 1-28"
+        int ScheduleTemplateId FK "nullable, self-ref"
         int CreatedBy FK
         datetime CreatedAt
         datetime UpdatedAt
@@ -82,17 +95,41 @@ erDiagram
         int BrandId PK,FK
     }
 
+    MATERIAL_FILE {
+        int Id PK
+        int MaterialId FK
+        string FileName
+        string StoredFileName
+        string FilePath
+        string MimeType
+        long FileSize
+        int SortOrder
+        datetime CreatedAt
+    }
+
     ACCESS_LOG {
         int Id PK
         int UserId FK "nullable"
         string UserName "nullable"
         int MaterialId FK "nullable"
+        int MaterialFileId FK "nullable"
         string Action
         string Description
         string LoginStatus "nullable"
         datetime ViewedAtUtc
         string IpAddress
         string UserAgent "nullable"
+    }
+
+    NOTIFICATION {
+        int Id PK
+        int UserId FK
+        enum Kind "NotificationKind: Document/Expiry/Announcement"
+        string Title
+        string Body
+        int MaterialId FK "nullable"
+        bool IsRead
+        datetime CreatedAt
     }
 ```
 
@@ -104,10 +141,33 @@ erDiagram
 - `AccessLog.UserId` / `AccessLog.MaterialId` **nullable FK** — PR #9
   (`feature-backend-bayiGirisLog`) ile sistem geneli loglama için ilişkiler
   opsiyonel hale getirildi (örn. materyali olmayan başarısız giriş denemesi).
-- `User.Role` (`string`) ve `Material.Status` (enum-backed `string` kolon) ayrı bir
-  lookup tablosuna FK değil — `TODO.md`'deki "hâlâ string kullanıyor" notuyla
-  tutarlı.
+- `User.Role` ve `Material.Status` artık gerçek C# enum'ları (`RoleType`,
+  `MaterialStatus`) — DB'de EF Core varsayılanıyla int olarak saklanıyor, ayrı bir
+  lookup tablosuna FK değiller. `AccessLog.Action`/`LoginStatus` ise hâlâ düz
+  `string` — `AccessAction` enum'u (`View`/`Download`) Core'da tanımlı olmasına
+  rağmen `AccessLog` entity'sine bağlanmamış (yarım kalmış bir dönüşüm gibi
+  görünüyor, kontrol edilmeli).
+- `Material.Status`'e `Scheduled` değeri eklendi; zamanlanmış/tekrarlayan yayın için
+  `ScheduledPublishAt`, `RecurrenceKind` (`None`/`Weekly`/`MonthlyDay`),
+  `RecurrenceDayOfWeek`, `RecurrenceDayOfMonth` ve kendi kendine referans veren
+  `ScheduleTemplateId` eklendi (`AddScheduledMaterialsAndNotifications` migration'ı).
+  Bir şablon materyalden üretilen "Active" kopyalar `ScheduleTemplateId` ile şablona
+  bağlanır.
+- `NOTIFICATION` tablosu aynı migration'la eklendi (`User`'a ve opsiyonel olarak
+  `Material`'a bağlı); `NotificationKind` enum'u (`Document`/`Expiry`/`Announcement`)
+  kullanıyor. Önceki diyagramda bu tablo hiç yoktu.
+- `Brand.BadgeLabel`/`BadgeColor`, `AddBrandBadgeFields` migration'ı ile eklendi
+  (doküman listelerinde marka rozeti için).
 - `Material.Version`, `AddVersionToMaterials` migration'ı ile eklendi; her
   `UpdateAsync`'te `+1` artırılır (bkz. `feature-backend-dokuman-goruntulenme-sayaci`,
   PR #17).
 - `User.Phone` (nullable), `AddPhoneToUsers` migration'ı ile eklendi.
+- `MATERIAL_FILE`, `AddMaterialFiles` migration'ı ile eklendi (bir materyal artık birden
+  fazla dosyaya sahip olabilir). `MATERIAL`'in eski tekil dosya kolonları
+  (`FileName`/`StoredFileName`/`FilePath`/`MimeType`/`FileSize`) geriye dönük uyumluluk
+  için kasıtlı olarak korundu ve migration'daki backfill ile mevcut materyallerin dosyası
+  birer `MATERIAL_FILE` satırına kopyalandı — "ilk dosya" özeti olarak dolu kalmaya devam
+  ediyorlar, kaynak artık `MATERIAL_FILE`.
+- `ACCESS_LOG.MaterialFileId` (nullable FK, `SetNull`), aynı migration'la eklendi; hangi
+  dosyanın görüntülendiğini/indirildiğini materyal-geneli değil dosya bazında izlemeyi
+  sağlar. Geçmiş loglarda bu alan `NULL` kalır (geriye dönük eşleme yapılmadı).

@@ -1,9 +1,9 @@
-/** Geliştirme ortamı ayarları.
- * HTTP kullanıyoruz: tarayıcı ASP.NET dev sertifikasını reddettiğinde
- * (ERR_CERT_AUTHORITY_INVALID) login kırılmasın diye.
- * API'yi https profiliyle çalıştırın; aynı anda http://localhost:5037 de açılır.
+/** Geliştirme ortamı — API Docker backend (8080).
+ * Full stack için: docker compose up -d → http://localhost:8081
+ * Sadece Angular lokal: ng serve → yine Docker API'ye (8080) bağlanır.
+ * Eski lokal API portu 5037 artık kullanılmıyor.
  */
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5037/api',
+  apiUrl: 'http://localhost:8080/api',
 };

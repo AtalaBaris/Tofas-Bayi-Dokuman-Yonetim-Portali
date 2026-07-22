@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<MaterialBrand> MaterialBrands => Set<MaterialBrand>();
+    public DbSet<MaterialFile> MaterialFiles => Set<MaterialFile>();
     public DbSet<AccessLog> AccessLogs => Set<AccessLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
 

@@ -7,6 +7,7 @@ public class AccessLog
     public int? UserId { get; set; }
     public string? UserName { get; set; }
     public int? MaterialId { get; set; }
+    public int? MaterialFileId { get; set; }
     public string Action { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? LoginStatus { get; set; }
@@ -16,4 +17,5 @@ public class AccessLog
 
     public User? User { get; set; }
     public Material? Material { get; set; }
+    public MaterialFile? MaterialFile { get; set; }
 }

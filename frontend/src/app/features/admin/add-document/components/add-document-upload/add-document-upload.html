@@ -25,12 +25,13 @@
       #fileInput
       class="add-upload__input"
       type="file"
+      multiple
       accept=".jpg,.jpeg,.png,.pdf,.docx,.pptx,.mp3,.wav,.mp4"
       (change)="onFilePicked($event)"
     />
   </div>
 
-  @if (file(); as selected) {
+  @for (selected of files(); track selected.name + selected.sizeBytes; let i = $index) {
     <div class="add-upload__file">
       <span class="material-symbols-outlined add-upload__file-icon">
         @switch (selected.kind) {
@@ -48,7 +49,7 @@
         type="button"
         class="add-upload__remove"
         aria-label="Dosyayı kaldır"
-        (click)="clearFile($event)"
+        (click)="removeFile($event, i)"
       >
         <span class="material-symbols-outlined">close</span>
       </button>

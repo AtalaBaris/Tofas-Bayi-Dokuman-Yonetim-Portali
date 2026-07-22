@@ -8,12 +8,17 @@ import { DocsDetailDrawer } from '../docs-detail-drawer/docs-detail-drawer';
 import { docsListAnimations } from '../../animations/docs-list.animations';
 import {
   materialToDocumentListItem,
+  matchesSearchQuery,
   type DocumentListItem,
   type DocumentStatusTab,
   type DocumentViewerRow,
 } from '../../models/document-list.model';
 import { MaterialsService } from '../../../../../core/services/materials.service';
+<<<<<<< HEAD
 import { AccessLogService } from '../../../../../core/services/access-log.service';
+=======
+import { saveBlobAsFile } from '../../../../../shared/utils/file-download.util';
+>>>>>>> Develop
 
 /** Her scroll yüklemesinde DOM'a eklenen kart sayısı. */
 const PAGE_SIZE = 20;
@@ -39,6 +44,9 @@ export class DocsListPage implements OnInit {
   readonly search = signal('');
   readonly category = signal('');
   readonly brands = signal<string[]>([]);
+  /** ISO tarih (YYYY-MM-DD) — yayın tarihi aralığı filtresi. */
+  readonly dateFrom = signal('');
+  readonly dateTo = signal('');
   readonly statusTab = signal<DocumentStatusTab>('all');
   readonly selected = signal<DocumentListItem | null>(null);
   readonly viewers = signal<DocumentViewerRow[]>([]);
@@ -63,10 +71,12 @@ export class DocsListPage implements OnInit {
   });
 
   readonly filteredDocs = computed(() => {
-    const q = this.search().trim().toLowerCase();
+    const q = this.search();
     const category = this.category();
     const brands = this.brands().map((b) => b.toLowerCase());
     const status = this.statusTab();
+    const dateFrom = this.dateFrom();
+    const dateTo = this.dateTo();
 
     return this.documents().filter((doc) => {
       if (status !== 'all' && doc.status !== status) {
@@ -81,7 +91,13 @@ export class DocsListPage implements OnInit {
           return false;
         }
       }
-      if (q && !doc.title.toLowerCase().includes(q)) {
+      if (!matchesSearchQuery(doc, q)) {
+        return false;
+      }
+      if (dateFrom && doc.publishedAtIso && doc.publishedAtIso < dateFrom) {
+        return false;
+      }
+      if (dateTo && doc.publishedAtIso && doc.publishedAtIso > dateTo) {
         return false;
       }
       return true;
@@ -100,6 +116,8 @@ export class DocsListPage implements OnInit {
       this.category();
       this.brands();
       this.statusTab();
+      this.dateFrom();
+      this.dateTo();
       this.visibleCount.set(PAGE_SIZE);
     });
   }
@@ -186,6 +204,15 @@ export class DocsListPage implements OnInit {
     this.selected.set(null);
   }
 
+  downloadFile(event: { materialId: number; fileId: number; fileName: string }): void {
+    this.materialsApi.downloadFile(event.materialId, event.fileId).subscribe({
+      next: (blob) => saveBlobAsFile(blob, event.fileName),
+      error: (err: { message?: string }) => {
+        this.loadError.set(err?.message ?? 'Dosya indirilemedi.');
+      },
+    });
+  }
+
   archiveDoc(doc: DocumentListItem): void {
     this.materialsApi.archive(doc.id).subscribe({
       next: () => {
@@ -200,6 +227,22 @@ export class DocsListPage implements OnInit {
       },
       error: (err: { message?: string }) => {
         this.loadError.set(err?.message ?? 'Arşivleme başarısız.');
+      },
+    });
+  }
+
+  publishNow(doc: DocumentListItem): void {
+    this.materialsApi.publishNow(doc.id).subscribe({
+      next: () => {
+        this.documents.update((list) =>
+          list.map((item) => (item.id === doc.id ? { ...item, status: 'active' as const } : item))
+        );
+        if (this.selected()?.id === doc.id) {
+          this.selected.update((current) => (current ? { ...current, status: 'active' } : current));
+        }
+      },
+      error: (err: { message?: string }) => {
+        this.loadError.set(err?.message ?? 'Yayınlama başarısız.');
       },
     });
   }
