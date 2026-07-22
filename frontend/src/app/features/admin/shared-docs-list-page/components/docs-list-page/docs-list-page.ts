@@ -14,11 +14,8 @@ import {
   type DocumentViewerRow,
 } from '../../models/document-list.model';
 import { MaterialsService } from '../../../../../core/services/materials.service';
-<<<<<<< HEAD
 import { AccessLogService } from '../../../../../core/services/access-log.service';
-=======
 import { saveBlobAsFile } from '../../../../../shared/utils/file-download.util';
->>>>>>> Develop
 
 /** Her scroll yüklemesinde DOM'a eklenen kart sayısı. */
 const PAGE_SIZE = 20;
