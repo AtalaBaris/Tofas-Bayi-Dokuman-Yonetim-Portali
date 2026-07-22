@@ -33,6 +33,8 @@ export interface DocumentListItem {
   description: string;
   uploader: string;
   uploadedAt: string;
+  /** ISO tarih (YYYY-MM-DD) — yayın tarihi; tarihe göre arama/filtreleme için kullanılır. */
+  publishedAtIso: string;
   /** ISO tarih (YYYY-MM-DD); yoksa sadece yükleme tarihi geçerli. */
   expiresAt?: string | null;
   scheduledPublishAt?: string | null;
@@ -43,6 +45,77 @@ export interface DocumentListItem {
   fileName: string;
   /** Bu dokümana ait tüm dosyalar (çoklu dosya desteği). */
   files: DocumentFileItem[];
+}
+
+/** Arama metnini tarih olarak yorumlar; eşleşirse ISO tam tarih ya da yıl/ay öneki döner. */
+export function parseSearchDateQuery(raw: string): { kind: 'exact' | 'prefix'; value: string } | null {
+  const q = raw.trim();
+
+  // ISO: YYYY-MM-DD / YYYY-MM / YYYY
+  let m = q.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    return { kind: 'exact', value: q };
+  }
+  m = q.match(/^(\d{4})-(\d{2})$/);
+  if (m) {
+    return { kind: 'prefix', value: q };
+  }
+  m = q.match(/^(\d{4})$/);
+  if (m) {
+    return { kind: 'prefix', value: q };
+  }
+
+  // TR/EU: DD.MM.YYYY veya DD/MM/YYYY veya DD-MM-YYYY
+  m = q.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (m) {
+    const [, d, mo, y] = m;
+    const day = d.padStart(2, '0');
+    const month = mo.padStart(2, '0');
+    if (Number(day) >= 1 && Number(day) <= 31 && Number(month) >= 1 && Number(month) <= 12) {
+      return { kind: 'exact', value: `${y}-${month}-${day}` };
+    }
+  }
+
+  // DD.MM veya DD/MM (yıl olmadan) — herhangi bir yıldaki o gün/ay ile eşleşir
+  m = q.match(/^(\d{1,2})[./-](\d{1,2})$/);
+  if (m) {
+    const [, d, mo] = m;
+    const day = d.padStart(2, '0');
+    const month = mo.padStart(2, '0');
+    if (Number(day) >= 1 && Number(day) <= 31 && Number(month) >= 1 && Number(month) <= 12) {
+      return { kind: 'prefix', value: `-${month}-${day}` };
+    }
+  }
+
+  return null;
+}
+
+/** Arama kutusu metni: başlıkta, görünen tarih etiketinde ya da ayrıştırılmış tarihte eşleşme arar. */
+export function matchesSearchQuery(doc: DocumentListItem, rawQuery: string): boolean {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) {
+    return true;
+  }
+
+  if (doc.title.toLowerCase().includes(q)) {
+    return true;
+  }
+  if (doc.dateLabel.toLowerCase().includes(q)) {
+    return true;
+  }
+
+  const dateQuery = parseSearchDateQuery(rawQuery);
+  if (dateQuery && doc.publishedAtIso) {
+    if (dateQuery.kind === 'exact') {
+      return doc.publishedAtIso === dateQuery.value;
+    }
+    // '-MM-DD' öneki gün/ay eşleşmesi için sondan, diğerleri baştan kontrol edilir.
+    return dateQuery.value.startsWith('-')
+      ? doc.publishedAtIso.endsWith(dateQuery.value)
+      : doc.publishedAtIso.startsWith(dateQuery.value);
+  }
+
+  return false;
 }
 
 /** Örn. "1000/1200 kişi gördü" */
@@ -179,6 +252,7 @@ export function materialToDocumentListItem(material: {
     description: material.description,
     uploader: material.createdByName?.trim() || '—',
     uploadedAt: formatTrDate(material.publishedAt),
+    publishedAtIso: material.publishedAt ? material.publishedAt.slice(0, 10) : '',
     expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
     scheduledPublishAt: scheduleIso,
     recurrenceKind: material.recurrenceKind ?? 'None',
@@ -277,6 +351,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
       'Bu kampanya dokümanı, Haziran ayı boyunca geçerli olacak Fiat marka araçlar için özel finansman ve takas desteği detaylarını içermektedir. Bayi ağımızın tüm satış temsilcilerinin bu yönergeleri dikkatle incelemesi ve müşteri görüşmelerinde belirtilen kampanya kodlarını kullanması rica olunur.',
     uploader: 'Yönetici',
     uploadedAt: '12 Haz 2023',
+    publishedAtIso: '2023-06-12',
     expiresAt: daysFromNow(20),
     fileSizeDetail: '15.4 MB',
     version: 'v1.2 (Son)',
@@ -299,6 +374,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     description: 'Üçüncü çeyrek bayi operasyon yönergeleri ve süreç güncellemeleri.',
     uploader: 'İçerik Yöneticisi',
     uploadedAt: '05 Haz 2023',
+    publishedAtIso: '2023-06-05',
     expiresAt: null,
     fileSizeDetail: '1.1 MB',
     version: 'v1.0',
@@ -319,6 +395,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     description: '2024 ürün yol haritası sunumu ve bayi bilgilendirme videosu.',
     uploader: 'Yönetici',
     uploadedAt: '28 May 2023',
+    publishedAtIso: '2023-05-28',
     expiresAt: daysFromNow(5),
     fileSizeDetail: '45 MB',
     version: 'v1.0',
@@ -339,6 +416,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     description: 'Yayımlanmamış servis bülteni taslağı.',
     uploader: 'İçerik Yöneticisi',
     uploadedAt: '20 May 2023',
+    publishedAtIso: '2023-05-20',
     expiresAt: null,
     fileSizeDetail: '800 KB',
     version: 'v0.3',
@@ -359,6 +437,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     description: 'Süresi dolmuş Opel kampanya dokümanı.',
     uploader: 'Yönetici',
     uploadedAt: '10 Oca 2023',
+    publishedAtIso: '2023-01-10',
     expiresAt: daysFromNow(-30),
     fileSizeDetail: '3.2 MB',
     version: 'v1.0',
