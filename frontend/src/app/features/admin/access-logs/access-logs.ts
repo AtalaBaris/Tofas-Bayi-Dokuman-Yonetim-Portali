@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccessLog, AccessLogService } from '../../../core/services/access-log.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-access-logs',
@@ -11,6 +12,9 @@ import { AccessLog, AccessLogService } from '../../../core/services/access-log.s
 })
 export class AccessLogs {
   private readonly accessLogService = inject(AccessLogService);
+  private readonly auth = inject(AuthService);
+
+  readonly isContentManager = computed(() => this.auth.currentUser()?.role === 'ContentManager');
 
   // Filtreler
   readonly searchQuery = signal('');
@@ -33,6 +37,8 @@ export class AccessLogs {
     'Döküman Görüntüleme',
     'Döküman İndirme',
     'Döküman Yükleme',
+    'Döküman Güncelleme',
+    'Döküman Arşivleme',
     'Kategori Oluşturma',
     'Kategori Güncelleme',
     'Kategori Silme',
@@ -46,6 +52,13 @@ export class AccessLogs {
     'Kullanıcı Güncellendi',
     'Şifre Değiştirildi',
   ];
+
+  readonly filteredActionsList = computed(() => {
+    if (this.isContentManager()) {
+      return ['Döküman Görüntüleme', 'Döküman İndirme', 'Döküman Yükleme', 'Döküman Güncelleme', 'Döküman Arşivleme'];
+    }
+    return this.actionsList;
+  });
 
   constructor() {
     // Filtreler veya sayfa numarası değiştiğinde otomatik olarak API'den verileri yükle
