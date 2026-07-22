@@ -47,7 +47,7 @@ public static class SeedData
             password: "Editor123!",
             dealer: null);
 
-        await EnsureUserAsync(
+        var userA = await EnsureUserAsync(
             dbContext,
             passwordHasher,
             email: "bayi.a@bayiportal.local",
@@ -56,7 +56,7 @@ public static class SeedData
             password: "Bayi123!",
             dealer: dealerA);
 
-        await EnsureUserAsync(
+        var userB = await EnsureUserAsync(
             dbContext,
             passwordHasher,
             email: "bayi.b@bayiportal.local",
@@ -64,6 +64,12 @@ public static class SeedData
             role: RoleType.DealerUser,
             password: "Bayi123!",
             dealer: dealerB);
+
+        await dbContext.SaveChangesAsync();
+
+        await EnsureNotificationAsync(dbContext, userA.Id, NotificationKind.Document, "Yeni Doküman Yayımlandı", "Markanız için 2026 Pazarlama Kılavuzu yayımlandı.", isRead: false);
+        await EnsureNotificationAsync(dbContext, userA.Id, NotificationKind.Announcement, "Sistem Bakım Duyurusu", "Portalımız haftasonu bakım çalışmasına girecektir.", isRead: true);
+        await EnsureNotificationAsync(dbContext, userB.Id, NotificationKind.Document, "Yeni Doküman Yayımlandı", "Markanız için 2026 Satış Eğitimi dökümanı eklendi.", isRead: false);
 
         await dbContext.SaveChangesAsync();
         logger?.LogInformation(
@@ -155,7 +161,7 @@ public static class SeedData
         db.DealerBrands.Add(new DealerBrand { Dealer = dealer, Brand = brand });
     }
 
-    private static async Task EnsureUserAsync(
+    private static async Task<User> EnsureUserAsync(
         ApplicationDbContext db,
         IPasswordHasher<User> passwordHasher,
         string email,
@@ -179,7 +185,7 @@ public static class SeedData
             };
             user.PasswordHash = passwordHasher.HashPassword(user, password);
             db.Users.Add(user);
-            return;
+            return user;
         }
 
         // Demo hesap: şifre README ile her Development start'ta senkron (giriş bozulmasın).
@@ -188,5 +194,24 @@ public static class SeedData
         user.IsActive = true;
         user.Dealer = dealer;
         user.PasswordHash = passwordHasher.HashPassword(user, password);
+        return user;
+    }
+
+    private static async Task EnsureNotificationAsync(
+        ApplicationDbContext db, int userId, NotificationKind kind, string title, string body, bool isRead)
+    {
+        var exists = await db.Notifications.AnyAsync(n => n.UserId == userId && n.Title == title);
+        if (!exists)
+        {
+            db.Notifications.Add(new Notification
+            {
+                UserId = userId,
+                Kind = kind,
+                Title = title,
+                Body = body,
+                IsRead = isRead,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
     }
 }
