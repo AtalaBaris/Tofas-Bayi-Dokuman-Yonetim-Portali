@@ -1,17 +1,15 @@
-/** Doküman bazlı erişim raporu (şimdilik mock veri — README FR-09 / FR-12 alanları). */
+/** Doküman bazlı erişim raporu (gerçek API entegrasyonu). */
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import {
-  MOCK_DOCUMENTS,
-  type DocumentListItem,
-} from '../../../shared-docs-list-page/models/document-list.model';
+import { Material } from '../../../../../core/models/material.interface';
+import { AccessLog, AccessLogService } from '../../../../../core/services/access-log.service';
+import { MaterialsService } from '../../../../../core/services/materials.service';
 import {
   accessActionMeta,
-  buildMockAccessRows,
   buildMockMetrics,
   type AccessAction,
   type AccessReportRow,
@@ -28,41 +26,77 @@ const PAGE_SIZE = 10;
 })
 export class DocumentAccessReportPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly materialsService = inject(MaterialsService);
+  private readonly accessLogsService = inject(AccessLogService);
 
   private readonly documentId = toSignal(
     this.route.paramMap.pipe(map((p) => Number(p.get('id')) || 0)),
     { initialValue: 0 }
   );
 
+  readonly document = signal<Material | null>(null);
+  readonly realLogs = signal<AccessLog[]>([]);
   readonly activeTab = signal<AccessReportTab>('viewed');
-  /** FR-12: aksiyon filtresi (VIEW / DOWNLOAD). */
   readonly actionFilter = signal<AccessAction | ''>('');
   readonly search = signal('');
   readonly page = signal(1);
 
-  readonly document = computed<DocumentListItem | null>(() => {
-    const id = this.documentId();
-    return MOCK_DOCUMENTS.find((d) => d.id === id) ?? MOCK_DOCUMENTS[0] ?? null;
-  });
+  constructor() {
+    effect(() => {
+      const id = this.documentId();
+      if (id > 0) {
+        this.loadData(id);
+      }
+    });
+  }
+
+  private loadData(id: number): void {
+    this.materialsService.getById(id).subscribe({
+      next: (doc) => this.document.set(doc),
+      error: () => this.document.set(null),
+    });
+
+    this.accessLogsService.getLogs({ materialId: id, pageSize: 100 }).subscribe({
+      next: (res) => this.realLogs.set(res.items),
+      error: () => this.realLogs.set([]),
+    });
+  }
 
   readonly metrics = computed(() => {
     const doc = this.document();
     if (!doc) {
       return buildMockMetrics(0, 0);
     }
-    return buildMockMetrics(doc.viewedCount, doc.audienceCount);
+    return buildMockMetrics(doc.viewedCount || 0, doc.audienceCount || 0);
   });
 
-  private readonly allRows = computed(() => {
+  private readonly allRows = computed<AccessReportRow[]>(() => {
     const doc = this.document();
-    const tab = this.activeTab();
     if (!doc) {
-      return [] as AccessReportRow[];
+      return [];
     }
-    const count = tab === 'viewed' ? this.metrics().viewedCount : this.metrics().pendingCount;
-    const minDemo = tab === 'viewed' ? 12 : 7;
-    const demoCount = Math.min(Math.max(count, minDemo), tab === 'viewed' ? 24 : 14);
-    return buildMockAccessRows(doc.id, doc.title, tab, demoCount);
+    const logs = this.realLogs();
+    return logs.map((log) => {
+      const lower = `${log.action} ${log.description}`.toLowerCase();
+      const isDownload = lower.includes('indir') || lower.includes('download');
+      const nameParts = (log.userName || 'Kullanıcı').split(' ');
+      const initials = nameParts.length >= 2
+        ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
+        : (log.userName?.[0] || 'K').toUpperCase();
+
+      return {
+        id: log.id,
+        userName: log.userName || 'Kullanıcı',
+        initials,
+        dealerName: log.userType || log.userRole || 'Bayi',
+        documentTitle: doc.title,
+        action: isDownload ? 'DOWNLOAD' : 'VIEW',
+        date: log.date,
+        time: log.time,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent || 'Chrome / Web Browser',
+      };
+    });
   });
 
   readonly filteredRows = computed(() => {

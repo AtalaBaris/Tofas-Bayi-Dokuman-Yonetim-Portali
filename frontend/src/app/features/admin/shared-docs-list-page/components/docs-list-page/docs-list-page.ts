@@ -14,7 +14,11 @@ import {
   type DocumentViewerRow,
 } from '../../models/document-list.model';
 import { MaterialsService } from '../../../../../core/services/materials.service';
+<<<<<<< HEAD
+import { AccessLogService } from '../../../../../core/services/access-log.service';
+=======
 import { saveBlobAsFile } from '../../../../../shared/utils/file-download.util';
+>>>>>>> Develop
 
 /** Her scroll yüklemesinde DOM'a eklenen kart sayısı. */
 const PAGE_SIZE = 20;
@@ -34,6 +38,7 @@ const PAGE_SIZE = 20;
 })
 export class DocsListPage implements OnInit {
   private readonly materialsApi = inject(MaterialsService);
+  private readonly accessLogsApi = inject(AccessLogService);
 
   readonly documents = signal<DocumentListItem[]>([]);
   readonly search = signal('');
@@ -158,6 +163,41 @@ export class DocsListPage implements OnInit {
 
   selectDoc(doc: DocumentListItem): void {
     this.selected.set(doc);
+    this.accessLogsApi.getLogs({ materialId: doc.id, pageSize: 10 }).subscribe({
+      next: (res) => {
+        const rows: DocumentViewerRow[] = res.items.map((log) => {
+          const nameParts = (log.userName || 'Kullanıcı').split(' ');
+          const initials = nameParts.length >= 2
+            ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
+            : (log.userName?.[0] || 'K').toUpperCase();
+          return {
+            id: log.id,
+            name: log.userName || 'Kullanıcı',
+            dealer: log.userType || log.userRole || 'Bayi',
+            whenLabel: `${log.date} ${log.time}`,
+            initials,
+          };
+        });
+        this.viewers.set(rows);
+      },
+      error: () => this.viewers.set([]),
+    });
+  }
+
+  downloadDoc(doc: DocumentListItem): void {
+    this.materialsApi.download(doc.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.fileName || `document-${doc.id}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err: { message?: string }) => {
+        this.loadError.set(err?.message ?? 'İndirme başarısız.');
+      },
+    });
   }
 
   closeDrawer(): void {

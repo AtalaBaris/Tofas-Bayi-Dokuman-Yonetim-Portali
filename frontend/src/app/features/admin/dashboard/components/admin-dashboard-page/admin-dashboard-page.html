@@ -116,17 +116,17 @@
       <article class="admin-dashboard__card">
         <h2 class="admin-dashboard__card-title admin-dashboard__card-title--spaced">En Çok İlgi Görenler</h2>
         <ul class="admin-dashboard__top-list">
-          @for (item of topDocuments(); track item.doc.id) {
+          @for (item of topDocuments(); track item.id) {
           <li>
             <a class="admin-dashboard__top-item" routerLink="/admin/documents">
               <span class="admin-dashboard__top-icon"
-                [class.admin-dashboard__top-icon--pdf]="item.doc.fileKind === 'pdf'"
-                [class.admin-dashboard__top-icon--video]="item.doc.fileKind === 'video'">
-                <span class="material-symbols-outlined">{{ docIcon(item.doc.fileKind) }}</span>
+                [class.admin-dashboard__top-icon--pdf]="item.fileKind === 'pdf'"
+                [class.admin-dashboard__top-icon--video]="item.fileKind === 'video'">
+                <span class="material-symbols-outlined">{{ docIcon(item.fileKind) }}</span>
               </span>
               <span class="admin-dashboard__top-body">
-                <span class="admin-dashboard__top-title">{{ item.doc.title }}</span>
-                <span class="admin-dashboard__top-meta">Kategori: {{ item.doc.category }}</span>
+                <span class="admin-dashboard__top-title">{{ item.title }}</span>
+                <span class="admin-dashboard__top-meta">Kategori: {{ item.categoryName }}</span>
               </span>
               <span class="admin-dashboard__top-stat">
                 <span class="admin-dashboard__top-count">{{ formatViews(item.views) }}</span>
