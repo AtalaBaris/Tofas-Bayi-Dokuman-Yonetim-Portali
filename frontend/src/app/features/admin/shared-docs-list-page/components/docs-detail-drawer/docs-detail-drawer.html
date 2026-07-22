@@ -116,7 +116,7 @@
             <div class="docs-drawer__file-size">{{ doc().sizeLabel }}</div>
           </div>
         </div>
-        <button type="button" class="docs-drawer__download" aria-label="İndir">
+        <button type="button" class="docs-drawer__download" aria-label="İndir" (click)="download.emit(doc())">
           <span class="material-symbols-outlined">download</span>
         </button>
       </div>

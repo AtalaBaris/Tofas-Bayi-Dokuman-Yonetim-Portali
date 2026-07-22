@@ -8,12 +8,10 @@ import { AccessLog, AccessLogService } from '../../../../../core/services/access
 import { BrandService } from '../../../../../core/services/brand.service';
 import { CategoryService } from '../../../../../core/services/category.service';
 import { DealerService } from '../../../../../core/services/dealer.service';
+import { MaterialsService } from '../../../../../core/services/materials.service';
 import { UserAdminService } from '../../../../../core/services/user-admin.service';
+import { Material } from '../../../../../core/models/material.interface';
 import { roleLabel } from '../../../definition-management/models/definition-management.model';
-import {
-  MOCK_DOCUMENTS,
-  type DocumentListItem,
-} from '../../../shared-docs-list-page/models/document-list.model';
 import { DashboardScheduleCalendar } from '../dashboard-schedule-calendar/dashboard-schedule-calendar';
 
 export interface DashboardActivityRow {
@@ -27,7 +25,10 @@ export interface DashboardActivityRow {
 }
 
 export interface TopDocumentRow {
-  doc: DocumentListItem;
+  id: number;
+  title: string;
+  categoryName: string;
+  fileKind: 'pdf' | 'video' | 'doc';
   views: number;
 }
 
@@ -40,6 +41,7 @@ export interface TopDocumentRow {
 export class AdminDashboardPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly accessLogs = inject(AccessLogService);
+  private readonly materialsService = inject(MaterialsService);
   private readonly usersApi = inject(UserAdminService);
   private readonly dealersApi = inject(DealerService);
   private readonly brandsApi = inject(BrandService);
@@ -49,6 +51,7 @@ export class AdminDashboardPage implements OnInit {
   readonly apiHealthy = signal(true);
   readonly chartPeriod = signal<'30' | 'year'>('30');
   readonly recentLogs = signal<AccessLog[]>([]);
+  readonly materials = signal<Material[]>([]);
   readonly accessLogTotal = signal<number | null>(null);
   readonly loginLogTotal = signal<number | null>(null);
   readonly userCount = signal<number | null>(null);
@@ -68,29 +71,18 @@ export class AdminDashboardPage implements OnInit {
     }).format(new Date())
   );
 
-  private readonly allDocuments = MOCK_DOCUMENTS;
-
   readonly documentStats = computed(() => {
-    const docs = this.allDocuments;
+    const docs = this.materials();
     return {
       total: docs.length,
-      active: docs.filter((d) => d.status === 'active').length,
-      draft: docs.filter((d) => d.status === 'draft').length,
-      archived: docs.filter((d) => d.status === 'archived').length,
+      active: docs.filter((d) => d.status.toLowerCase() === 'active').length,
+      draft: docs.filter((d) => d.status.toLowerCase() === 'draft').length,
+      archived: docs.filter((d) => d.status.toLowerCase() === 'archived').length,
     };
   });
 
   readonly monthlyViews = computed(() => {
-    const seen = new Set<string>();
-    let sum = 0;
-    for (const doc of this.allDocuments) {
-      if (seen.has(doc.title)) {
-        continue;
-      }
-      seen.add(doc.title);
-      sum += doc.viewedCount;
-    }
-    return sum;
+    return this.materials().reduce((sum, d) => sum + (d.viewedCount || 0), 0);
   });
 
   readonly engagementTrend = computed(() => {
@@ -113,20 +105,18 @@ export class AdminDashboardPage implements OnInit {
   });
 
   readonly topDocuments = computed<TopDocumentRow[]>(() => {
-    const seen = new Set<string>();
-    const rows: TopDocumentRow[] = [];
-    const sorted = [...this.allDocuments].sort((a, b) => b.viewedCount - a.viewedCount);
-    for (const doc of sorted) {
-      if (seen.has(doc.title)) {
-        continue;
-      }
-      seen.add(doc.title);
-      rows.push({ doc, views: doc.viewedCount });
-      if (rows.length >= 3) {
-        break;
-      }
-    }
-    return rows;
+    const sorted = [...this.materials()].sort((a, b) => (b.viewedCount || 0) - (a.viewedCount || 0));
+    return sorted.slice(0, 3).map((m) => ({
+      id: m.id,
+      title: m.title,
+      categoryName: m.categoryName,
+      fileKind: m.mimeType?.includes('pdf')
+        ? 'pdf'
+        : m.mimeType?.includes('video')
+        ? 'video'
+        : 'doc',
+      views: m.viewedCount || 0,
+    }));
   });
 
   readonly chartBars = computed(() => {
@@ -154,24 +144,20 @@ export class AdminDashboardPage implements OnInit {
 
   readonly activityRows = computed<DashboardActivityRow[]>(() => {
     const logs = this.recentLogs();
-    if (logs.length > 0) {
-      return logs.map((log) => this.mapLogToActivity(log));
-    }
-    return MOCK_ACTIVITY;
+    return logs.map((log) => this.mapLogToActivity(log));
   });
 
   readonly storagePercent = computed(() => {
-    const totalMb = this.allDocuments.reduce((sum, d) => {
-      const match = d.sizeLabel.match(/[\d.]+/);
-      return sum + (match ? Number(match[0]) : 0);
-    }, 0);
-    const cap = 500;
-    return Math.min(95, Math.max(12, Math.round((totalMb / cap) * 100)));
+    const totalBytes = this.materials().reduce((sum, d) => sum + (d.fileSize || 0), 0);
+    const totalMb = totalBytes / (1024 * 1024);
+    const capMb = 500 * 1024; // 500 GB in MB
+    return Math.min(95, Math.max(1, Math.round((totalMb / capMb) * 100)));
   });
 
   readonly storageLabel = computed(() => {
-    const used = Math.round((this.storagePercent() / 100) * 500);
-    return `${used} GB / 500 GB`;
+    const totalBytes = this.materials().reduce((sum, d) => sum + (d.fileSize || 0), 0);
+    const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+    return `${totalMb} MB / 500 GB`;
   });
 
   ngOnInit(): void {
@@ -182,7 +168,7 @@ export class AdminDashboardPage implements OnInit {
     this.chartPeriod.set(period);
   }
 
-  docIcon(kind: DocumentListItem['fileKind']): string {
+  docIcon(kind: TopDocumentRow['fileKind']): string {
     switch (kind) {
       case 'pdf':
         return 'picture_as_pdf';
@@ -207,6 +193,7 @@ export class AdminDashboardPage implements OnInit {
       recentLogs: { items: AccessLog[] };
       accessTotal: { totalCount: number };
       loginTotal: { totalCount: number };
+      materials: Material[];
       users?: unknown[];
       dealers?: unknown[];
       brands?: unknown[];
@@ -215,6 +202,7 @@ export class AdminDashboardPage implements OnInit {
       this.recentLogs.set(r.recentLogs.items);
       this.accessLogTotal.set(r.accessTotal.totalCount);
       this.loginLogTotal.set(r.loginTotal.totalCount);
+      this.materials.set(r.materials);
       if (r.users) {
         this.userCount.set(r.users.length);
       }
@@ -231,7 +219,7 @@ export class AdminDashboardPage implements OnInit {
       this.loading.set(false);
     };
 
-    const logRequests = {
+    const commonRequests = {
       recentLogs: this.accessLogs
         .getLogs({ page: 1, pageSize: 6 })
         .pipe(catchError(() => of({ items: [], totalCount: 0, page: 1, pageSize: 6 }))),
@@ -241,10 +229,13 @@ export class AdminDashboardPage implements OnInit {
       loginTotal: this.accessLogs
         .getLogs({ action: 'Giriş,Çıkış', page: 1, pageSize: 1 })
         .pipe(catchError(() => of({ items: [], totalCount: 0, page: 1, pageSize: 1 }))),
+      materials: this.materialsService
+        .list()
+        .pipe(catchError(() => of([]))),
     };
 
     if (!this.isAdmin()) {
-      forkJoin(logRequests).subscribe({
+      forkJoin(commonRequests).subscribe({
         next: applyResult,
         error: () => {
           this.apiHealthy.set(false);
@@ -255,7 +246,7 @@ export class AdminDashboardPage implements OnInit {
     }
 
     forkJoin({
-      ...logRequests,
+      ...commonRequests,
       users: this.usersApi.list().pipe(catchError(() => of([]))),
       dealers: this.dealersApi.list().pipe(catchError(() => of([]))),
       brands: this.brandsApi.list().pipe(catchError(() => of([]))),
@@ -283,42 +274,3 @@ export class AdminDashboardPage implements OnInit {
     };
   }
 }
-
-const MOCK_ACTIVITY: DashboardActivityRow[] = [
-  {
-    id: 1,
-    dealerName: 'Fiat Ankara',
-    action: 'İndirdi',
-    actionIcon: 'download',
-    actionTone: 'download',
-    documentName: 'Haziran Pazarlama Kampanyası',
-    when: '10 dk önce',
-  },
-  {
-    id: 2,
-    dealerName: 'Renault İstanbul Merkez',
-    action: 'Görüntüledi',
-    actionIcon: 'visibility',
-    actionTone: 'view',
-    documentName: '2024 Ürün Yol Haritası Sunumu',
-    when: '45 dk önce',
-  },
-  {
-    id: 3,
-    dealerName: 'Jeep Bursa',
-    action: 'İndirdi',
-    actionIcon: 'download',
-    actionTone: 'download',
-    documentName: 'Yeni Bayi Yönergeleri 3. Çeyrek',
-    when: '2 saat önce',
-  },
-  {
-    id: 4,
-    dealerName: 'Metro Otomotiv',
-    action: 'Görüntüledi',
-    actionIcon: 'visibility',
-    actionTone: 'view',
-    documentName: 'Peugeot Servis Bülteni Taslağı',
-    when: '5 saat önce',
-  },
-];

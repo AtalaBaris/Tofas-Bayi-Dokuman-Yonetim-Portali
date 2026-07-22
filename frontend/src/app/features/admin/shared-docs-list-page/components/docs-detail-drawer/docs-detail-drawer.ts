@@ -14,6 +14,7 @@ export class DocsDetailDrawer {
   readonly viewers = input<DocumentViewerRow[]>([]);
   readonly closed = output<void>();
   readonly archive = output<DocumentListItem>();
+  readonly download = output<DocumentListItem>();
 
   iconFor(kind: DocumentListItem['fileKind']): string {
     switch (kind) {

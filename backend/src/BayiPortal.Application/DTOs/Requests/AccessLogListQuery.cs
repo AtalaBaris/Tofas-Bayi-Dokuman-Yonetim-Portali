@@ -2,6 +2,7 @@ namespace BayiPortal.Application.DTOs.Requests;
 
 public class AccessLogListQuery
 {
+    public int? MaterialId { get; set; }
     public string? Keyword { get; set; }
     public string? Role { get; set; }
     public string? Action { get; set; }

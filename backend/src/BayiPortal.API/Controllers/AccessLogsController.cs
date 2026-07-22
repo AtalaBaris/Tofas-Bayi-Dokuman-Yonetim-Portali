@@ -25,6 +25,7 @@ public class AccessLogsController : ControllerBase
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AccessLogListResponse>> GetList(
+        [FromQuery] int? materialId,
         [FromQuery] string? keyword,
         [FromQuery] string? role,
         [FromQuery] string? action,
@@ -37,6 +38,7 @@ public class AccessLogsController : ControllerBase
     {
         var query = new AccessLogListQuery
         {
+            MaterialId = materialId,
             Keyword = keyword,
             Role = role,
             Action = action,

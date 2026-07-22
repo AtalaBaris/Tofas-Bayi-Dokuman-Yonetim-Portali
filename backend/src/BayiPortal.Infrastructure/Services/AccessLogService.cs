@@ -103,6 +103,12 @@ public class AccessLogService : IAccessLogService
             .Include(x => x.User)
             .AsNoTracking();
 
+        // MaterialId filter
+        if (query.MaterialId.HasValue)
+        {
+            dbQuery = dbQuery.Where(x => x.MaterialId == query.MaterialId.Value);
+        }
+
         // Keyword filter (matches username / email)
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
