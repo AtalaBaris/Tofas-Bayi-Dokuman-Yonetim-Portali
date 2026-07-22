@@ -373,6 +373,18 @@ export class DocsPoolCalendarPanel {
     });
   }
 
+  publishNow(doc: DocumentListItem): void {
+    this.materialsApi.publishNow(doc.id).subscribe({
+      next: () => {
+        this.closeDetails();
+        this.reloadAll();
+      },
+      error: (err: { message?: string }) => {
+        this.calendarError.set(err?.message ?? 'Yayınlama başarısız.');
+      },
+    });
+  }
+
   statusClass(status: string): string {
     return status.toLowerCase() === 'scheduled' ? 'cal-event--scheduled' : 'cal-event';
   }

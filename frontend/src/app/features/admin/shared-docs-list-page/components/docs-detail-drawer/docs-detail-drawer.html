@@ -136,6 +136,12 @@
       </div>
     </section>
 
+    @if (doc().status === 'scheduled' || doc().status === 'draft') {
+      <button type="button" class="docs-drawer__publish" (click)="publishNow.emit(doc())">
+        <span class="material-symbols-outlined">publish</span>
+        Hemen Yayınla
+      </button>
+    }
     <button type="button" class="docs-drawer__archive" (click)="archive.emit(doc())">
       <span class="material-symbols-outlined">archive</span>
       Dokümanı Arşivle
