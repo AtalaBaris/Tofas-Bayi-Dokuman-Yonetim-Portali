@@ -105,6 +105,10 @@ public class AccessLogService : IAccessLogService
             .Include(x => x.User)
             .AsNoTracking();
 
+        // MaterialId filter
+        if (query.MaterialId.HasValue)
+        {
+            dbQuery = dbQuery.Where(x => x.MaterialId == query.MaterialId.Value);
         // ContentManager yetki kısıtlaması: Giriş/Çıkış loglarını göremez, sadece doküman hareketlerini görebilir
         if (query.ExcludeAuthLogs)
         {

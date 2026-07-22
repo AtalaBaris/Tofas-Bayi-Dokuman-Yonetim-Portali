@@ -25,6 +25,7 @@ export interface AccessLogListResponse {
 }
 
 export interface AccessLogQuery {
+  materialId?: number;
   keyword?: string;
   role?: string;
   action?: string;
@@ -43,6 +44,7 @@ export class AccessLogService {
   getLogs(query: AccessLogQuery): Observable<AccessLogListResponse> {
     let params = new HttpParams();
 
+    if (query.materialId != null) params = params.set('materialId', query.materialId.toString());
     if (query.keyword) params = params.set('keyword', query.keyword);
     if (query.role) params = params.set('role', query.role);
     if (query.action) params = params.set('action', query.action);

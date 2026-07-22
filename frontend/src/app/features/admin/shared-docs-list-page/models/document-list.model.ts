@@ -317,12 +317,6 @@ export function remainingDaysLabel(expiresAt: string | null | undefined): string
   return 'Süresi doldu';
 }
 
-function daysFromNow(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 export interface DocumentViewerRow {
   id: number;
   name: string;
@@ -332,6 +326,8 @@ export interface DocumentViewerRow {
   avatarUrl?: string;
 }
 
+<<<<<<< HEAD
+=======
 export const SEED_DOCUMENTS: DocumentListItem[] = [
   {
     id: 1,
@@ -445,41 +441,5 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     files: [{ id: 5, fileName: 'opel_kampanya_arsiv.pdf', sizeLabel: '3.2 MB', fileKind: 'pdf' }],
   },
 ];
+>>>>>>> Develop
 
-/** Infinite scroll demosu — seed'lerden ~60 kayıt üretir. */
-export const MOCK_DOCUMENTS: DocumentListItem[] = Array.from({ length: 60 }, (_, index) => {
-  const seed = SEED_DOCUMENTS[index % SEED_DOCUMENTS.length];
-  const id = index + 1;
-  return {
-    ...seed,
-    id,
-    title: index < SEED_DOCUMENTS.length ? seed.title : `${seed.title} (#${id})`,
-    brands: seed.brands.map((b) => ({ ...b })),
-  };
-});
-
-export const MOCK_VIEWERS: DocumentViewerRow[] = [
-  {
-    id: 1,
-    name: 'Ahmet Yılmaz',
-    dealer: 'Fiat Ankara',
-    whenLabel: '2 saat önce',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC9wLd3k12mslKGK4V6IfYp0nD85dUEKKaImF3BIrTy80_JLwqR_Ii3j6O1BtTN3R0NYetJQKxIw-LP2krIkGnk_D742AYh4RTttWVYJTZSXgje4Ev1EdpfChHaBEHtyJL1wTz0Sn8ntUS3Y8v0081LFm1pKurRzpJ-lWk_eYH1OvnxXYmv3ZVJJKsl1s036e3EyFnSayz__r7L5BFu7ro9ldFf6MA_R4vFOgQ2d27CN0Y9xOdrrjx8',
-  },
-  {
-    id: 2,
-    name: 'Ayşe Kaya',
-    dealer: 'Metro Otomotiv',
-    whenLabel: '5 saat önce',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAJ3h2BJ47vvkHhDgdarrHRZulP_7L9rJH4FDZNzA3yoyk72fApcXXnzu_ztCT-mWFPW9tYD2g4xKoGUFo2h8Dy4_33cSyHBD37XxVsWT6XPY-KHL39mnRfK_frSKpx864SjqNf5tAT_-MCJ4LC07MKu5RbpJQdm2enmfGsh9YG5UeVNsitL5snq81GBhKpF_se-zCZ7DkKf5pMRo4tCpC-L0S8LI1zRSOkZQuqiyZntDsy3lMWcJ2H',
-  },
-  {
-    id: 3,
-    name: 'Mehmet Demir',
-    dealer: 'Pasifik Motors',
-    whenLabel: '1 gün önce',
-    initials: 'MD',
-  },
-];

@@ -21,15 +21,13 @@ export const routes: Routes = [
   },
   {
     path: 'materials',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/materials/material-list/material-list').then((m) => m.MaterialList),
+    redirectTo: 'bayi/documents',
+    pathMatch: 'full',
   },
   {
     path: 'materials/:id',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/materials/material-detail/material-detail').then((m) => m.MaterialDetail),
+    redirectTo: 'bayi/documents/:id',
+    pathMatch: 'full',
   },
   { path: '**', redirectTo: 'login' },
 ];

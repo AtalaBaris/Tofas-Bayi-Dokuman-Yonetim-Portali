@@ -32,10 +32,8 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'documents/schedule',
-        loadComponent: () =>
-          import(
-            './shared-docs-list-page/components/docs-schedule-calendar-page/docs-schedule-calendar-page'
-          ).then((m) => m.DocsScheduleCalendarPage),
+        redirectTo: 'documents/pool-calendar',
+        pathMatch: 'full',
       },
       {
         path: 'documents/pool-calendar',
