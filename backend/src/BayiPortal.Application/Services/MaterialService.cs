@@ -98,30 +98,55 @@ public sealed class MaterialService : IMaterialService
     }
 
     public async Task<MaterialResponse> CreateAsync(
-        CreateMaterialRequest request, Stream fileContent, string originalFileName, string mimeType, long fileSize,
+        CreateMaterialRequest request, IReadOnlyList<UploadedFileContent> files,
         RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
         await ValidateAsync(request.Title, request.Description, request.CategoryId, request.BrandIds, cancellationToken);
-        _fileUploadPolicy.ValidateOrThrow(originalFileName, mimeType, fileSize);
+
+        if (files.Count == 0)
+        {
+            throw new ValidationException("En az bir dosya yüklenmelidir.");
+        }
+
+        foreach (var file in files)
+        {
+            _fileUploadPolicy.ValidateOrThrow(file.OriginalFileName, file.MimeType, file.FileSize);
+        }
 
         var status = ParseCreateStatus(request.Status);
         var (recurrenceKind, dayOfWeek, dayOfMonth, scheduledAt) = ParseScheduleFields(
             status, request.ScheduledPublishAt, request.RecurrenceKind,
             request.RecurrenceDayOfWeek, request.RecurrenceDayOfMonth);
 
-        var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(fileContent, originalFileName, cancellationToken);
-
         var now = DateTime.UtcNow;
+        var materialFiles = new List<MaterialFile>();
+        for (var index = 0; index < files.Count; index++)
+        {
+            var file = files[index];
+            var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(file.Content, file.OriginalFileName, cancellationToken);
+            materialFiles.Add(new MaterialFile
+            {
+                FileName = file.OriginalFileName,
+                StoredFileName = storedFileName,
+                FilePath = relativePath,
+                MimeType = file.MimeType,
+                FileSize = file.FileSize,
+                SortOrder = index,
+                CreatedAt = now
+            });
+        }
+
+        var firstFile = materialFiles[0];
         var material = new Material
         {
             Title = request.Title.Trim(),
             Description = request.Description.Trim(),
             CategoryId = request.CategoryId,
-            FileName = originalFileName,
-            StoredFileName = storedFileName,
-            FilePath = relativePath,
-            MimeType = mimeType,
-            FileSize = fileSize,
+            FileName = firstFile.FileName,
+            StoredFileName = firstFile.StoredFileName,
+            FilePath = firstFile.FilePath,
+            MimeType = firstFile.MimeType,
+            FileSize = firstFile.FileSize,
             Status = status,
             PublishedAt = status == MaterialStatus.Active ? now : (scheduledAt ?? now),
             ExpiresAt = NormalizeExpiresAt(request.ExpiresAt),
@@ -132,7 +157,8 @@ public sealed class MaterialService : IMaterialService
             CreatedBy = requestingUser.UserId,
             CreatedAt = now,
             UpdatedAt = now,
-            MaterialBrands = request.BrandIds.Distinct().Select(brandId => new MaterialBrand { BrandId = brandId }).ToList()
+            MaterialBrands = request.BrandIds.Distinct().Select(brandId => new MaterialBrand { BrandId = brandId }).ToList(),
+            Files = materialFiles
         };
 
         _materialRepository.Add(material);
@@ -203,9 +229,30 @@ public sealed class MaterialService : IMaterialService
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
         var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
-        var stream = _fileStorageService.OpenRead(material.FilePath);
-        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman İndirme", $"\"{material.Title}\" dökümanı indirildi.", "N/A", cancellationToken);
-        return (stream, material.FileName, material.MimeType);
+        var primaryFile = material.Files.OrderBy(f => f.SortOrder).FirstOrDefault();
+        var stream = primaryFile is not null
+            ? _fileStorageService.OpenRead(primaryFile.FilePath)
+            : _fileStorageService.OpenRead(material.FilePath);
+        var fileName = primaryFile?.FileName ?? material.FileName;
+        var mimeType = primaryFile?.MimeType ?? material.MimeType;
+        await _accessLogService.LogAsync(
+            requestingUser.UserId, null, id, "Döküman İndirme", $"\"{material.Title}\" dökümanı indirildi.", "N/A",
+            cancellationToken, primaryFile?.Id);
+        return (stream, fileName, mimeType);
+    }
+
+    public async Task<(Stream Content, string FileName, string MimeType)> GetFileDownloadStreamAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        var file = material.Files.FirstOrDefault(f => f.Id == fileId)
+            ?? throw new MaterialFileNotFoundException(id, fileId);
+
+        var stream = _fileStorageService.OpenRead(file.FilePath);
+        await _accessLogService.LogAsync(
+            requestingUser.UserId, null, id, "Döküman İndirme", $"\"{material.Title}\" dökümanı indirildi.", "N/A",
+            cancellationToken, file.Id);
+        return (stream, file.FileName, file.MimeType);
     }
 
     public async Task<List<MaterialScheduleItemResponse>> GetScheduleCalendarAsync(
@@ -285,17 +332,19 @@ public sealed class MaterialService : IMaterialService
         var now = DateTime.UtcNow;
         var brandIds = source.MaterialBrands.Select(mb => mb.BrandId).ToList();
         var templateId = source.ScheduleTemplateId ?? source.Id;
+        var sourceFiles = source.Files.OrderBy(f => f.SortOrder).ToList();
+        var firstSourceFile = sourceFiles.FirstOrDefault();
 
         var copy = new Material
         {
             Title = source.Title,
             Description = source.Description,
             CategoryId = source.CategoryId,
-            FileName = source.FileName,
-            StoredFileName = source.StoredFileName,
-            FilePath = source.FilePath,
-            MimeType = source.MimeType,
-            FileSize = source.FileSize,
+            FileName = firstSourceFile?.FileName ?? source.FileName,
+            StoredFileName = firstSourceFile?.StoredFileName ?? source.StoredFileName,
+            FilePath = firstSourceFile?.FilePath ?? source.FilePath,
+            MimeType = firstSourceFile?.MimeType ?? source.MimeType,
+            FileSize = firstSourceFile?.FileSize ?? source.FileSize,
             Status = MaterialStatus.Scheduled,
             PublishedAt = scheduledAt!.Value,
             ExpiresAt = source.ExpiresAt,
@@ -307,7 +356,17 @@ public sealed class MaterialService : IMaterialService
             CreatedBy = requestingUser.UserId,
             CreatedAt = now,
             UpdatedAt = now,
-            MaterialBrands = brandIds.Select(brandId => new MaterialBrand { BrandId = brandId }).ToList()
+            MaterialBrands = brandIds.Select(brandId => new MaterialBrand { BrandId = brandId }).ToList(),
+            Files = sourceFiles.Select(f => new MaterialFile
+            {
+                FileName = f.FileName,
+                StoredFileName = f.StoredFileName,
+                FilePath = f.FilePath,
+                MimeType = f.MimeType,
+                FileSize = f.FileSize,
+                SortOrder = f.SortOrder,
+                CreatedAt = now
+            }).ToList()
         };
 
         _materialRepository.Add(copy);
@@ -415,17 +474,19 @@ public sealed class MaterialService : IMaterialService
     {
         var now = DateTime.UtcNow;
         var brandIds = template.MaterialBrands.Select(mb => mb.BrandId).ToList();
+        var templateFiles = template.Files.OrderBy(f => f.SortOrder).ToList();
+        var firstTemplateFile = templateFiles.FirstOrDefault();
 
         var copy = new Material
         {
             Title = template.Title,
             Description = template.Description,
             CategoryId = template.CategoryId,
-            FileName = template.FileName,
-            StoredFileName = template.StoredFileName,
-            FilePath = template.FilePath,
-            MimeType = template.MimeType,
-            FileSize = template.FileSize,
+            FileName = firstTemplateFile?.FileName ?? template.FileName,
+            StoredFileName = firstTemplateFile?.StoredFileName ?? template.StoredFileName,
+            FilePath = firstTemplateFile?.FilePath ?? template.FilePath,
+            MimeType = firstTemplateFile?.MimeType ?? template.MimeType,
+            FileSize = firstTemplateFile?.FileSize ?? template.FileSize,
             Status = MaterialStatus.Active,
             PublishedAt = now,
             ExpiresAt = template.ExpiresAt,
@@ -433,7 +494,17 @@ public sealed class MaterialService : IMaterialService
             CreatedBy = template.CreatedBy,
             CreatedAt = now,
             UpdatedAt = now,
-            MaterialBrands = brandIds.Select(brandId => new MaterialBrand { BrandId = brandId }).ToList()
+            MaterialBrands = brandIds.Select(brandId => new MaterialBrand { BrandId = brandId }).ToList(),
+            Files = templateFiles.Select(f => new MaterialFile
+            {
+                FileName = f.FileName,
+                StoredFileName = f.StoredFileName,
+                FilePath = f.FilePath,
+                MimeType = f.MimeType,
+                FileSize = f.FileSize,
+                SortOrder = f.SortOrder,
+                CreatedAt = now
+            }).ToList()
         };
 
         _materialRepository.Add(copy);
@@ -641,6 +712,14 @@ public sealed class MaterialService : IMaterialService
             BadgeLabel = string.IsNullOrWhiteSpace(mb.Brand.BadgeLabel) ? mb.Brand.Name : mb.Brand.BadgeLabel,
             BadgeColor = string.IsNullOrWhiteSpace(mb.Brand.BadgeColor) ? "#374151" : mb.Brand.BadgeColor
         }).ToList(),
-        CreatedByName = material.Creator?.Name ?? string.Empty
+        CreatedByName = material.Creator?.Name ?? string.Empty,
+        Files = material.Files.OrderBy(f => f.SortOrder).Select(f => new MaterialFileResponse
+        {
+            Id = f.Id,
+            FileName = f.FileName,
+            MimeType = f.MimeType,
+            FileSize = f.FileSize,
+            SortOrder = f.SortOrder
+        }).ToList()
     };
 }

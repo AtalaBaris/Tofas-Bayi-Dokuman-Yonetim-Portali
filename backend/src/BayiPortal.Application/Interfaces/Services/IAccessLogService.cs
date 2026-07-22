@@ -15,7 +15,8 @@ public interface IAccessLogService
         string action,
         string description,
         string? loginStatus = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        int? materialFileId = null);
 
     Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,

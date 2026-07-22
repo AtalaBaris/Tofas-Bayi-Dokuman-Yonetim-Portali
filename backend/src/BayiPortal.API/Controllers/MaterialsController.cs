@@ -54,14 +54,21 @@ public class MaterialsController : ControllerBase
         return File(content, mimeType, fileName);
     }
 
+    [HttpGet("{id:int}/files/{fileId:int}/download")]
+    public async Task<IActionResult> DownloadFile(int id, int fileId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetFileDownloadStreamAsync(id, fileId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Create(
         [FromForm] CreateMaterialForm form, CancellationToken cancellationToken)
     {
-        if (form.File is null || form.File.Length == 0)
+        if (form.Files.Count == 0 || form.Files.All(f => f.Length == 0))
         {
-            return BadRequest(new { message = "Dosya zorunludur." });
+            return BadRequest(new { message = "En az bir dosya zorunludur." });
         }
 
         var request = new CreateMaterialRequest
@@ -78,12 +85,27 @@ public class MaterialsController : ControllerBase
             RecurrenceDayOfMonth = form.RecurrenceDayOfMonth
         };
 
-        await using var stream = form.File.OpenReadStream();
-        var result = await _materialService.CreateAsync(
-            request, stream, form.File.FileName, form.File.ContentType ?? string.Empty, form.File.Length,
-            GetRequestingUser(), cancellationToken);
+        var streams = form.Files.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = form.Files.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            var result = await _materialService.CreateAsync(request, uploaded, GetRequestingUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
     }
 
     [HttpPut("{id:int}")]
@@ -160,5 +182,5 @@ public class CreateMaterialForm
     public string? RecurrenceKind { get; set; }
     public int? RecurrenceDayOfWeek { get; set; }
     public int? RecurrenceDayOfMonth { get; set; }
-    public IFormFile? File { get; set; }
+    public List<IFormFile> Files { get; set; } = new();
 }

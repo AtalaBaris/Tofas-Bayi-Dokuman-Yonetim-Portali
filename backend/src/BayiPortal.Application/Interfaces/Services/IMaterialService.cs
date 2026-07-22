@@ -12,7 +12,7 @@ public interface IMaterialService
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<MaterialResponse> CreateAsync(
-        CreateMaterialRequest request, Stream fileContent, string originalFileName, string mimeType, long fileSize,
+        CreateMaterialRequest request, IReadOnlyList<UploadedFileContent> files,
         RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<MaterialResponse> UpdateAsync(
@@ -22,6 +22,9 @@ public interface IMaterialService
 
     Task<(Stream Content, string FileName, string MimeType)> GetDownloadStreamAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<(Stream Content, string FileName, string MimeType)> GetFileDownloadStreamAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<List<MaterialScheduleItemResponse>> GetScheduleCalendarAsync(
         DateTime fromUtc, DateTime toUtc, RequestingUser requestingUser, CancellationToken cancellationToken = default);

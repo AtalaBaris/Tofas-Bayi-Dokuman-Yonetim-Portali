@@ -1,4 +1,4 @@
-/** Dosya sürükle-bırak / seçim alanı. */
+/** Dosya sürükle-bırak / seçim alanı (çoklu dosya). */
 import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import type { SelectedFileInfo } from '../../models/add-document.model';
 import {
@@ -13,8 +13,8 @@ import {
   styleUrl: '../../styles/add-document-upload.scss',
 })
 export class AddDocumentUpload {
-  readonly file = input<SelectedFileInfo | null>(null);
-  readonly fileChange = output<SelectedFileInfo | null>();
+  readonly files = input<SelectedFileInfo[]>([]);
+  readonly filesChange = output<SelectedFileInfo[]>();
   readonly fileErrorChange = output<string>();
 
   readonly dragOver = signal(false);
@@ -37,42 +37,46 @@ export class AddDocumentUpload {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     this.dragOver.set(false);
-    const dropped = event.dataTransfer?.files?.[0];
-    if (dropped) {
-      this.emitFile(dropped);
+    const dropped = event.dataTransfer?.files;
+    if (dropped && dropped.length > 0) {
+      this.emitFiles(dropped);
     }
   }
 
   onFilePicked(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const picked = input.files?.[0];
-    if (picked) {
-      this.emitFile(picked);
+    if (input.files && input.files.length > 0) {
+      this.emitFiles(input.files);
     }
     input.value = '';
   }
 
-  clearFile(event: Event): void {
+  removeFile(event: Event, index: number): void {
     event.stopPropagation();
+    const next = this.files().slice();
+    next.splice(index, 1);
     this.fileErrorChange.emit('');
-    this.fileChange.emit(null);
+    this.filesChange.emit(next);
   }
 
-  private emitFile(file: File): void {
-    const error = validateSelectedFile(file);
-    if (error) {
-      this.fileErrorChange.emit(error);
-      this.fileChange.emit(null);
-      return;
+  private emitFiles(fileList: FileList): void {
+    const selectedInfos: SelectedFileInfo[] = [];
+    for (const file of Array.from(fileList)) {
+      const error = validateSelectedFile(file);
+      if (error) {
+        this.fileErrorChange.emit(error);
+        return;
+      }
+      selectedInfos.push({
+        name: file.name,
+        sizeLabel: formatFileSize(file.size),
+        kind: detectFileKind(file.name),
+        file,
+        sizeBytes: file.size,
+      });
     }
 
     this.fileErrorChange.emit('');
-    this.fileChange.emit({
-      name: file.name,
-      sizeLabel: formatFileSize(file.size),
-      kind: detectFileKind(file.name),
-      file,
-      sizeBytes: file.size,
-    });
+    this.filesChange.emit([...this.files(), ...selectedInfos]);
   }
 }

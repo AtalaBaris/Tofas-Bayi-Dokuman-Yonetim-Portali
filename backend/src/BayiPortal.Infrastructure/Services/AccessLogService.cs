@@ -33,7 +33,8 @@ public class AccessLogService : IAccessLogService
         string action,
         string description,
         string? loginStatus = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? materialFileId = null)
     {
         var httpContext = _httpContextAccessor.HttpContext;
         var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString() ?? "127.0.0.1";
@@ -54,6 +55,7 @@ public class AccessLogService : IAccessLogService
             UserId = userId,
             UserName = userName,
             MaterialId = materialId,
+            MaterialFileId = materialFileId,
             Action = action,
             Description = description,
             LoginStatus = loginStatus ?? "N/A",

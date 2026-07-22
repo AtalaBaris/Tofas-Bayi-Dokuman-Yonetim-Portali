@@ -26,8 +26,8 @@
             (descriptionChange)="description.set($event)"
           />
           <app-add-document-upload
-            [file]="file()"
-            (fileChange)="file.set($event); fileError.set('')"
+            [files]="files()"
+            (filesChange)="files.set($event); fileError.set('')"
             (fileErrorChange)="fileError.set($event)"
           />
         </div>

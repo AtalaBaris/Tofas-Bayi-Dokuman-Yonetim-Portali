@@ -22,7 +22,7 @@ export interface CreateMaterialPayload {
   recurrenceKind?: 'None' | 'Weekly' | 'MonthlyDay';
   recurrenceDayOfWeek?: number | null;
   recurrenceDayOfMonth?: number | null;
-  file: File;
+  files: File[];
 }
 
 export interface UpdateMaterialSchedulePayload {
@@ -71,6 +71,12 @@ export class MaterialsService {
     });
   }
 
+  downloadFile(materialId: number, fileId: number) {
+    return this.http.get(`${this.api.baseUrl}/materials/${materialId}/files/${fileId}/download`, {
+      responseType: 'blob',
+    });
+  }
+
   create(payload: CreateMaterialPayload) {
     const form = new FormData();
     form.append('Title', payload.title);
@@ -95,7 +101,9 @@ export class MaterialsService {
     if (payload.recurrenceDayOfMonth != null) {
       form.append('RecurrenceDayOfMonth', String(payload.recurrenceDayOfMonth));
     }
-    form.append('File', payload.file, payload.file.name);
+    for (const file of payload.files) {
+      form.append('Files', file, file.name);
+    }
     return this.http.post<Material>(`${this.api.baseUrl}/materials`, form);
   }
 
