@@ -8,19 +8,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Komutlar
 
-### Backend (ASP.NET Core / .NET 9)
+### Full stack (Docker — ekip varsayılanı)
 
 ```bash
-# Build
+# Tüm servisleri ayağa kaldır (postgres + backend + frontend)
+docker compose up -d --build
+
+# Durum
+docker compose ps
+docker compose logs -f backend   # API log
+
+# Durdur / yeniden başlat
+docker compose down
+docker compose up -d --build
+```
+
+| Servis | Adres |
+|--------|--------|
+| Frontend | http://localhost:8081 |
+| API + Swagger | http://localhost:8080/swagger |
+| Postgres (host’tan) | `localhost:5433` — user/pass/db: `bayi` / `bayi123` / `BayiPortalDb` |
+
+Container içi connection string `Host=postgres;Port=5432` (compose env). Host’tan `dotnet ef` veya `psql` için `Port=5433`.
+
+Backend container Development’ta `MigrateAsync` + `SeedData` çalıştırır (admin/editor/bayi.a/bayi.b). Yüklenen dosyalar `bayi_uploads` volume’ünde (`/app/uploads`).
+
+⚠️ Bu makinede Homebrew Postgres (5432) ayrı bir süreç olabilir; **portal artık onu kullanmıyor**. Lokal `BayiPortalDb` silindi (2026-07-22). Başka projeler için 5432 açık kalabilir.
+
+### Backend lokal geliştirme (isteğe bağlı — Docker DB’ye bağlanır)
+
+```bash
 dotnet build backend/BayiPortal.sln
 
-# Çalıştır (appsettings.Development.json → Port=5433 varsayılan, Docker'ı hedefler;
-# bu makinede Homebrew Postgres 5432'de olduğundan port override dotnet user-secrets
-# ile ayarlı — bkz. aşağıdaki "Lokal veritabanı" notu, komut normal şekilde çalışır)
+# appsettings.Development.json → Port=5433 (Docker Postgres). Önce: docker compose up -d postgres
 dotnet run --project backend/src/BayiPortal.API --launch-profile https
 # API: https://localhost:7085  Swagger: /swagger  Health: GET /api/health
 
-# Migration oluşturma / uygulama (Infrastructure = migration'ların yaşadığı proje)
 dotnet ef migrations add <İsim> \
   --project backend/src/BayiPortal.Infrastructure \
   --startup-project backend/src/BayiPortal.API
@@ -32,13 +55,13 @@ dotnet ef database update \
 
 Henüz backend'de bir test projesi **yok** (`find backend -iname "*test*"` boş döner). Test eklenecekse `BayiPortal.sln`'e yeni bir xUnit/NUnit projesi olarak dahil edilmesi gerekir.
 
-### Frontend (Angular 20)
+### Frontend lokal geliştirme (isteğe bağlı)
 
 ```bash
 cd frontend
 npm install
-ng serve            # http://localhost:4200, apiUrl = https://localhost:7085/api (environment.ts)
-ng build             # prod build
+ng serve            # http://localhost:4200 — environment.ts apiUrl'i lokal API'ye (örn. :5037/:8080) işaret etmeli
+ng build             # prod build (Docker frontend image bunu kullanır; apiUrl='/api' + nginx proxy)
 ng test              # Karma/Jasmine — NOT: angular.json şemasında skipTests:true olduğundan
                       # component/service/guard/interceptor üretiminde .spec.ts otomatik oluşmuyor;
                       # şu an repoda hiç .spec.ts dosyası yok.
@@ -46,25 +69,8 @@ ng test              # Karma/Jasmine — NOT: angular.json şemasında skipTests
 
 Tek bir bileşen/testi çalıştırmak için Angular CLI'ın `ng test --include` mekanizması kullanılabilir, ancak önce ilgili `.spec.ts` dosyasının yazılmış olması gerekir.
 
-### Lokal veritabanı (bu makinede)
-
-Bu makinede PostgreSQL **Docker değil**, Homebrew ile lokal kurulu ve `brew services` üzerinden arka planda çalışıyor (port `5432`, otomatik başlar). Rol/veritabanı: `bayi` / `BayiPortalDb`.
-
-⚠️ 2026-07-17'de `feature-backend-bayiGirisLog` PR'ı (#9) ile commit'lenmiş `appsettings.Development.json`/`appsettings.json` içindeki varsayılan port **5433**'e çevrildi (Docker/`docker-compose.yml` ile eşleşsin diye — bkz. TODO.md'deki "config tutarsızlığı" notu). Bu, tutarsızlığı çözmek yerine bu makineye taşıdı: artık commit'lenmiş config **bu makinedeki Homebrew Postgres'le (5432) birebir eşleşmiyor**.
-
-Bu makinede çözüm olarak `dotnet user-secrets` kullanıldı (machine-local, repoya commit'lenmez, sadece `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json` içinde durur):
-
-```bash
-# Bir kereye mahsus (zaten bu makinede yapıldı, tekrar gerekmiyor)
-dotnet user-secrets init --project backend/src/BayiPortal.API
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
-  "Host=localhost;Port=5432;Database=BayiPortalDb;Username=bayi;Password=bayi123" \
-  --project backend/src/BayiPortal.API
-```
-
-Bunun için `BayiPortal.API.csproj`'a `<UserSecretsId>` eklendi (tek satır, commit edilebilir/edilmez — bkz. `git diff`). `ASPNETCORE_ENVIRONMENT=Development` olduğu sürece (launchSettings.json'daki `https`/`http` profilleri bunu zaten ayarlıyor) user-secrets appsettings'i override eder, yani `dotnet run --launch-profile https` **ek bir env var'a gerek kalmadan** doğrudan 5432'ye bağlanır. `docker-compose.yml` hâlâ repoda duruyor (ekibin Docker tercih eden üyeleri için, port `5433`, artık appsettings varsayılanıyla uyumlu) ama bu makinede kullanılmıyor.
-
 `dotnet-ef` global tool `~/.dotnet/tools` altında kurulu ve PATH'e (`~/.zprofile`) eklendi.
+
 
 ## Mimari
 
