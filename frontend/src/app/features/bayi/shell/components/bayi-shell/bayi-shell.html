@@ -1,0 +1,180 @@
+<div class="bayi-shell">
+  <header class="bayi-shell__topbar">
+    <div class="bayi-shell__topbar-inner">
+      <a class="bayi-shell__brand" routerLink="/bayi" (click)="closeMenu()">
+        <span class="bayi-shell__brand-mark" aria-hidden="true">
+          <span class="material-symbols-outlined">storefront</span>
+        </span>
+        <span class="bayi-shell__brand-text">
+          <span class="bayi-shell__brand-title">Bayi Portalı</span>
+          <span class="bayi-shell__brand-sub">Doküman Kütüphanesi</span>
+        </span>
+      </a>
+
+      <nav class="bayi-shell__desktop-nav" aria-label="Bayi menü">
+        <a
+          routerLink="/bayi"
+          routerLinkActive="bayi-shell__nav-link--active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="bayi-shell__nav-link"
+        >
+          Ana Sayfa
+        </a>
+        <a
+          routerLink="/bayi/documents"
+          routerLinkActive="bayi-shell__nav-link--active"
+          class="bayi-shell__nav-link"
+        >
+          Dokümanlarım
+        </a>
+      </nav>
+
+      <div class="bayi-shell__actions">
+        <div #notificationsRoot class="bayi-shell__notifications">
+          <button
+            type="button"
+            class="bayi-shell__icon-btn bayi-shell__notify-btn"
+            (click)="toggleNotifications()"
+            [attr.aria-expanded]="notificationsOpen()"
+            [attr.aria-label]="hasUnread() ? 'Bildirimler — okunmamış mesajınız var' : 'Bildirimler'"
+          >
+            <span class="material-symbols-outlined">notifications</span>
+            @if (hasUnread()) {
+              <span class="bayi-shell__notify-dot" aria-hidden="true"></span>
+            }
+          </button>
+
+          @if (notificationsOpen()) {
+            <div class="bayi-shell__notify-panel" role="dialog" aria-label="Bildirimler">
+              <div class="bayi-shell__notify-head">
+                <div>
+                  <h2 class="bayi-shell__notify-title">Bildirimler</h2>
+                  @if (hasUnread()) {
+                    <p class="bayi-shell__notify-sub">{{ unreadCount() }} yeni mesajınız var</p>
+                  } @else {
+                    <p class="bayi-shell__notify-sub">Tüm bildirimler okundu</p>
+                  }
+                </div>
+                @if (hasUnread()) {
+                  <button type="button" class="bayi-shell__notify-mark" (click)="markAllRead()">
+                    Tümünü okundu işaretle
+                  </button>
+                }
+              </div>
+
+              <ul class="bayi-shell__notify-list">
+                @for (item of notifications(); track item.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="bayi-shell__notify-item"
+                      [class.bayi-shell__notify-item--unread]="!item.isRead"
+                      (click)="openNotification(item)"
+                    >
+                      <span
+                        class="bayi-shell__notify-icon"
+                        [class.bayi-shell__notify-icon--expiry]="item.kind === 'expiry'"
+                      >
+                        <span class="material-symbols-outlined">{{ item.icon }}</span>
+                      </span>
+                      <span class="bayi-shell__notify-body">
+                        <span class="bayi-shell__notify-item-title">
+                          {{ item.title }}
+                          @if (!item.isRead) {
+                            <span class="bayi-shell__notify-item-dot" aria-label="Okunmadı"></span>
+                          }
+                        </span>
+                        <span class="bayi-shell__notify-message">{{ item.message }}</span>
+                        <span class="bayi-shell__notify-time">{{ item.timeLabel }}</span>
+                      </span>
+                      <span class="material-symbols-outlined bayi-shell__notify-chevron">chevron_right</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+
+        <button
+          type="button"
+          class="bayi-shell__icon-btn"
+          routerLink="/bayi/settings"
+          (click)="goToSettings()"
+          aria-label="Ayarlar"
+        >
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+
+        <button type="button" class="bayi-shell__user" (click)="goToProfile()" aria-label="Profilim">
+          <span class="bayi-shell__avatar">{{ initials() }}</span>
+          <span class="bayi-shell__user-meta">
+            <span class="bayi-shell__user-name">{{ userName() }}</span>
+            <span class="bayi-shell__user-dealer">{{ dealerName() }}</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="bayi-shell__icon-btn bayi-shell__profile-mobile"
+          (click)="goToProfile()"
+          aria-label="Profilim"
+        >
+          <span class="bayi-shell__avatar bayi-shell__avatar--mobile">{{ initials() }}</span>
+        </button>
+        <button type="button" class="bayi-shell__icon-btn bayi-shell__logout-desktop" (click)="logout()" aria-label="Çıkış yap">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+        <button
+          type="button"
+          class="bayi-shell__icon-btn bayi-shell__menu-btn"
+          (click)="toggleMenu()"
+          [attr.aria-expanded]="menuOpen()"
+          aria-label="Menü"
+        >
+          <span class="material-symbols-outlined">{{ menuOpen() ? 'close' : 'menu' }}</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  @if (menuOpen()) {
+    <div class="bayi-shell__drawer" role="dialog" aria-label="Mobil menü">
+      <a routerLink="/bayi" class="bayi-shell__drawer-link" (click)="closeMenu()">Ana Sayfa</a>
+      <a routerLink="/bayi/documents" class="bayi-shell__drawer-link" (click)="closeMenu()">Dokümanlarım</a>
+      <a routerLink="/bayi/profile" class="bayi-shell__drawer-link" (click)="closeMenu()">Profilim</a>
+      <a routerLink="/bayi/settings" class="bayi-shell__drawer-link" (click)="closeMenu()">Ayarlar</a>
+      <button type="button" class="bayi-shell__drawer-link bayi-shell__drawer-logout" (click)="logout()">
+        Çıkış Yap
+      </button>
+    </div>
+  }
+
+  <main class="bayi-shell__content">
+    <router-outlet />
+  </main>
+
+  <nav class="bayi-shell__bottom-nav" aria-label="Mobil gezinme">
+    <a
+      routerLink="/bayi"
+      routerLinkActive="bayi-shell__bottom-link--active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="bayi-shell__bottom-link"
+    >
+      <span class="material-symbols-outlined">home</span>
+      <span>Ana Sayfa</span>
+    </a>
+    <a
+      routerLink="/bayi/documents"
+      routerLinkActive="bayi-shell__bottom-link--active"
+      class="bayi-shell__bottom-link"
+    >
+      <span class="material-symbols-outlined">folder_open</span>
+      <span>Dokümanlar</span>
+    </a>
+    <button type="button" class="bayi-shell__bottom-link" (click)="logout()">
+      <span class="material-symbols-outlined">logout</span>
+      <span>Çıkış</span>
+    </button>
+  </nav>
+</div>

@@ -35,7 +35,12 @@ public sealed class GlobalExceptionMiddleware
         var (statusCode, message) = exception switch
         {
             MaterialNotFoundException => (HttpStatusCode.NotFound, "İstenen içerik bulunamadı."),
+            DealerNotFoundException => (HttpStatusCode.NotFound, "İstenen bayi bulunamadı."),
+            BrandNotFoundException => (HttpStatusCode.NotFound, "İstenen marka bulunamadı."),
+            CategoryNotFoundException => (HttpStatusCode.NotFound, "İstenen kategori bulunamadı."),
+            UserNotFoundException => (HttpStatusCode.NotFound, "İstenen kullanıcı bulunamadı."),
             ForbiddenAccessException => (HttpStatusCode.Forbidden, "Bu işlem için yetkiniz yok."),
+            InvalidCredentialsException invalidCredentialsEx => (HttpStatusCode.Unauthorized, invalidCredentialsEx.Message),
             DomainException domainEx => (HttpStatusCode.BadRequest, domainEx.Message),
             _ => (HttpStatusCode.InternalServerError, "Beklenmeyen bir hata oluştu.")
         };

@@ -1,0 +1,64 @@
+<div class="add-doc__card">
+  <h2 class="add-doc__card-title">Temel Bilgiler</h2>
+
+  <div class="add-basic">
+    <div class="add-basic__field">
+      <label class="add-basic__label" for="add-doc-title">
+        Başlık <span class="add-basic__required">*</span>
+      </label>
+      <input
+        id="add-doc-title"
+        class="add-basic__input"
+        [class.add-basic__input--invalid]="showErrors() && !title().trim()"
+        type="text"
+        placeholder="İçerik başlığını giriniz..."
+        [ngModel]="title()"
+        (ngModelChange)="titleChange.emit($event)"
+      />
+      @if (showErrors() && !title().trim()) {
+        <p class="add-basic__error">Başlık zorunludur.</p>
+      }
+    </div>
+
+    <div class="add-basic__field">
+      <label class="add-basic__label" for="add-doc-description">
+        Açıklama <span class="add-basic__required">*</span>
+      </label>
+      <div class="add-basic__editor">
+        <div class="add-basic__toolbar" role="toolbar" aria-label="Biçimlendirme">
+          <button type="button" class="add-basic__tool" aria-label="Kalın" tabindex="-1">
+            <span class="material-symbols-outlined">format_bold</span>
+          </button>
+          <button type="button" class="add-basic__tool" aria-label="İtalik" tabindex="-1">
+            <span class="material-symbols-outlined">format_italic</span>
+          </button>
+          <button type="button" class="add-basic__tool" aria-label="Altı çizili" tabindex="-1">
+            <span class="material-symbols-outlined">format_underlined</span>
+          </button>
+          <span class="add-basic__tool-sep" aria-hidden="true"></span>
+          <button type="button" class="add-basic__tool" aria-label="Madde listesi" tabindex="-1">
+            <span class="material-symbols-outlined">format_list_bulleted</span>
+          </button>
+          <button type="button" class="add-basic__tool" aria-label="Numaralı liste" tabindex="-1">
+            <span class="material-symbols-outlined">format_list_numbered</span>
+          </button>
+          <span class="add-basic__tool-sep" aria-hidden="true"></span>
+          <button type="button" class="add-basic__tool" aria-label="Bağlantı" tabindex="-1">
+            <span class="material-symbols-outlined">link</span>
+          </button>
+        </div>
+        <textarea
+          id="add-doc-description"
+          class="add-basic__textarea"
+          rows="5"
+          placeholder="İçerik detaylarını buraya ekleyin..."
+          [ngModel]="description()"
+          (ngModelChange)="descriptionChange.emit($event)"
+        ></textarea>
+      </div>
+      @if (showErrors() && !description().trim()) {
+        <p class="add-basic__error">Açıklama zorunludur.</p>
+      }
+    </div>
+  </div>
+</div>

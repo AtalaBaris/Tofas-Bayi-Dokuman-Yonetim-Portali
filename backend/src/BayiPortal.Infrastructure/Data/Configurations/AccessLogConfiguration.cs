@@ -12,17 +12,22 @@ public class AccessLogConfiguration : IEntityTypeConfiguration<AccessLog>
         builder.ToTable("AccessLogs");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Action).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(512).IsRequired();
+        builder.Property(x => x.LoginStatus).HasMaxLength(50);
+        builder.Property(x => x.UserName).HasMaxLength(256);
         builder.Property(x => x.IpAddress).HasMaxLength(64).IsRequired();
         builder.Property(x => x.UserAgent).HasMaxLength(512);
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.AccessLogs)
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(x => x.Material)
             .WithMany(m => m.AccessLogs)
             .HasForeignKey(x => x.MaterialId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

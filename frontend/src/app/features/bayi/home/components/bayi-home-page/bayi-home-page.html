@@ -1,0 +1,110 @@
+<div class="bayi-home">
+  <div class="bayi-home__inner">
+    <header class="bayi-home__header">
+      <div class="bayi-home__welcome">
+        <h1 class="bayi-home__title">Hoş geldiniz, {{ displayName() }}</h1>
+        <p class="bayi-home__meta">
+          <span class="bayi-home__dealer-chip">
+            <span class="material-symbols-outlined">storefront</span>
+            {{ dealerName() }}
+          </span>
+          <span class="bayi-home__date">{{ todayLabel() }}</span>
+        </p>
+      </div>
+      <p class="bayi-home__subtitle">
+        Markalarınıza açılan güncel dokümanları buradan görüntüleyebilir ve indirebilirsiniz.
+        Yalnızca bayinize atanmış aktif içerikler listelenir.
+      </p>
+    </header>
+
+    <section class="bayi-home__stats" aria-label="Özet">
+      <a class="bayi-home__stat" routerLink="/bayi/documents">
+        <span class="bayi-home__stat-icon">
+          <span class="material-symbols-outlined">folder_open</span>
+        </span>
+        <span class="bayi-home__stat-label">Size Açık Dokümanlar</span>
+        <span class="bayi-home__stat-value">{{ stats().total | number }}</span>
+      </a>
+      <a class="bayi-home__stat" routerLink="/bayi/documents">
+        <span class="bayi-home__stat-icon">
+          <span class="material-symbols-outlined">library_add</span>
+        </span>
+        <span class="bayi-home__stat-label">Bu Hafta Eklenenler</span>
+        <span class="bayi-home__stat-value">{{ stats().thisWeek | number }}</span>
+      </a>
+      <a class="bayi-home__stat" routerLink="/bayi/documents">
+        <span class="bayi-home__stat-icon">
+          <span class="material-symbols-outlined">fiber_new</span>
+        </span>
+        <span class="bayi-home__stat-label">Yeni İçerikler</span>
+        <span class="bayi-home__stat-value">{{ stats().newCount | number }}</span>
+      </a>
+    </section>
+
+    <section class="bayi-home__recent" aria-labelledby="recent-heading">
+      <div class="bayi-home__section-head">
+        <h2 id="recent-heading" class="bayi-home__section-title">Son Eklenen Dokümanlar</h2>
+        <a class="bayi-home__section-link" routerLink="/bayi/documents">Tümü</a>
+      </div>
+
+      <div class="bayi-home__grid">
+        @for (doc of recentDocs(); track doc.id) {
+          <article class="bayi-home__card">
+            <div class="bayi-home__card-top">
+              <div class="bayi-home__card-tags">
+                <span class="bayi-home__cat">{{ doc.category }}</span>
+                @if (doc.isNew) {
+                  <span class="bayi-home__badge bayi-home__badge--new">Yeni</span>
+                }
+                @if (doc.expiresInDays != null && doc.expiresInDays <= 7) {
+                  <span class="bayi-home__badge bayi-home__badge--warn">
+                    {{ doc.expiresInDays }} gün kaldı
+                  </span>
+                }
+              </div>
+              <span
+                class="bayi-home__file-icon"
+                [class.bayi-home__file-icon--pdf]="doc.fileKind === 'pdf'"
+                [class.bayi-home__file-icon--video]="doc.fileKind === 'video'"
+              >
+                <span class="material-symbols-outlined">{{ iconFor(doc) }}</span>
+              </span>
+            </div>
+
+            <h3 class="bayi-home__card-title">{{ doc.title }}</h3>
+
+            <div class="bayi-home__brands">
+              @for (brand of doc.brands; track brand) {
+                <span class="bayi-home__brand">{{ brand }}</span>
+              }
+            </div>
+
+            <div class="bayi-home__card-foot">
+              <span class="bayi-home__card-date">{{ doc.dateLabel }}</span>
+              <div class="bayi-home__card-actions">
+                <a
+                  class="bayi-home__icon-action"
+                  [routerLink]="['/bayi/documents', doc.id]"
+                  title="Görüntüle"
+                  aria-label="Görüntüle"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                </a>
+                <button type="button" class="bayi-home__icon-action" title="İndir" disabled>
+                  <span class="material-symbols-outlined">download</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+
+      <div class="bayi-home__cta-wrap">
+        <a class="bayi-home__cta" routerLink="/bayi/documents">
+          Tüm Dokümanları Gör
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </a>
+      </div>
+    </section>
+  </div>
+</div>

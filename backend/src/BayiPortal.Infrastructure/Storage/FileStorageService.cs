@@ -27,4 +27,12 @@ public sealed class FileStorageService : IFileStorageService
 
         return (storedFileName, storedFileName);
     }
+
+    public Stream OpenRead(string relativePath)
+    {
+        // Path traversal koruması: sadece dosya adı kısmı alınır, üst dizine çıkış yok sayılır.
+        var safeFileName = Path.GetFileName(relativePath);
+        var fullPath = Path.Combine(_rootPath, safeFileName);
+        return File.OpenRead(fullPath);
+    }
 }

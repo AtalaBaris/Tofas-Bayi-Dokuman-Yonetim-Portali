@@ -1,0 +1,237 @@
+<div class="access-report">
+  <div class="access-report__inner">
+    <header class="access-report__header">
+      <nav class="access-report__crumbs" aria-label="Sayfa yolu">
+        <a routerLink="/admin/documents">Dokümanlar</a>
+        <span class="material-symbols-outlined access-report__crumb-sep">chevron_right</span>
+        <span class="access-report__crumb-current">{{ document()?.title ?? 'Doküman' }}</span>
+        <span class="material-symbols-outlined access-report__crumb-sep">chevron_right</span>
+        <span class="access-report__crumb-current">Erişim Kayıtları</span>
+      </nav>
+      <h1 class="access-report__title">
+        {{ document()?.title ?? 'Doküman' }} — Erişim Kayıtları
+      </h1>
+      <p class="access-report__subtitle">
+        Bu dokümana ait görüntüleme (VIEW) ve indirme (DOWNLOAD) kayıtları: kullanıcı, bayi,
+        aksiyon, tarih/saat ve IP. Aynı bayiden birden fazla kullanıcı ayrı satırda listelenir.
+      </p>
+    </header>
+
+    <section class="access-report__metrics" aria-label="Özet metrikler">
+      <article class="access-report__metric">
+        <div class="access-report__metric-top">
+          <span class="access-report__metric-label">Hedef Kitle</span>
+          <div class="access-report__metric-icon">
+            <span class="material-symbols-outlined">groups</span>
+          </div>
+        </div>
+        <div class="access-report__metric-value">{{ metrics().audienceCount | number }}</div>
+        <div class="access-report__metric-hint">Yetkili bayi kullanıcısı</div>
+      </article>
+
+      <article class="access-report__metric access-report__metric--success">
+        <div class="access-report__metric-top">
+          <span class="access-report__metric-label">Erişim Kaydı</span>
+          <div class="access-report__metric-icon">
+            <span class="material-symbols-outlined">visibility</span>
+          </div>
+        </div>
+        <div class="access-report__metric-value">{{ metrics().viewedCount | number }}</div>
+        <div class="access-report__metric-hint">%{{ metrics().engagementPercent }} kapsama</div>
+      </article>
+
+      <article class="access-report__metric access-report__metric--warning">
+        <div class="access-report__metric-top">
+          <span class="access-report__metric-label">Bekleyen</span>
+          <div class="access-report__metric-icon">
+            <span class="material-symbols-outlined">visibility_off</span>
+          </div>
+        </div>
+        <div class="access-report__metric-value">{{ metrics().pendingCount | number }}</div>
+        <div class="access-report__metric-hint">Henüz VIEW/DOWNLOAD yok</div>
+      </article>
+    </section>
+
+    <section class="access-report__legend" aria-label="Aksiyon açıklamaları">
+      <span class="access-report__chip access-report__chip--success">
+        <span class="material-symbols-outlined">visibility</span>
+        VIEW — Görüntüleme
+      </span>
+      <span class="access-report__chip access-report__chip--info">
+        <span class="material-symbols-outlined">download</span>
+        DOWNLOAD — İndirme
+      </span>
+      <span class="access-report__chip access-report__chip--muted">
+        <span class="material-symbols-outlined">visibility_off</span>
+        Henüz erişim yok
+      </span>
+    </section>
+
+    <section class="access-report__panel">
+      <div class="access-report__toolbar">
+        <div class="access-report__tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            class="access-report__tab"
+            [class.access-report__tab--active]="activeTab() === 'viewed'"
+            [attr.aria-selected]="activeTab() === 'viewed'"
+            (click)="setTab('viewed')"
+          >
+            Erişim kayıtları
+            <span class="access-report__tab-badge access-report__tab-badge--success">
+              {{ metrics().viewedCount | number }}
+            </span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="access-report__tab"
+            [class.access-report__tab--active]="activeTab() === 'pending'"
+            [attr.aria-selected]="activeTab() === 'pending'"
+            (click)="setTab('pending')"
+          >
+            Bekleyenler
+            <span class="access-report__tab-badge access-report__tab-badge--warning">
+              {{ metrics().pendingCount | number }}
+            </span>
+          </button>
+        </div>
+
+        <div class="access-report__toolbar-right">
+          @if (activeTab() === 'viewed') {
+            <label class="access-report__select-wrap">
+              <span class="access-report__select-label">Aksiyon</span>
+              <select
+                class="access-report__select"
+                [ngModel]="actionFilter()"
+                (ngModelChange)="onActionFilter($event)"
+              >
+                <option value="">Tümü</option>
+                <option value="VIEW">VIEW — Görüntüleme</option>
+                <option value="DOWNLOAD">DOWNLOAD — İndirme</option>
+              </select>
+            </label>
+          }
+
+          <label class="access-report__search">
+            <span class="material-symbols-outlined access-report__search-icon">search</span>
+            <input
+              type="search"
+              placeholder="Kullanıcı, bayi veya IP ara..."
+              [ngModel]="search()"
+              (ngModelChange)="onSearch($event)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="access-report__table-wrap">
+        <table class="access-report__table">
+          <thead>
+            <tr>
+              <th scope="col">Kullanıcı Adı</th>
+              <th scope="col">Bayi</th>
+              @if (activeTab() === 'viewed') {
+                <th scope="col">Doküman</th>
+                <th scope="col">Aksiyon</th>
+                <th scope="col">Tarih</th>
+                <th scope="col">Saat</th>
+                <th scope="col">IP Adresi</th>
+              } @else {
+                <th scope="col">Durum</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of pagedDisplay(); track item.row.id) {
+              <tr>
+                <td>
+                  <div class="access-report__user">
+                    <span class="access-report__avatar">{{ item.row.initials }}</span>
+                    <span>{{ item.row.userName }}</span>
+                  </div>
+                </td>
+                @if (item.showDealer) {
+                  <td [attr.rowspan]="item.dealerRowSpan" class="access-report__dealer-cell">
+                    <div class="access-report__dealer">
+                      <div class="access-report__dealer-icon">
+                        <span class="material-symbols-outlined">storefront</span>
+                      </div>
+                      <span>{{ item.row.dealerName }}</span>
+                    </div>
+                  </td>
+                }
+                @if (activeTab() === 'viewed') {
+                  <td class="access-report__doc">{{ item.row.documentTitle }}</td>
+                  <td>
+                    <span
+                      class="access-report__chip"
+                      [class.access-report__chip--success]="item.action.tone === 'success'"
+                      [class.access-report__chip--info]="item.action.tone === 'info'"
+                      [attr.title]="item.action.code"
+                    >
+                      <span class="material-symbols-outlined">{{ item.action.icon }}</span>
+                      <span class="access-report__chip-code">{{ item.action.code }}</span>
+                      <span class="access-report__chip-label">{{ item.action.label }}</span>
+                    </span>
+                  </td>
+                  <td class="access-report__when">{{ item.row.date }}</td>
+                  <td class="access-report__when">{{ item.row.time }}</td>
+                  <td>
+                    <code class="access-report__ip">{{ item.row.ipAddress }}</code>
+                    @if (item.row.userAgent) {
+                      <div class="access-report__ua" [title]="item.row.userAgent">
+                        {{ item.row.userAgent }}
+                      </div>
+                    }
+                  </td>
+                } @else {
+                  <td>
+                    <span class="access-report__chip access-report__chip--muted">
+                      <span class="material-symbols-outlined">{{ item.action.icon }}</span>
+                      {{ item.action.label }}
+                    </span>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="tableColspan()" class="access-report__empty">
+                  Kayıt bulunamadı.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="access-report__pager">
+        <div class="access-report__pager-label">{{ rangeLabel() }}</div>
+        <div class="access-report__pager-controls">
+          <span class="access-report__pager-page">
+            Sayfa {{ page() }} / {{ totalPages() }}
+          </span>
+          <button
+            type="button"
+            class="access-report__pager-btn"
+            [disabled]="page() <= 1"
+            (click)="prevPage()"
+            aria-label="Önceki sayfa"
+          >
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button
+            type="button"
+            class="access-report__pager-btn"
+            [disabled]="page() >= totalPages()"
+            (click)="nextPage()"
+            aria-label="Sonraki sayfa"
+          >
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+</div>

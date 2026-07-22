@@ -1,0 +1,222 @@
+<div class="access-logs-page">
+  <header class="access-logs-header">
+    <h1 class="access-logs-header__title">Giriş Kayıtları</h1>
+    <p class="access-logs-header__subtitle">
+      Başarılı ve başarısız oturum açma denemelerini IP bilgisiyle inceleyin.
+    </p>
+  </header>
+
+  <div class="access-logs-filters">
+    <div class="access-logs-filters__search">
+      <span class="material-symbols-outlined access-logs-filters__search-icon">search</span>
+      <input
+        class="access-logs-filters__input"
+        type="search"
+        placeholder="Kullanıcı adına göre ara..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
+      />
+    </div>
+
+    <div class="access-logs-filters__selects">
+      <div class="access-logs-filters__select-wrap">
+        <select
+          class="access-logs-filters__select"
+          [ngModel]="selectedRole()"
+          (ngModelChange)="selectedRole.set($event); currentPage.set(1)"
+        >
+          <option value="">Tüm Roller</option>
+          <option value="Admin">Admin</option>
+          <option value="ContentManager">İçerik Yöneticisi</option>
+          <option value="DealerUser">Bayi</option>
+          <option value="Guest">Ziyaretçi</option>
+        </select>
+        <span class="material-symbols-outlined access-logs-filters__caret">arrow_drop_down</span>
+      </div>
+
+      <div class="access-logs-filters__select-wrap">
+        <select
+          class="access-logs-filters__select"
+          [ngModel]="selectedAction()"
+          (ngModelChange)="selectedAction.set($event); currentPage.set(1)"
+        >
+          <option value="">Tüm İşlemler</option>
+          @for (action of actionsList; track action) {
+            <option [value]="action">{{ action }}</option>
+          }
+        </select>
+        <span class="material-symbols-outlined access-logs-filters__caret">arrow_drop_down</span>
+      </div>
+
+      <div class="access-logs-filters__select-wrap">
+        <select
+          class="access-logs-filters__select"
+          [ngModel]="selectedStatus()"
+          (ngModelChange)="selectedStatus.set($event); currentPage.set(1)"
+        >
+          <option value="">Tüm Durumlar</option>
+          <option value="Başarılı">Başarılı</option>
+          <option value="Başarısız">Başarısız</option>
+          <option value="N/A">Bulunmuyor (-)</option>
+        </select>
+        <span class="material-symbols-outlined access-logs-filters__caret">arrow_drop_down</span>
+      </div>
+
+      <div class="access-logs-filters__date-picker">
+        <div class="access-logs-filters__date-input-wrap">
+          <input
+            type="date"
+            class="access-logs-filters__date-input"
+            [ngModel]="startDate()"
+            (ngModelChange)="startDate.set($event); currentPage.set(1)"
+            aria-label="Başlangıç Tarihi"
+            title="Başlangıç Tarihi"
+          />
+        </div>
+        <span class="access-logs-filters__date-separator">ile</span>
+        <div class="access-logs-filters__date-input-wrap">
+          <input
+            type="date"
+            class="access-logs-filters__date-input"
+            [ngModel]="endDate()"
+            (ngModelChange)="endDate.set($event); currentPage.set(1)"
+            aria-label="Bitiş Tarihi"
+            title="Bitiş Tarihi"
+          />
+        </div>
+      </div>
+
+      @if (hasAnyFilterActive()) {
+        <button
+          type="button"
+          class="access-logs-filters__clear-btn"
+          (click)="clearFilters()"
+        >
+          Filtreleri Temizle
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="access-logs-table-container">
+    <table class="access-logs-table">
+      <thead>
+        <tr>
+          <th>Kullanıcı Adı</th>
+          <th>Kullanıcı Rolü</th>
+          <th>Kullanıcı Tipi</th>
+          <th>İşlem</th>
+          <th>Açıklama</th>
+          <th>Giriş Durumu</th>
+          <th>Tarih</th>
+          <th>Saat</th>
+          <th>IP Adresi</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td colspan="9" class="access-logs-table__loading">
+              <span class="access-logs-table__spinner"></span>
+              <p>Giriş kayıtları yükleniyor...</p>
+            </td>
+          </tr>
+        } @else {
+          @for (log of logs(); track log.id) {
+            <tr class="access-logs-table__row">
+              <td class="font-semibold">{{ log.userName }}</td>
+              <td>
+                <span
+                  class="role-badge"
+                  [attr.data-role]="log.userRole.toLowerCase()"
+                >
+                  {{ roleLabel(log.userRole) }}
+                </span>
+              </td>
+              <td>{{ log.userType }}</td>
+              <td>
+                <span
+                  class="action-badge"
+                  [attr.data-action]="getActionClass(log.action)"
+                >
+                  {{ log.action }}
+                </span>
+              </td>
+              <td class="text-description">{{ log.description }}</td>
+              <td>
+                @if (log.loginStatus === 'Başarılı') {
+                  <span class="status-badge status-badge--success">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Başarılı
+                  </span>
+                } @else if (log.loginStatus === 'Başarısız') {
+                  <span class="status-badge status-badge--failed">
+                    <span class="material-symbols-outlined">cancel</span>
+                    Başarısız
+                  </span>
+                } @else {
+                  <span class="status-badge status-badge--na">-</span>
+                }
+              </td>
+              <td class="text-nowrap">{{ log.date }}</td>
+              <td class="text-nowrap">{{ log.time }}</td>
+              <td class="font-mono text-sm">{{ log.ipAddress }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="access-logs-table__empty">
+                <span class="material-symbols-outlined">history_toggle_off</span>
+                <p>Seçili filtrelere uygun giriş kaydı bulunamadı.</p>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (totalCount() > 0) {
+    <div class="access-logs-pagination">
+      <div class="access-logs-pagination__info">
+        <strong>{{ totalCount() }}</strong> kayıttan
+        <strong>{{ rangeStart() }} - {{ rangeEnd() }}</strong> arası gösteriliyor
+      </div>
+
+      <div class="access-logs-pagination__controls">
+        <button
+          type="button"
+          class="pagination-btn"
+          [disabled]="activePage() === 1 || loading()"
+          (click)="prevPage()"
+        >
+          <span class="material-symbols-outlined">chevron_left</span>
+          <span>Önceki</span>
+        </button>
+
+        <div class="pagination-pages">
+          @for (page of pageNumbers(); track page) {
+            <button
+              type="button"
+              class="pagination-page-btn"
+              [disabled]="loading()"
+              [class.pagination-page-btn--active]="activePage() === page"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+        </div>
+
+        <button
+          type="button"
+          class="pagination-btn"
+          [disabled]="activePage() === totalPages() || loading()"
+          (click)="nextPage()"
+        >
+          <span>Sonraki</span>
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  }
+</div>
