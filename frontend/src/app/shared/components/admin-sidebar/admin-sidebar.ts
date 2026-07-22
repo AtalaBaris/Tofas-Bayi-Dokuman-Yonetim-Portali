@@ -1,6 +1,8 @@
 /** Admin sol menü — tüm yönetim sayfalarında kullanılır. */
-import { Component, inject, input, output, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 export interface AdminNavItem {
@@ -19,16 +21,27 @@ export interface AdminNavItem {
 export class AdminSidebar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly mobileOpen = input(false);
   readonly closed = output<void>();
-  readonly documentsMenuOpen = signal(this.router.url.startsWith('/admin/documents'));
-  readonly usersMenuOpen = signal(this.router.url.startsWith('/admin/definitions'));
+  readonly documentsMenuOpen = signal(false);
+  readonly usersMenuOpen = signal(false);
 
   readonly navItems: AdminNavItem[] = [
     { label: 'Ana Sayfa', icon: 'dashboard', link: '/admin/dashboard' },
     { label: 'Son Yüklenenler', icon: 'history', link: null },
   ];
+
+  constructor() {
+    this.syncMenusToUrl(this.router.url);
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((event) => this.syncMenusToUrl(event.urlAfterRedirects));
+  }
 
   toggleDocumentsMenu(): void {
     this.documentsMenuOpen.update((open) => !open);
@@ -41,6 +54,11 @@ export class AdminSidebar {
 
   onNavClick(): void {
     this.closed.emit();
+  }
+
+  private syncMenusToUrl(url: string): void {
+    this.documentsMenuOpen.set(url.startsWith('/admin/documents'));
+    this.usersMenuOpen.set(url.startsWith('/admin/definitions'));
   }
 
   logout(): void {
