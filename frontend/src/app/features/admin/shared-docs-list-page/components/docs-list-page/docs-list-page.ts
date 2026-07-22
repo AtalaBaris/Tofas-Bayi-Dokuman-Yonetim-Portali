@@ -190,4 +190,20 @@ export class DocsListPage implements OnInit {
       },
     });
   }
+
+  publishNow(doc: DocumentListItem): void {
+    this.materialsApi.publishNow(doc.id).subscribe({
+      next: () => {
+        this.documents.update((list) =>
+          list.map((item) => (item.id === doc.id ? { ...item, status: 'active' as const } : item))
+        );
+        if (this.selected()?.id === doc.id) {
+          this.selected.update((current) => (current ? { ...current, status: 'active' } : current));
+        }
+      },
+      error: (err: { message?: string }) => {
+        this.loadError.set(err?.message ?? 'Yayınlama başarısız.');
+      },
+    });
+  }
 }

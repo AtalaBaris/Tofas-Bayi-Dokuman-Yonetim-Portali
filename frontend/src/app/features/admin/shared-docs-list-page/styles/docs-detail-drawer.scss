@@ -367,7 +367,8 @@
   }
 }
 
-.docs-drawer__archive {
+.docs-drawer__archive,
+.docs-drawer__publish {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,4 +392,9 @@
   .material-symbols-outlined {
     font-size: 20px;
   }
+}
+
+.docs-drawer__publish {
+  background: var(--color-tertiary-container);
+  color: #ffffff;
 }
