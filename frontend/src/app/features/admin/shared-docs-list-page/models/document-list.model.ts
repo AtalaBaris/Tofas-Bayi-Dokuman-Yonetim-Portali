@@ -10,6 +10,13 @@ export interface DocumentBrandTag {
   color: string;
 }
 
+export interface DocumentFileItem {
+  id: number;
+  fileName: string;
+  sizeLabel: string;
+  fileKind: DocumentFileKind;
+}
+
 export interface DocumentListItem {
   id: number;
   title: string;
@@ -32,7 +39,10 @@ export interface DocumentListItem {
   recurrenceKind?: string;
   fileSizeDetail: string;
   version: string;
+  /** İlk dosya (geriye dönük uyumluluk için korunuyor) — tüm dosyalar için bkz. `files`. */
   fileName: string;
+  /** Bu dokümana ait tüm dosyalar (çoklu dosya desteği). */
+  files: DocumentFileItem[];
 }
 
 /** Örn. "1000/1200 kişi gördü" */
@@ -122,8 +132,27 @@ export function materialToDocumentListItem(material: {
   createdByName?: string;
   viewedCount?: number;
   audienceCount?: number;
+  files?: { id: number; fileName: string; mimeType: string; fileSize: number; sortOrder: number }[];
 }): DocumentListItem {
   const sizeLabel = formatBytes(material.fileSize);
+  const files: DocumentFileItem[] =
+    material.files && material.files.length > 0
+      ? [...material.files]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((f) => ({
+            id: f.id,
+            fileName: f.fileName,
+            sizeLabel: formatBytes(f.fileSize),
+            fileKind: fileKindFromMime(f.mimeType, f.fileName),
+          }))
+      : [
+          {
+            id: material.id,
+            fileName: material.fileName,
+            sizeLabel,
+            fileKind: fileKindFromMime(material.mimeType, material.fileName),
+          },
+        ];
   const scheduleIso = material.scheduledPublishAt ?? null;
   const dateLabel = formatTrDateTime(scheduleIso) !== '—'
     ? formatTrDateTime(scheduleIso)
@@ -156,6 +185,7 @@ export function materialToDocumentListItem(material: {
     fileSizeDetail: sizeLabel,
     version: `v${version}.0`,
     fileName: material.fileName,
+    files,
   };
 }
 
@@ -251,6 +281,9 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     fileSizeDetail: '15.4 MB',
     version: 'v1.2 (Son)',
     fileName: 'haziran_pazarlama_kampanyasi_v2.pdf',
+    files: [
+      { id: 1, fileName: 'haziran_pazarlama_kampanyasi_v2.pdf', sizeLabel: '15.4 MB', fileKind: 'pdf' },
+    ],
   },
   {
     id: 2,
@@ -270,6 +303,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     fileSizeDetail: '1.1 MB',
     version: 'v1.0',
     fileName: 'bayi_yonergeleri_q3.pdf',
+    files: [{ id: 2, fileName: 'bayi_yonergeleri_q3.pdf', sizeLabel: '1.1 MB', fileKind: 'doc' }],
   },
   {
     id: 3,
@@ -289,6 +323,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     fileSizeDetail: '45 MB',
     version: 'v1.0',
     fileName: 'urun_yol_haritasi_2024.mp4',
+    files: [{ id: 3, fileName: 'urun_yol_haritasi_2024.mp4', sizeLabel: '45 MB', fileKind: 'video' }],
   },
   {
     id: 4,
@@ -308,6 +343,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     fileSizeDetail: '800 KB',
     version: 'v0.3',
     fileName: 'peugeot_servis_bulteni_draft.pdf',
+    files: [{ id: 4, fileName: 'peugeot_servis_bulteni_draft.pdf', sizeLabel: '800 KB', fileKind: 'pdf' }],
   },
   {
     id: 5,
@@ -327,6 +363,7 @@ export const SEED_DOCUMENTS: DocumentListItem[] = [
     fileSizeDetail: '3.2 MB',
     version: 'v1.0',
     fileName: 'opel_kampanya_arsiv.pdf',
+    files: [{ id: 5, fileName: 'opel_kampanya_arsiv.pdf', sizeLabel: '3.2 MB', fileKind: 'pdf' }],
   },
 ];
 

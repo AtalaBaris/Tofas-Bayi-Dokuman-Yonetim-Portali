@@ -13,6 +13,7 @@ import {
   type DocumentViewerRow,
 } from '../../models/document-list.model';
 import { MaterialsService } from '../../../../../core/services/materials.service';
+import { saveBlobAsFile } from '../../../../../shared/utils/file-download.util';
 
 /** Her scroll yüklemesinde DOM'a eklenen kart sayısı. */
 const PAGE_SIZE = 20;
@@ -147,6 +148,15 @@ export class DocsListPage implements OnInit {
 
   closeDrawer(): void {
     this.selected.set(null);
+  }
+
+  downloadFile(event: { materialId: number; fileId: number; fileName: string }): void {
+    this.materialsApi.downloadFile(event.materialId, event.fileId).subscribe({
+      next: (blob) => saveBlobAsFile(blob, event.fileName),
+      error: (err: { message?: string }) => {
+        this.loadError.set(err?.message ?? 'Dosya indirilemedi.');
+      },
+    });
   }
 
   archiveDoc(doc: DocumentListItem): void {
