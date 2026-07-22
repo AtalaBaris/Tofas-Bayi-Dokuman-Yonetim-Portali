@@ -385,6 +385,22 @@ export class DocsPoolCalendarPanel {
     });
   }
 
+  downloadFile(event: { materialId: number; fileId: number; fileName: string }): void {
+    this.materialsApi.downloadFile(event.materialId, event.fileId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = event.fileName || `document-${event.fileId}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err: { message?: string }) => {
+        this.calendarError.set(err?.message ?? 'Dosya indirilemedi.');
+      },
+    });
+  }
+
   statusClass(status: string): string {
     return status.toLowerCase() === 'scheduled' ? 'cal-event--scheduled' : 'cal-event';
   }
