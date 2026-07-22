@@ -105,6 +105,12 @@ public class AccessLogService : IAccessLogService
             .Include(x => x.User)
             .AsNoTracking();
 
+        // ContentManager yetki kısıtlaması: Giriş/Çıkış loglarını göremez, sadece doküman hareketlerini görebilir
+        if (query.ExcludeAuthLogs)
+        {
+            dbQuery = dbQuery.Where(x => x.Action != "Giriş" && x.Action != "Çıkış" && x.Action != "Giriş Başarısız");
+        }
+
         // Keyword filter (matches username / email)
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {

@@ -41,7 +41,7 @@
           (ngModelChange)="selectedAction.set($event); currentPage.set(1)"
         >
           <option value="">Tüm İşlemler</option>
-          @for (action of actionsList; track action) {
+          @for (action of filteredActionsList(); track action) {
             <option [value]="action">{{ action }}</option>
           }
         </select>
