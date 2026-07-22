@@ -31,4 +31,8 @@ public interface IAccessLogService
         int userId,
         IReadOnlyCollection<int> materialIds,
         CancellationToken cancellationToken = default);
+
+    Task<MaterialAccessReportResponse> GetMaterialAccessReportAsync(
+        int materialId,
+        CancellationToken cancellationToken = default);
 }

@@ -43,6 +43,9 @@ public interface IMaterialService
     Task<MaterialResponse> CancelScheduleAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task ProcessDueSchedulesAsync(CancellationToken cancellationToken = default);
+
+    Task<MaterialAccessReportResponse> GetAccessReportAsync(
+        int id, CancellationToken cancellationToken = default);
 }
 
 // Controller'da JWT claim'lerinden doldurulur; brand-eşleşme ve rol kontrolleri bu bilgiye göre yapılır.

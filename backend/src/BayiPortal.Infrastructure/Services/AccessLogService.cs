@@ -97,6 +97,39 @@ public class AccessLogService : IAccessLogService
         return result;
     }
 
+    public async Task<MaterialAccessReportResponse> GetMaterialAccessReportAsync(
+        int materialId, CancellationToken cancellationToken = default)
+    {
+        var logs = await _dbContext.AccessLogs
+            .Include(x => x.User)
+            .ThenInclude(u => u!.Dealer)
+            .AsNoTracking()
+            .Where(x => x.MaterialId == materialId
+                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+            .OrderByDescending(x => x.ViewedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var items = logs.Select(log =>
+        {
+            var localTime = log.ViewedAtUtc.AddHours(3);
+            return new MaterialAccessReportItemResponse
+            {
+                Id = log.Id,
+                UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
+                DealerName = log.User?.Dealer?.Name ?? string.Empty,
+                Action = log.Action,
+                Date = localTime.ToString("yyyy-MM-dd"),
+                Time = localTime.ToString("HH:mm:ss")
+            };
+        }).ToList();
+
+        return new MaterialAccessReportResponse
+        {
+            MaterialId = materialId,
+            Items = items
+        };
+    }
+
     public async Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
         CancellationToken cancellationToken = default)
