@@ -35,6 +35,7 @@ public sealed class GlobalExceptionMiddleware
         var (statusCode, message) = exception switch
         {
             MaterialNotFoundException => (HttpStatusCode.NotFound, "İstenen içerik bulunamadı."),
+            MaterialFileNotFoundException => (HttpStatusCode.NotFound, "İstenen dosya bulunamadı."),
             DealerNotFoundException => (HttpStatusCode.NotFound, "İstenen bayi bulunamadı."),
             BrandNotFoundException => (HttpStatusCode.NotFound, "İstenen marka bulunamadı."),
             CategoryNotFoundException => (HttpStatusCode.NotFound, "İstenen kategori bulunamadı."),

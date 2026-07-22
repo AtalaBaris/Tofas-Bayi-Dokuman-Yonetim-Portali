@@ -19,7 +19,8 @@ public sealed class MaterialRepository : IMaterialRepository
         _dbContext.Materials
             .Include(m => m.Category)
             .Include(m => m.Creator)
-            .Include(m => m.MaterialBrands).ThenInclude(mb => mb.Brand);
+            .Include(m => m.MaterialBrands).ThenInclude(mb => mb.Brand)
+            .Include(m => m.Files);
 
     public Task<Material?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
         BaseQuery().FirstOrDefaultAsync(m => m.Id == id, cancellationToken);

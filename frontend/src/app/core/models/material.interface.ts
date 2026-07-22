@@ -6,15 +6,25 @@ export interface MaterialBrandBadge {
   badgeColor: string;
 }
 
+export interface MaterialFile {
+  id: number;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  sortOrder: number;
+}
+
 export interface Material {
   id: number;
   title: string;
   description: string;
   categoryId: number;
   categoryName: string;
+  /** İlk dosya (geriye dönük uyumluluk için korunuyor) — tüm dosyalar için bkz. `files`. */
   fileName: string;
   mimeType: string;
   fileSize: number;
+  files: MaterialFile[];
   status: string;
   version: number;
   publishedAt: string;

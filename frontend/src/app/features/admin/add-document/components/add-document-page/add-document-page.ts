@@ -54,7 +54,7 @@ export class AddDocumentPage implements OnInit {
   readonly recurrenceKind = signal<RecurrenceFormKind>('None');
   readonly recurrenceDayOfWeek = signal(1);
   readonly recurrenceDayOfMonth = signal(1);
-  readonly file = signal<SelectedFileInfo | null>(null);
+  readonly files = signal<SelectedFileInfo[]>([]);
   readonly showErrors = signal(false);
   readonly saving = signal(false);
   readonly loadError = signal('');
@@ -115,7 +115,7 @@ export class AddDocumentPage implements OnInit {
     const description = this.description().trim();
     const categoryId = Number(this.category());
     const brandIds = this.brandIds();
-    const selected = this.file();
+    const selected = this.files();
     const status = asDraft ? 'draft' : this.status();
     const scheduledIso =
       status === 'scheduled' ? scheduledAtToIso(this.scheduledAt()) : null;
@@ -127,13 +127,13 @@ export class AddDocumentPage implements OnInit {
       Number.isFinite(categoryId) &&
       categoryId > 0 &&
       brandIds.length > 0 &&
-      selected != null &&
+      selected.length > 0 &&
       (status !== 'scheduled' || !!scheduledIso);
 
     if (!validBasics) {
       this.showErrors.set(true);
-      if (!selected) {
-        this.fileError.set('Dosya zorunludur.');
+      if (selected.length === 0) {
+        this.fileError.set('En az bir dosya zorunludur.');
       }
       return;
     }
@@ -157,7 +157,7 @@ export class AddDocumentPage implements OnInit {
           status === 'scheduled' && this.recurrenceKind() === 'MonthlyDay'
             ? this.recurrenceDayOfMonth()
             : undefined,
-        file: selected.file,
+        files: selected.map((s) => s.file),
       })
       .subscribe({
         next: () => {
