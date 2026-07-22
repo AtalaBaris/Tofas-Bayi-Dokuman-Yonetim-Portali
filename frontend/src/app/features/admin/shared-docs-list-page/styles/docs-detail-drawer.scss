@@ -286,20 +286,6 @@
   margin-bottom: 0.5rem;
 }
 
-.docs-drawer__file-count {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.docs-drawer__file-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 14rem;
-  overflow-y: auto;
-}
-
 .docs-drawer__file-card {
   display: flex;
   align-items: center;
@@ -367,8 +353,7 @@
   }
 }
 
-.docs-drawer__archive,
-.docs-drawer__publish {
+.docs-drawer__archive {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,9 +377,4 @@
   .material-symbols-outlined {
     font-size: 20px;
   }
-}
-
-.docs-drawer__publish {
-  background: var(--color-tertiary-container);
-  color: #ffffff;
 }
