@@ -66,7 +66,10 @@ public class MaterialsController : ControllerBase
     public async Task<ActionResult<MaterialResponse>> Create(
         [FromForm] CreateMaterialForm form, CancellationToken cancellationToken)
     {
-        if (form.Files.Count == 0 || form.Files.All(f => f.Length == 0))
+        // FormData alan adı (Files / File) veya model binder fark etmeksizin
+        // multipart içindeki tüm dosyaları al.
+        var formFiles = ResolveUploadedFiles(form);
+        if (formFiles.Count == 0)
         {
             return BadRequest(new { message = "En az bir dosya zorunludur." });
         }
@@ -85,10 +88,10 @@ public class MaterialsController : ControllerBase
             RecurrenceDayOfMonth = form.RecurrenceDayOfMonth
         };
 
-        var streams = form.Files.Select(f => f.OpenReadStream()).ToList();
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
         try
         {
-            var uploaded = form.Files.Zip(streams, (f, s) => new UploadedFileContent
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
             {
                 Content = s,
                 OriginalFileName = f.FileName,
@@ -166,6 +169,25 @@ public class MaterialsController : ControllerBase
         var dealerIdClaim = User.FindFirstValue("dealerId");
         var dealerId = dealerIdClaim is null ? (int?)null : int.Parse(dealerIdClaim);
         return new RequestingUser(userId, role, dealerId);
+    }
+
+    /// <summary>
+    /// Model binder bazen List&lt;IFormFile&gt; için boş gelebilir; Request.Form.Files yedek.
+    /// Eski istemcilerin "File" alanı da kabul edilir.
+    /// </summary>
+    private List<IFormFile> ResolveUploadedFiles(CreateMaterialForm form)
+    {
+        var fromModel = (form.Files ?? new List<IFormFile>())
+            .Where(f => f is { Length: > 0 })
+            .ToList();
+        if (fromModel.Count > 0)
+        {
+            return fromModel;
+        }
+
+        return Request.Form.Files
+            .Where(f => f.Length > 0)
+            .ToList();
     }
 }
 

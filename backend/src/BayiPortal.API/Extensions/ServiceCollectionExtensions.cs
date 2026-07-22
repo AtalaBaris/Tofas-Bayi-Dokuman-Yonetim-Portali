@@ -42,7 +42,8 @@ public static class ServiceCollectionExtensions
             {
                 policy.WithOrigins(
                         "http://localhost:4200",
-                        "https://localhost:4200")
+                        "https://localhost:4200",
+                        "http://localhost:8081")
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             });
