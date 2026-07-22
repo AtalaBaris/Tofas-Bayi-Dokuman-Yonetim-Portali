@@ -23,7 +23,7 @@ public class AccessLogsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ContentManager")]
     public async Task<ActionResult<AccessLogListResponse>> GetList(
         [FromQuery] int? materialId,
         [FromQuery] string? keyword,
@@ -36,6 +36,8 @@ public class AccessLogsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var isContentManagerOnly = User.IsInRole("ContentManager") && !User.IsInRole("Admin");
+
         var query = new AccessLogListQuery
         {
             MaterialId = materialId,
@@ -46,7 +48,8 @@ public class AccessLogsController : ControllerBase
             StartDate = startDate,
             EndDate = endDate,
             Page = page,
-            PageSize = pageSize
+            PageSize = pageSize,
+            ExcludeAuthLogs = isContentManagerOnly
         };
 
         var result = await _accessLogService.GetListAsync(query, cancellationToken);

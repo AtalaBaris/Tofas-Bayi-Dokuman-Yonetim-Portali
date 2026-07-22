@@ -1,5 +1,5 @@
 /** Admin sol menü — tüm yönetim sayfalarında kullanılır. */
-import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
@@ -27,6 +27,8 @@ export class AdminSidebar {
   readonly closed = output<void>();
   readonly documentsMenuOpen = signal(false);
   readonly usersMenuOpen = signal(false);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'Admin');
 
   readonly navItems: AdminNavItem[] = [
     { label: 'Ana Sayfa', icon: 'dashboard', link: '/admin/dashboard' },

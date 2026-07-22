@@ -66,7 +66,7 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'access-logs',
-        canActivate: [adminRoleGuard(['Admin'])],
+        canActivate: [adminRoleGuard(['Admin', 'ContentManager'])],
         loadComponent: () =>
           import('./access-logs/access-logs').then((m) => m.AccessLogs),
       },
