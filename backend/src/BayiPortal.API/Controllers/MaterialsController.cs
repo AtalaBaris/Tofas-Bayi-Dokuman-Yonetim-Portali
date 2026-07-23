@@ -114,10 +114,39 @@ public class MaterialsController : ControllerBase
     [HttpPut("{id:int}")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Update(
-        int id, [FromBody] UpdateMaterialRequest request, CancellationToken cancellationToken)
+        int id, [FromForm] UpdateMaterialForm form, CancellationToken cancellationToken)
     {
-        var result = await _materialService.UpdateAsync(id, request, GetRequestingUser(), cancellationToken);
-        return Ok(result);
+        var formFiles = ResolveUploadedFilesForUpdate(form);
+        var request = new UpdateMaterialRequest
+        {
+            Title = form.Title,
+            Description = form.Description,
+            CategoryId = form.CategoryId,
+            BrandIds = form.BrandIds ?? new List<int>(),
+            ExpiresAt = form.ExpiresAt
+        };
+
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
+
+            var result = await _materialService.UpdateAsync(id, request, uploaded.Count > 0 ? uploaded : null, GetRequestingUser(), cancellationToken);
+            return Ok(result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
     }
 
     [HttpPut("{id:int}/schedule")]
@@ -197,9 +226,23 @@ public class MaterialsController : ControllerBase
             .Where(f => f.Length > 0)
             .ToList();
     }
+
+    private List<IFormFile> ResolveUploadedFilesForUpdate(UpdateMaterialForm form)
+    {
+        var fromModel = (form.Files ?? new List<IFormFile>())
+            .Where(f => f is { Length: > 0 })
+            .ToList();
+        if (fromModel.Count > 0)
+        {
+            return fromModel;
+        }
+
+        return Request.Form.Files
+            .Where(f => f.Length > 0)
+            .ToList();
+    }
 }
 
-// Multipart/form-data binding modeli (API katmanına özgü; Application katmanı IFormFile bilmez).
 public class CreateMaterialForm
 {
     public string Title { get; set; } = string.Empty;
@@ -212,5 +255,15 @@ public class CreateMaterialForm
     public string? RecurrenceKind { get; set; }
     public int? RecurrenceDayOfWeek { get; set; }
     public int? RecurrenceDayOfMonth { get; set; }
+    public List<IFormFile> Files { get; set; } = new();
+}
+
+public class UpdateMaterialForm
+{
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int CategoryId { get; set; }
+    public List<int> BrandIds { get; set; } = new();
+    public DateTime? ExpiresAt { get; set; }
     public List<IFormFile> Files { get; set; } = new();
 }

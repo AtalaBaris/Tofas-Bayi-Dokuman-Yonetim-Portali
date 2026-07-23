@@ -27,77 +27,134 @@
   </div>
 
   <div class="docs-drawer__body">
-    <section class="docs-drawer__section">
-      <h3 class="docs-drawer__section-title">Doküman Açıklaması</h3>
-      <div class="docs-drawer__description">
-        <p>{{ doc().description }}</p>
-      </div>
-    </section>
+    @if (!isEditing()) {
+      <section class="docs-drawer__section">
+        <h3 class="docs-drawer__section-title">Doküman Açıklaması</h3>
+        <div class="docs-drawer__description">
+          <p>{{ doc().description }}</p>
+        </div>
+      </section>
 
-    <section class="docs-drawer__section">
-      <h3 class="docs-drawer__section-title">Doküman Detayları</h3>
-      <div class="docs-drawer__grid">
-        <div class="docs-drawer__card">
-          <div class="docs-drawer__card-label">Yükleyen</div>
-          <div class="docs-drawer__card-value">
-            <span class="material-symbols-outlined">person</span>
-            {{ doc().uploader }}
-          </div>
-        </div>
-        <div class="docs-drawer__card">
-          <div class="docs-drawer__card-label">Yüklenme Tarihi</div>
-          <div class="docs-drawer__card-value">{{ doc().uploadedAt }}</div>
-        </div>
-        <div class="docs-drawer__card">
-          <div class="docs-drawer__card-label">Bitiş Tarihi</div>
-          <div class="docs-drawer__card-value">
-            {{ doc().expiresAt ? doc().expiresAt : 'Belirtilmedi' }}
-          </div>
-        </div>
-        <div class="docs-drawer__card">
-          <div class="docs-drawer__card-label">Dosya Boyutu</div>
-          <div class="docs-drawer__card-value">{{ doc().fileSizeDetail }}</div>
-        </div>
-        <div class="docs-drawer__card">
-          <div class="docs-drawer__card-label">Sürüm</div>
-          <div class="docs-drawer__card-value">{{ doc().version }}</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="docs-drawer__section">
-      <div class="docs-drawer__section-head">
-        <h3 class="docs-drawer__section-title docs-drawer__section-title--flush">
-          Son Bayi Görüntülemeleri
-        </h3>
-        <a
-          class="docs-drawer__link"
-          [routerLink]="['/admin/documents', doc().id, 'access-report']"
-        >
-          Tüm Kayıtları Gör
-        </a>
-      </div>
-      <div class="docs-drawer__viewers">
-        @for (viewer of viewers(); track viewer.id) {
-          <div class="docs-drawer__viewer">
-            <div class="docs-drawer__viewer-left">
-              @if (viewer.avatarUrl) {
-                <img class="docs-drawer__avatar" [src]="viewer.avatarUrl" [alt]="viewer.name" />
-              } @else {
-                <div class="docs-drawer__avatar docs-drawer__avatar--initials">
-                  {{ viewer.initials }}
-                </div>
-              }
-              <div>
-                <div class="docs-drawer__viewer-name">{{ viewer.name }}</div>
-                <div class="docs-drawer__viewer-dealer">{{ viewer.dealer }}</div>
-              </div>
+      <section class="docs-drawer__section">
+        <h3 class="docs-drawer__section-title">Doküman Detayları</h3>
+        <div class="docs-drawer__grid">
+          <div class="docs-drawer__card">
+            <div class="docs-drawer__card-label">Yükleyen</div>
+            <div class="docs-drawer__card-value">
+              <span class="material-symbols-outlined">person</span>
+              {{ doc().uploader }}
             </div>
-            <div class="docs-drawer__viewer-when">{{ viewer.whenLabel }}</div>
           </div>
+          <div class="docs-drawer__card">
+            <div class="docs-drawer__card-label">Yüklenme Tarihi</div>
+            <div class="docs-drawer__card-value">{{ doc().uploadedAt }}</div>
+          </div>
+          <div class="docs-drawer__card">
+            <div class="docs-drawer__card-label">Bitiş Tarihi</div>
+            <div class="docs-drawer__card-value">
+              {{ doc().expiresAt ? doc().expiresAt : 'Belirtilmedi' }}
+            </div>
+          </div>
+          <div class="docs-drawer__card">
+            <div class="docs-drawer__card-label">Dosya Boyutu</div>
+            <div class="docs-drawer__card-value">{{ doc().fileSizeDetail }}</div>
+          </div>
+          <div class="docs-drawer__card">
+            <div class="docs-drawer__card-label">Sürüm</div>
+            <div class="docs-drawer__card-value">{{ doc().version }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="docs-drawer__section">
+        <div class="docs-drawer__section-head">
+          <h3 class="docs-drawer__section-title docs-drawer__section-title--flush">
+            Son Bayi Görüntülemeleri
+          </h3>
+          <a
+            class="docs-drawer__link"
+            [routerLink]="['/admin/documents', doc().id, 'access-report']"
+          >
+            Tüm Kayıtları Gör
+          </a>
+        </div>
+        <div class="docs-drawer__viewers">
+          @for (viewer of viewers(); track viewer.id) {
+            <div class="docs-drawer__viewer">
+              <div class="docs-drawer__viewer-left">
+                @if (viewer.avatarUrl) {
+                  <img class="docs-drawer__avatar" [src]="viewer.avatarUrl" [alt]="viewer.name" />
+                } @else {
+                  <div class="docs-drawer__avatar docs-drawer__avatar--initials">
+                    {{ viewer.initials }}
+                  </div>
+                }
+                <div>
+                  <div class="docs-drawer__viewer-name">{{ viewer.name }}</div>
+                  <div class="docs-drawer__viewer-dealer">{{ viewer.dealer }}</div>
+                </div>
+              </div>
+              <div class="docs-drawer__viewer-when">{{ viewer.whenLabel }}</div>
+            </div>
+          }
+        </div>
+      </section>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="saveEdit()" class="docs-drawer__form">
+        @if (errorMessage()) {
+          <div class="alert alert-danger">{{ errorMessage() }}</div>
         }
-      </div>
-    </section>
+        
+        <div class="form-group">
+          <label>Başlık</label>
+          <input type="text" formControlName="title" class="form-control" />
+        </div>
+        
+        <div class="form-group">
+          <label>Açıklama</label>
+          <textarea formControlName="description" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Kategori</label>
+          <select formControlName="categoryId" class="form-control">
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Markalar</label>
+          <div formArrayName="brandIds" class="brand-checkboxes">
+            @for (brand of brands(); track brand.id; let i = $index) {
+              <label class="brand-checkbox">
+                <input type="checkbox" [formControlName]="i" />
+                {{ brand.name }}
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Bitiş Tarihi (Opsiyonel)</label>
+          <input type="date" formControlName="expiresAt" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label>Yeni Dosya (Opsiyonel)</label>
+          <input type="file" (change)="onFileChange($event)" class="form-control" />
+          <small class="text-muted">Dosya seçerseniz mevcut dosya değiştirilir ve sürüm (version) artırılır.</small>
+        </div>
+
+        <div class="docs-drawer__form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">İptal</button>
+          <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
+            {{ saving() ? 'Kaydediliyor...' : 'Kaydet' }}
+          </button>
+        </div>
+      </form>
+    }
   </div>
 
   <div class="docs-drawer__footer">
@@ -142,9 +199,16 @@
         Hemen Yayınla
       </button>
     }
-    <button type="button" class="docs-drawer__archive" (click)="archive.emit(doc())">
-      <span class="material-symbols-outlined">archive</span>
-      Dokümanı Arşivle
-    </button>
+    
+    @if (!isEditing()) {
+      <button type="button" class="docs-drawer__edit" (click)="startEdit()">
+        <span class="material-symbols-outlined">edit</span>
+        Dokümanı Düzenle
+      </button>
+      <button type="button" class="docs-drawer__archive" (click)="archive.emit(doc())">
+        <span class="material-symbols-outlined">archive</span>
+        Dokümanı Arşivle
+      </button>
+    }
   </div>
 </aside>

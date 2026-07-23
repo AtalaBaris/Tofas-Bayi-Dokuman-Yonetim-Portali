@@ -44,6 +44,15 @@ export interface MaterialAccessReport {
   pendingUsers: MaterialAccessReportPendingUser[];
 }
 
+export interface UpdateMaterialPayload {
+  title: string;
+  description: string;
+  categoryId: number;
+  brandIds: number[];
+  expiresAt?: string | null;
+  files?: File[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class MaterialsService {
   private readonly api = inject(ApiService);
@@ -117,6 +126,25 @@ export class MaterialsService {
       form.append('Files', file, file.name);
     }
     return this.http.post<Material>(`${this.api.baseUrl}/materials`, form);
+  }
+
+  update(id: number, payload: UpdateMaterialPayload) {
+    const form = new FormData();
+    form.append('Title', payload.title);
+    form.append('Description', payload.description);
+    form.append('CategoryId', String(payload.categoryId));
+    for (const brandId of payload.brandIds) {
+      form.append('BrandIds', String(brandId));
+    }
+    if (payload.expiresAt) {
+      form.append('ExpiresAt', payload.expiresAt);
+    }
+    if (payload.files && payload.files.length > 0) {
+      for (const file of payload.files) {
+        form.append('Files', file, file.name);
+      }
+    }
+    return this.http.put<Material>(`${this.api.baseUrl}/materials/${id}`, form);
   }
 
   updateSchedule(id: number, payload: UpdateMaterialSchedulePayload) {

@@ -140,6 +140,18 @@
           (ngModelChange)="setModalTime($event)"
         />
 
+        <label class="poolcal-modal__label" for="poolcal-recurrence" style="margin-top: 1rem; display: block;">Tekrarlama</label>
+        <select
+          id="poolcal-recurrence"
+          class="poolcal-modal__input"
+          [ngModel]="m.recurrenceKind"
+          (ngModelChange)="setModalRecurrenceKind($event)"
+        >
+          <option value="None">Yok (Tek Seferlik)</option>
+          <option value="Weekly">Haftalık</option>
+          <option value="MonthlyDay">Aylık</option>
+        </select>
+
         <p class="poolcal-modal__date">{{ m.dateKey }}</p>
 
         <div class="poolcal-modal__actions">
@@ -192,6 +204,7 @@
         (archive)="archiveDoc($event)"
         (publishNow)="publishNow($event)"
         (downloadFile)="downloadFile($event)"
+        (updated)="reloadAll()"
       />
     </div>
   }

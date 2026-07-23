@@ -188,7 +188,7 @@ public sealed class MaterialService : IMaterialService
     }
 
     public async Task<MaterialResponse> UpdateAsync(
-        int id, UpdateMaterialRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+        int id, UpdateMaterialRequest request, IReadOnlyList<UploadedFileContent>? newFiles, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
         await ValidateAsync(request.Title, request.Description, request.CategoryId, request.BrandIds, cancellationToken);
 
@@ -200,7 +200,44 @@ public sealed class MaterialService : IMaterialService
         material.CategoryId = request.CategoryId;
         material.ExpiresAt = request.ExpiresAt;
         material.UpdatedAt = DateTime.UtcNow;
-        material.Version += 1;
+
+        if (newFiles != null && newFiles.Count > 0)
+        {
+            foreach (var file in newFiles)
+            {
+                _fileUploadPolicy.ValidateOrThrow(file.OriginalFileName, file.MimeType, file.FileSize);
+            }
+
+            material.Files.Clear();
+
+            var now = DateTime.UtcNow;
+            var materialFiles = new List<MaterialFile>();
+            for (var index = 0; index < newFiles.Count; index++)
+            {
+                var file = newFiles[index];
+                var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(file.Content, file.OriginalFileName, cancellationToken);
+                materialFiles.Add(new MaterialFile
+                {
+                    FileName = file.OriginalFileName,
+                    StoredFileName = storedFileName,
+                    FilePath = relativePath,
+                    MimeType = file.MimeType,
+                    FileSize = file.FileSize,
+                    SortOrder = index,
+                    CreatedAt = now
+                });
+            }
+
+            var firstFile = materialFiles[0];
+            material.FileName = firstFile.FileName;
+            material.StoredFileName = firstFile.StoredFileName;
+            material.FilePath = firstFile.FilePath;
+            material.MimeType = firstFile.MimeType;
+            material.FileSize = firstFile.FileSize;
+            
+            material.Files = materialFiles;
+            material.Version += 1;
+        }
 
         material.MaterialBrands.Clear();
         foreach (var brandId in request.BrandIds.Distinct())
