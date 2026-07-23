@@ -287,6 +287,95 @@ public sealed class MaterialService : IMaterialService
         return ToResponse(saved);
     }
 
+    public async Task<MaterialResponse> AddFilesAsync(
+        int id, IReadOnlyList<UploadedFileContent> files, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        if (files.Count == 0)
+        {
+            throw new ValidationException("En az bir dosya yüklenmelidir.");
+        }
+
+        foreach (var file in files)
+        {
+            _fileUploadPolicy.ValidateOrThrow(file.OriginalFileName, file.MimeType, file.FileSize);
+        }
+
+        var material = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        var now = DateTime.UtcNow;
+        var nextSortOrder = material.Files.Count == 0 ? 0 : material.Files.Max(f => f.SortOrder) + 1;
+        foreach (var file in files)
+        {
+            var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(file.Content, file.OriginalFileName, cancellationToken);
+            material.Files.Add(new MaterialFile
+            {
+                MaterialId = id,
+                FileName = file.OriginalFileName,
+                StoredFileName = storedFileName,
+                FilePath = relativePath,
+                MimeType = file.MimeType,
+                FileSize = file.FileSize,
+                SortOrder = nextSortOrder++,
+                CreatedAt = now
+            });
+        }
+
+        SyncPrimaryFileFields(material);
+        material.Version += 1;
+        material.UpdatedAt = now;
+
+        await _materialRepository.SaveChangesAsync(cancellationToken);
+
+        var saved = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Sürüm Değişikliği", $"\"{saved.Title}\" dökümanına yeni dosya eklendi (v{saved.Version}).", "N/A", cancellationToken);
+
+        return ToResponse(saved);
+    }
+
+    public async Task<MaterialResponse> DeleteFileAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        var material = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        var file = material.Files.FirstOrDefault(f => f.Id == fileId)
+            ?? throw new MaterialFileNotFoundException(id, fileId);
+
+        if (material.Files.Count <= 1)
+        {
+            throw new ValidationException("Bir dokümanın en az bir dosyası olmalıdır.");
+        }
+
+        material.Files.Remove(file);
+        SyncPrimaryFileFields(material);
+        material.Version += 1;
+        material.UpdatedAt = DateTime.UtcNow;
+
+        await _materialRepository.SaveChangesAsync(cancellationToken);
+
+        _fileStorageService.Delete(file.FilePath);
+
+        var saved = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        await _accessLogService.LogAsync(requestingUser.UserId, null, id, "Döküman Sürüm Değişikliği", $"\"{saved.Title}\" dökümanından \"{file.FileName}\" dosyası kaldırıldı (v{saved.Version}).", "N/A", cancellationToken);
+
+        return ToResponse(saved);
+    }
+
+    private static void SyncPrimaryFileFields(Material material)
+    {
+        var firstFile = material.Files.OrderBy(f => f.SortOrder).First();
+        material.FileName = firstFile.FileName;
+        material.StoredFileName = firstFile.StoredFileName;
+        material.FilePath = firstFile.FilePath;
+        material.MimeType = firstFile.MimeType;
+        material.FileSize = firstFile.FileSize;
+    }
+
     public async Task ArchiveAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
         var material = await _materialRepository.GetByIdAsync(id, cancellationToken)

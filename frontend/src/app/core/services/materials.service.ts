@@ -26,6 +26,14 @@ export interface CreateMaterialPayload {
   files: File[];
 }
 
+export interface UpdateMaterialPayload {
+  title: string;
+  description: string;
+  categoryId: number;
+  brandIds: number[];
+  expiresAt?: string | null;
+}
+
 export interface UpdateMaterialSchedulePayload {
   scheduledPublishAt: string;
   recurrenceKind?: 'None' | 'Weekly' | 'MonthlyDay';
@@ -152,6 +160,22 @@ export class MaterialsService {
       form.append('Files', file, file.name);
     }
     return this.http.post<Material>(`${this.api.baseUrl}/materials`, form);
+  }
+
+  update(id: number, payload: UpdateMaterialPayload) {
+    return this.api.put<Material>(`/materials/${id}`, payload);
+  }
+
+  addFiles(id: number, files: File[]) {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('Files', file, file.name);
+    }
+    return this.http.post<Material>(`${this.api.baseUrl}/materials/${id}/files`, form);
+  }
+
+  deleteFile(id: number, fileId: number) {
+    return this.api.delete<Material>(`/materials/${id}/files/${fileId}`);
   }
 
   updateSchedule(id: number, payload: UpdateMaterialSchedulePayload) {

@@ -63,4 +63,14 @@ public sealed class FileStorageService : IFileStorageService
         }
         return File.OpenRead(fullPath);
     }
+
+    public void Delete(string relativePath)
+    {
+        var safeFileName = Path.GetFileName(relativePath);
+        var fullPath = Path.Combine(_rootPath, safeFileName);
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
+    }
 }
