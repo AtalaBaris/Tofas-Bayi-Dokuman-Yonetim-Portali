@@ -56,6 +56,37 @@ public class AccessLogsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,ContentManager")]
+    public async Task<IActionResult> Export(
+        [FromQuery] int? materialId,
+        [FromQuery] string? keyword,
+        [FromQuery] string? role,
+        [FromQuery] string? action,
+        [FromQuery] string? status,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] string format = "xlsx",
+        CancellationToken cancellationToken = default)
+    {
+        var isContentManagerOnly = User.IsInRole("ContentManager") && !User.IsInRole("Admin");
+
+        var query = new AccessLogListQuery
+        {
+            MaterialId = materialId,
+            Keyword = keyword,
+            Role = role,
+            Action = action,
+            Status = status,
+            StartDate = startDate,
+            EndDate = endDate,
+            ExcludeAuthLogs = isContentManagerOnly
+        };
+
+        var (content, fileName, mimeType) = await _accessLogService.ExportAsync(query, format, cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpGet("trend")]
     [Authorize(Roles = "Admin,ContentManager")]
     public async Task<ActionResult<AccessLogTrendResponse>> GetTrend(

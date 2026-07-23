@@ -14,6 +14,9 @@ public interface IMaterialService
     Task<MaterialAccessReportResponse> GetAccessReportAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
+    Task<(byte[] Content, string FileName, string MimeType)> ExportAccessReportAsync(
+        int id, RequestingUser requestingUser, string format, CancellationToken cancellationToken = default);
+
     Task<MaterialResponse> CreateAsync(
         CreateMaterialRequest request, IReadOnlyList<UploadedFileContent> files,
         RequestingUser requestingUser, CancellationToken cancellationToken = default);

@@ -64,6 +64,8 @@ export class DocumentAccessReportPage {
     pendingUsers: { userId: number; userName: string; email: string; dealerName: string }[];
   } | null>(null);
 
+  readonly exporting = signal(false);
+
   readonly activeTab = signal<AccessReportTab>('viewed');
   readonly actionFilter = signal<AccessAction | ''>('');
   readonly search = signal('');
@@ -300,6 +302,29 @@ export class DocumentAccessReportPage {
   });
 
   readonly tableColspan = computed(() => (this.activeTab() === 'viewed' ? 6 : 4));
+
+  exportReport(format: 'xlsx' | 'pdf'): void {
+    const id = this.documentId();
+    if (!id) {
+      return;
+    }
+    this.exporting.set(true);
+    this.materialsService.exportAccessReport(id, format).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = `okuma-raporu.${format}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: (err) => {
+        console.error('Okuma raporu dışa aktarılırken hata oluştu:', err);
+        this.exporting.set(false);
+      },
+    });
+  }
 
   setTab(tab: AccessReportTab): void {
     this.activeTab.set(tab);

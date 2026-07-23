@@ -23,6 +23,15 @@ public interface IAccessLogService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// GetListAsync ile aynı filtreleri uygular ancak sayfalama yapmadan (azami satır sınırına kadar)
+    /// tüm eşleşen kayıtları Excel/PDF dosyası olarak üretir.
+    /// </summary>
+    Task<(byte[] Content, string FileName, string MimeType)> ExportAsync(
+        AccessLogListQuery query,
+        string format,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Verilen kullanıcının, verilen materyaller için en yüksek erişim seviyesini döner
     /// ("downloaded" &gt; "viewed"). Hiç log yoksa o materyal için sözlükte anahtar bulunmaz
     /// (çağıran taraf bunu "unread" olarak yorumlamalı).

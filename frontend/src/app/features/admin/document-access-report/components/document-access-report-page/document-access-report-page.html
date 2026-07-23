@@ -15,6 +15,26 @@
         Bu dokümana ait görüntüleme (VIEW) ve indirme (DOWNLOAD) kayıtları: kullanıcı, bayi,
         aksiyon, tarih/saat ve IP. Aynı bayiden birden fazla kullanıcı ayrı satırda listelenir.
       </p>
+      <div class="access-report__export-actions">
+        <button
+          type="button"
+          class="access-report__export-btn"
+          [disabled]="exporting()"
+          (click)="exportReport('xlsx')"
+        >
+          <span class="material-symbols-outlined">description</span>
+          Excel
+        </button>
+        <button
+          type="button"
+          class="access-report__export-btn"
+          [disabled]="exporting()"
+          (click)="exportReport('pdf')"
+        >
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+          PDF
+        </button>
+      </div>
     </header>
 
     <section class="access-report__metrics" aria-label="Özet metrikler">

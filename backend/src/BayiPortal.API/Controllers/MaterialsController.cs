@@ -54,6 +54,15 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:int}/access-report/export")]
+    public async Task<IActionResult> ExportAccessReport(
+        int id, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
+    {
+        var (content, fileName, mimeType) = await _materialService.ExportAccessReportAsync(
+            id, GetRequestingUser(), format, cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpGet("{id:int}/download")]
     public async Task<IActionResult> Download(int id, CancellationToken cancellationToken)
     {
@@ -358,6 +367,8 @@ public class UpdateMaterialForm
     public List<int> BrandIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
     public List<IFormFile> Files { get; set; } = new();
+}
+
 public class CreateMaterialVersionForm
 {
     public string VersionLabel { get; set; } = string.Empty;
