@@ -47,6 +47,13 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:int}/access-report")]
+    public async Task<ActionResult<MaterialAccessReportResponse>> GetAccessReport(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetAccessReportAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}/download")]
     public async Task<IActionResult> Download(int id, CancellationToken cancellationToken)
     {

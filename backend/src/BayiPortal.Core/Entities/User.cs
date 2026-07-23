@@ -16,6 +16,8 @@ public class User
     public bool EmailNotifications { get; set; } = true;
     public bool DocumentAlerts { get; set; } = true;
     public bool ExpiryReminders { get; set; } = true;
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiresAt { get; set; }
 
     public Dealer? Dealer { get; set; }
     public ICollection<Material> CreatedMaterials { get; set; } = new List<Material>();

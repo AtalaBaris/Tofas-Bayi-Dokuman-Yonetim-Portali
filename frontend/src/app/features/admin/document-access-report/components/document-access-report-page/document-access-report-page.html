@@ -121,6 +121,8 @@
               placeholder="Kullanıcı, bayi veya IP ara..."
               [ngModel]="search()"
               (ngModelChange)="onSearch($event)"
+              (input)="onSearch($any($event.target).value)"
+              (search)="onSearch($any($event.target).value)"
             />
           </label>
         </div>
@@ -130,71 +132,146 @@
         <table class="access-report__table">
           <thead>
             <tr>
-              <th scope="col">Kullanıcı Adı</th>
               <th scope="col">Bayi</th>
+              <th scope="col">Doküman</th>
               @if (activeTab() === 'viewed') {
-                <th scope="col">Doküman</th>
                 <th scope="col">Aksiyon</th>
-                <th scope="col">Tarih</th>
+                <th scope="col">Tarih / Son Aksiyon Alan</th>
                 <th scope="col">Saat</th>
                 <th scope="col">IP Adresi</th>
               } @else {
+                <th scope="col">Kullanıcı</th>
                 <th scope="col">Durum</th>
               }
             </tr>
           </thead>
           <tbody>
-            @for (item of pagedDisplay(); track item.row.id) {
-              <tr>
-                <td>
-                  <div class="access-report__user">
-                    <span class="access-report__avatar">{{ item.row.initials }}</span>
-                    <span>{{ item.row.userName }}</span>
+            @for (group of pagedGroups(); track group.dealerName) {
+              <!-- Ana Satır (En Son Aksiyon) -->
+              <tr class="access-report__main-row" [class.access-report__main-row--expanded]="isDealerExpanded(group.dealerName)">
+                <td class="access-report__dealer-cell">
+                  <div class="access-report__dealer-wrap">
+                    @if (activeTab() === 'viewed' && group.historyRows.length > 0) {
+                      <button
+                        type="button"
+                        class="access-report__toggle-btn"
+                        [class.access-report__toggle-btn--active]="isDealerExpanded(group.dealerName)"
+                        (click)="toggleDealerExpand(group.dealerName)"
+                        [attr.title]="isDealerExpanded(group.dealerName) ? 'Önceki aksiyonları gizle' : 'Önceki aksiyonları göster'"
+                      >
+                        <span class="material-symbols-outlined">
+                          {{ isDealerExpanded(group.dealerName) ? 'expand_more' : 'chevron_right' }}
+                        </span>
+                      </button>
+                    } @else {
+                      <span class="access-report__toggle-placeholder"></span>
+                    }
+                    <div class="access-report__dealer-icon">
+                      <span class="material-symbols-outlined">storefront</span>
+                    </div>
+                    <div class="access-report__dealer-info">
+                      <span class="access-report__dealer-name">{{ group.dealerName }}</span>
+                      @if (activeTab() === 'viewed' && group.historyRows.length > 0) {
+                        <span class="access-report__dealer-badge" (click)="toggleDealerExpand(group.dealerName)">
+                          +{{ group.historyRows.length }} önceki işlem
+                        </span>
+                      }
+                    </div>
                   </div>
                 </td>
-                @if (item.showDealer) {
-                  <td [attr.rowspan]="item.dealerRowSpan" class="access-report__dealer-cell">
-                    <div class="access-report__dealer">
-                      <div class="access-report__dealer-icon">
-                        <span class="material-symbols-outlined">storefront</span>
-                      </div>
-                      <span>{{ item.row.dealerName }}</span>
-                    </div>
-                  </td>
-                }
+                <td class="access-report__doc">{{ group.documentTitle }}</td>
+
                 @if (activeTab() === 'viewed') {
-                  <td class="access-report__doc">{{ item.row.documentTitle }}</td>
                   <td>
                     <span
                       class="access-report__chip"
-                      [class.access-report__chip--success]="item.action.tone === 'success'"
-                      [class.access-report__chip--info]="item.action.tone === 'info'"
-                      [attr.title]="item.action.code"
+                      [class.access-report__chip--success]="group.latestActionMeta.tone === 'success'"
+                      [class.access-report__chip--info]="group.latestActionMeta.tone === 'info'"
+                      [attr.title]="group.latestActionMeta.code"
                     >
-                      <span class="material-symbols-outlined">{{ item.action.icon }}</span>
-                      <span class="access-report__chip-code">{{ item.action.code }}</span>
-                      <span class="access-report__chip-label">{{ item.action.label }}</span>
+                      <span class="material-symbols-outlined">{{ group.latestActionMeta.icon }}</span>
+                      <span class="access-report__chip-code">{{ group.latestActionMeta.code }}</span>
+                      <span class="access-report__chip-label">{{ group.latestActionMeta.label }}</span>
                     </span>
                   </td>
-                  <td class="access-report__when">{{ item.row.date }}</td>
-                  <td class="access-report__when">{{ item.row.time }}</td>
                   <td>
-                    <code class="access-report__ip">{{ item.row.ipAddress }}</code>
-                    @if (item.row.userAgent) {
-                      <div class="access-report__ua" [title]="item.row.userAgent">
-                        {{ item.row.userAgent }}
+                    <div class="access-report__when-user">
+                      <span class="access-report__date-text">{{ group.latestRow.date }}</span>
+                      <div class="access-report__user-tag" title="En son aksiyon alan kişi">
+                        <span class="access-report__avatar">{{ group.latestRow.initials }}</span>
+                        <span class="access-report__user-name">{{ group.latestRow.userName }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="access-report__when">{{ group.latestRow.time }}</td>
+                  <td>
+                    <code class="access-report__ip">{{ group.latestRow.ipAddress }}</code>
+                    @if (group.latestRow.userAgent) {
+                      <div class="access-report__ua" [title]="group.latestRow.userAgent">
+                        {{ group.latestRow.userAgent }}
                       </div>
                     }
                   </td>
                 } @else {
                   <td>
+                    <div class="access-report__user-tag">
+                      <span class="access-report__avatar">{{ group.latestRow.initials }}</span>
+                      <span>{{ group.latestRow.userName }}</span>
+                    </div>
+                  </td>
+                  <td>
                     <span class="access-report__chip access-report__chip--muted">
-                      <span class="material-symbols-outlined">{{ item.action.icon }}</span>
-                      {{ item.action.label }}
+                      <span class="material-symbols-outlined">visibility_off</span>
+                      Henüz erişim yok
                     </span>
                   </td>
                 }
               </tr>
+
+              <!-- Geçmiş Satırlar (Daha Fazla Göster ile Açılan Önceki Aksiyonlar) -->
+              @if (activeTab() === 'viewed' && isDealerExpanded(group.dealerName)) {
+                @for (history of group.historyRows; track history.row.id) {
+                  <tr class="access-report__sub-row">
+                    <td class="access-report__sub-dealer-cell">
+                      <div class="access-report__sub-indent">
+                        <span class="material-symbols-outlined access-report__sub-icon">subdirectory_arrow_right</span>
+                        <span class="access-report__sub-tag">Önceki Aksiyon</span>
+                      </div>
+                    </td>
+                    <td class="access-report__doc access-report__doc--muted">{{ history.row.documentTitle }}</td>
+                    <td>
+                      <span
+                        class="access-report__chip access-report__chip--sub"
+                        [class.access-report__chip--success]="history.actionMeta.tone === 'success'"
+                        [class.access-report__chip--info]="history.actionMeta.tone === 'info'"
+                        [attr.title]="history.actionMeta.code"
+                      >
+                        <span class="material-symbols-outlined">{{ history.actionMeta.icon }}</span>
+                        <span class="access-report__chip-code">{{ history.actionMeta.code }}</span>
+                        <span class="access-report__chip-label">{{ history.actionMeta.label }}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="access-report__when-user">
+                        <span class="access-report__date-text">{{ history.row.date }}</span>
+                        <div class="access-report__user-tag access-report__user-tag--sub">
+                          <span class="access-report__avatar access-report__avatar--sub">{{ history.row.initials }}</span>
+                          <span class="access-report__user-name">{{ history.row.userName }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="access-report__when">{{ history.row.time }}</td>
+                    <td>
+                      <code class="access-report__ip access-report__ip--sub">{{ history.row.ipAddress }}</code>
+                      @if (history.row.userAgent) {
+                        <div class="access-report__ua" [title]="history.row.userAgent">
+                          {{ history.row.userAgent }}
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
             } @empty {
               <tr>
                 <td [attr.colspan]="tableColspan()" class="access-report__empty">

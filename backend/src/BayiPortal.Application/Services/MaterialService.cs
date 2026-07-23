@@ -15,6 +15,7 @@ public sealed class MaterialService : IMaterialService
     private const int DueBatchSize = 50;
 
     private readonly IMaterialRepository _materialRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IFileStorageService _fileStorageService;
     private readonly IFileUploadPolicy _fileUploadPolicy;
     private readonly IAccessLogService _accessLogService;
@@ -22,12 +23,14 @@ public sealed class MaterialService : IMaterialService
 
     public MaterialService(
         IMaterialRepository materialRepository,
+        IUserRepository userRepository,
         IFileStorageService fileStorageService,
         IFileUploadPolicy fileUploadPolicy,
         IAccessLogService accessLogService,
         INotificationService notificationService)
     {
         _materialRepository = materialRepository;
+        _userRepository = userRepository;
         _fileStorageService = fileStorageService;
         _fileUploadPolicy = fileUploadPolicy;
         _accessLogService = accessLogService;
@@ -82,6 +85,66 @@ public sealed class MaterialService : IMaterialService
         var response = ToResponse(material);
         await ApplyCoverageCountsAsync(new List<MaterialResponse> { response }, cancellationToken);
         return response;
+    }
+
+    public async Task<MaterialAccessReportResponse> GetAccessReportAsync(
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        var materialBrandIds = material.MaterialBrands.Select(mb => mb.BrandId).ToHashSet();
+
+        var logListRes = await _accessLogService.GetListAsync(new AccessLogListQuery
+        {
+            MaterialId = id,
+            PageSize = 1000
+        }, cancellationToken);
+
+        var rawLogs = logListRes.Items
+            .Where(l => l.Action == "Döküman Görüntüleme" || l.Action == "Döküman İndirme" || l.Action == "VIEW" || l.Action == "DOWNLOAD")
+            .ToList();
+
+        var viewedUserIdentifiers = rawLogs
+            .Select(l => l.UserName.ToLowerInvariant())
+            .ToHashSet();
+
+        var allUsers = await _userRepository.GetListAsync(cancellationToken);
+        var eligibleUsers = allUsers
+            .Where(u => u.IsActive && u.Role == RoleType.DealerUser && u.Dealer != null)
+            .Where(u => u.Dealer!.DealerBrands.Any(db => materialBrandIds.Contains(db.BrandId)))
+            .ToList();
+
+        var pendingUsers = eligibleUsers
+            .Where(u => !viewedUserIdentifiers.Contains(u.Email.ToLowerInvariant()) && !viewedUserIdentifiers.Contains(u.Name.ToLowerInvariant()))
+            .Select(u => new PendingUserResponse
+            {
+                UserId = u.Id,
+                UserName = u.Name,
+                Email = u.Email,
+                DealerName = u.Dealer?.Name ?? "Bayi"
+            })
+            .ToList();
+
+        var distinctViewedUserCount = eligibleUsers.Count(u => viewedUserIdentifiers.Contains(u.Email.ToLowerInvariant()) || viewedUserIdentifiers.Contains(u.Name.ToLowerInvariant()));
+        if (distinctViewedUserCount == 0 && rawLogs.Count > 0)
+        {
+            distinctViewedUserCount = rawLogs.Select(l => l.UserName.ToLowerInvariant()).Distinct().Count();
+        }
+
+        var audienceCount = eligibleUsers.Count > 0 ? eligibleUsers.Count : (distinctViewedUserCount + pendingUsers.Count);
+        var pendingCount = Math.Max(0, audienceCount - distinctViewedUserCount);
+        var engagementPercent = audienceCount > 0 ? (int)Math.Round((double)distinctViewedUserCount / audienceCount * 100) : 0;
+
+        return new MaterialAccessReportResponse
+        {
+            MaterialId = material.Id,
+            MaterialTitle = material.Title,
+            AudienceCount = audienceCount,
+            ViewedCount = distinctViewedUserCount,
+            PendingCount = pendingCount,
+            EngagementPercent = engagementPercent,
+            AccessLogs = rawLogs,
+            PendingUsers = pendingUsers
+        };
     }
 
     private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)

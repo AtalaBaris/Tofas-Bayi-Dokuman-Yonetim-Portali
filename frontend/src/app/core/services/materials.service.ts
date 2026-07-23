@@ -1,6 +1,7 @@
 /** İçerik listeleme/detay/indirme/oluşturma — backend yetki+marka eşleşme kuralını zaten uyguluyor. */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import type { Material, MaterialScheduleItem } from '../models/material.interface';
 
@@ -102,6 +103,19 @@ export class MaterialsService {
     return this.http.get(`${this.api.baseUrl}/materials/${id}/download`, {
       responseType: 'blob',
     });
+  }
+
+  getAccessReport(id: number): Observable<{
+    materialId: number;
+    materialTitle: string;
+    audienceCount: number;
+    viewedCount: number;
+    pendingCount: number;
+    engagementPercent: number;
+    accessLogs: any[];
+    pendingUsers: { userId: number; userName: string; email: string; dealerName: string }[];
+  }> {
+    return this.api.get(`/materials/${id}/access-report`);
   }
 
   downloadFile(materialId: number, fileId: number) {

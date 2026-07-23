@@ -228,4 +228,18 @@
       </div>
     </div>
   }
+} @else if (loading()) {
+  <div class="viewer-loading" style="padding: 5rem 1rem; text-align: center;">
+    <span class="viewer-spinner"></span>
+    <p style="margin-top: 1rem; color: var(--color-on-surface-variant);">Doküman bilgileri yükleniyor...</p>
+  </div>
+} @else {
+  <div class="viewer-fallback" style="padding: 5rem 1rem; text-align: center;">
+    <span class="material-symbols-outlined" style="font-size: 48px; color: #ef4444;">error</span>
+    <h3 style="margin: 0.5rem 0; color: var(--color-on-surface);">Doküman Yüklenemedi</h3>
+    <p style="color: var(--color-on-surface-variant);">{{ error() || 'Doküman bulunamadı ya da erişim yetkiniz yok.' }}</p>
+    <a routerLink="/bayi/documents" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; padding: 0.5rem 1rem; background: var(--color-primary-container); color: var(--color-on-primary); border-radius: 8px; text-decoration: none; font-weight: 600;">
+      <span class="material-symbols-outlined">arrow_back</span> Dokümanlara Dön
+    </a>
+  </div>
 }

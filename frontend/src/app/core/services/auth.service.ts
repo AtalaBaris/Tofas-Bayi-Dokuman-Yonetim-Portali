@@ -1,12 +1,15 @@
 /** Giriş/çıkış, token saklama ve currentUser sinyali. */
 import { Injectable, Injector, inject, signal } from '@angular/core';
-import { Observable, catchError, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, of, switchMap, tap, throwError } from 'rxjs';
 import type { User } from '../models/user.interface';
 import {
+  AUTH_REFRESH_TOKEN_KEY,
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
   clearStoredSession,
+  readStoredRefreshToken,
   readStoredToken,
+  storeTokens,
 } from '../auth-storage';
 import { ApiService } from './api.service';
 import { AccessLogService } from './access-log.service';
@@ -18,7 +21,13 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken?: string;
   user: User;
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken: string;
 }
 
 export interface LoginOptions {
@@ -35,11 +44,32 @@ export class AuthService {
   private readonly injector = inject(Injector);
   readonly currentUser = signal<User | null>(this.readStoredUser());
 
+  constructor() {
+    // Background silent token refresh every 15 minutes while user is authenticated
+    setInterval(() => {
+      if (this.isAuthenticated() && readStoredRefreshToken()) {
+        this.refreshToken().subscribe({ error: () => {} });
+      }
+    }, 15 * 60 * 1000);
+  }
+
   login(request: LoginRequest, options?: LoginOptions): Observable<LoginResponse> {
     return this.api.post<LoginResponse>('/auth/login', request).pipe(
       tap((res) => {
-        this.persistSession(res.token, res.user, options?.rememberMe !== false);
+        this.persistSession(res.token, res.refreshToken, res.user, options?.rememberMe !== false);
         this.currentUser.set(res.user);
+      })
+    );
+  }
+
+  refreshToken(): Observable<RefreshTokenResponse> {
+    const refreshToken = readStoredRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('Refresh token bulunamadı.'));
+    }
+    return this.api.post<RefreshTokenResponse>('/auth/refresh-token', { refreshToken }).pipe(
+      tap((res) => {
+        storeTokens(res.token, res.refreshToken);
       })
     );
   }
@@ -83,13 +113,18 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
-  private persistSession(token: string, user: User, rememberMe: boolean): void {
+  private persistSession(token: string, refreshToken: string | undefined, user: User, rememberMe: boolean): void {
     const primary = rememberMe ? localStorage : sessionStorage;
     const secondary = rememberMe ? sessionStorage : localStorage;
 
     secondary.removeItem(AUTH_TOKEN_KEY);
+    secondary.removeItem(AUTH_REFRESH_TOKEN_KEY);
     secondary.removeItem(AUTH_USER_KEY);
+
     primary.setItem(AUTH_TOKEN_KEY, token);
+    if (refreshToken) {
+      primary.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken);
+    }
     primary.setItem(AUTH_USER_KEY, JSON.stringify(user));
   }
 

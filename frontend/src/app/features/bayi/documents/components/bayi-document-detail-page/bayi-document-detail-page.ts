@@ -1,5 +1,5 @@
 /** Bayi doküman detayı — filigranlı önizleyici ve versiyon geçmişi desteği. */
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -24,8 +24,13 @@ export class BayiDocumentDetailPage {
   private readonly sanitizer = inject(DomSanitizer);
 
   private readonly id = toSignal(
-    this.route.paramMap.pipe(map((p) => Number(p.get('id')) || 0)),
+    this.route.paramMap.pipe(map((p: any) => Number(p.get('id')) || 0)),
     { initialValue: 0 }
+  );
+
+  private readonly autoView = toSignal(
+    this.route.queryParamMap.pipe(map((p: any) => p.get('view') === 'true')),
+    { initialValue: false }
   );
 
   readonly loading = signal(true);
@@ -69,15 +74,24 @@ export class BayiDocumentDetailPage {
   });
 
   constructor() {
-    this.materialsService.getById(this.id()).subscribe({
-      next: (material) => {
-        this.doc.set(toBayiDocumentCard(material));
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set(err?.message ?? 'Doküman bulunamadı ya da erişim yetkiniz yok.');
-        this.loading.set(false);
-      },
+    effect(() => {
+      const docId = this.id();
+      if (docId > 0) {
+        this.loading.set(true);
+        this.materialsService.getById(docId).subscribe({
+          next: (material) => {
+            this.doc.set(toBayiDocumentCard(material));
+            this.loading.set(false);
+            if (this.autoView()) {
+              this.onView();
+            }
+          },
+          error: (err) => {
+            this.error.set(err?.message ?? 'Doküman bulunamadı ya da erişim yetkiniz yok.');
+            this.loading.set(false);
+          },
+        });
+      }
     });
   }
 
@@ -96,16 +110,26 @@ export class BayiDocumentDetailPage {
           URL.revokeObjectURL(this.rawPreviewUrl()!);
         }
 
-        const type = blob.type.toLowerCase();
-        if (type.includes('pdf')) {
+        const rawType = (blob.type || '').toLowerCase();
+        const docKind = this.doc()?.fileKind;
+        const fileName = (this.doc()?.fileName || '').toLowerCase();
+
+        let finalBlob = blob;
+        if (rawType.includes('pdf') || docKind === 'pdf' || fileName.endsWith('.pdf')) {
           this.previewFileType.set('pdf');
-        } else if (type.includes('image')) {
+          if (!rawType.includes('pdf')) {
+            finalBlob = new Blob([blob], { type: 'application/pdf' });
+          }
+        } else if (rawType.includes('image') || fileName.match(/\.(jpg|jpeg|png|webp|gif)$/)) {
           this.previewFileType.set('image');
+          if (!rawType.includes('image')) {
+            finalBlob = new Blob([blob], { type: 'image/jpeg' });
+          }
         } else {
           this.previewFileType.set('other');
         }
 
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(finalBlob);
         this.rawPreviewUrl.set(url);
         this.previewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
         this.viewerLoading.set(false);

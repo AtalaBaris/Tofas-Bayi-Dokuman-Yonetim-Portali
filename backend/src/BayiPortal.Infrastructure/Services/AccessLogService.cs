@@ -103,6 +103,7 @@ public class AccessLogService : IAccessLogService
     {
         var dbQuery = _dbContext.AccessLogs
             .Include(x => x.User)
+                .ThenInclude(u => u!.Dealer)
             .AsNoTracking();
 
         // MaterialId filter
@@ -174,11 +175,12 @@ public class AccessLogService : IAccessLogService
             .ToListAsync(cancellationToken);
 
         var dtos = items.Select(log => {
-            // Determine UserRole & UserType
+            // Determine UserRole & UserType & DealerName
             var role = log.User?.Role.ToString() ?? "Guest";
-            var userType = "Bayi Kullanıcısı";
-            if (role == "Admin") userType = "Yönetici";
-            else if (role == "ContentManager") userType = "İçerik Yöneticisi";
+            var dealerName = log.User?.Dealer?.Name;
+            var userType = !string.IsNullOrWhiteSpace(dealerName)
+                ? dealerName
+                : (role == "Admin" ? "Yönetici" : (role == "ContentManager" ? "İçerik Yöneticisi" : "Bayi"));
 
             // Format date and time in Turkish timezone (Turkey is UTC+3)
             var localTime = log.ViewedAtUtc.AddHours(3); // Turkey timezone offset
@@ -189,6 +191,7 @@ public class AccessLogService : IAccessLogService
                 UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
                 UserRole = role,
                 UserType = userType,
+                DealerName = dealerName,
                 Action = log.Action,
                 Description = log.Description,
                 LoginStatus = log.LoginStatus ?? "N/A",
