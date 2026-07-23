@@ -35,4 +35,12 @@ public interface IAccessLogService
     Task<MaterialAccessReportResponse> GetMaterialAccessReportAsync(
         int materialId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "30" için son 30 günün günlük, "year" için içinde bulunulan yılın aylık
+    /// görüntüleme/indirme sayaçlarını döner (dashboard trend grafiği).
+    /// </summary>
+    Task<AccessLogTrendResponse> GetTrendAsync(
+        string period,
+        CancellationToken cancellationToken = default);
 }
