@@ -97,6 +97,123 @@ public class AccessLogService : IAccessLogService
         return result;
     }
 
+    public async Task<MaterialAccessReportResponse> GetMaterialAccessReportAsync(
+        int materialId, CancellationToken cancellationToken = default)
+    {
+        var logs = await _dbContext.AccessLogs
+            .Include(x => x.User)
+            .ThenInclude(u => u!.Dealer)
+            .AsNoTracking()
+            .Where(x => x.MaterialId == materialId
+                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+            .OrderByDescending(x => x.ViewedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var items = logs.Select(log =>
+        {
+            var localTime = log.ViewedAtUtc.AddHours(3);
+            return new MaterialAccessReportItemResponse
+            {
+                Id = log.Id,
+                UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
+                DealerName = log.User?.Dealer?.Name ?? string.Empty,
+                Action = log.Action,
+                Date = localTime.ToString("yyyy-MM-dd"),
+                Time = localTime.ToString("HH:mm:ss")
+            };
+        }).ToList();
+
+        var accessedUserIds = logs
+            .Where(x => x.UserId.HasValue)
+            .Select(x => x.UserId!.Value)
+            .Distinct()
+            .ToList();
+
+        var pendingUsers = await (
+            from mb in _dbContext.MaterialBrands
+            where mb.MaterialId == materialId
+            join db in _dbContext.DealerBrands on mb.BrandId equals db.BrandId
+            join u in _dbContext.Users on db.DealerId equals u.DealerId
+            where u.Role == RoleType.DealerUser && u.IsActive && !accessedUserIds.Contains(u.Id)
+            select new { u.Id, u.Name, DealerName = u.Dealer!.Name })
+            .Distinct()
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return new MaterialAccessReportResponse
+        {
+            MaterialId = materialId,
+            Items = items,
+            PendingUsers = pendingUsers
+                .Select(p => new MaterialAccessReportPendingUserResponse
+                {
+                    Id = p.Id,
+                    UserName = p.Name,
+                    DealerName = p.DealerName
+                })
+                .ToList()
+        };
+    }
+
+    public async Task<AccessLogTrendResponse> GetTrendAsync(
+        string period, CancellationToken cancellationToken = default)
+    {
+        var nowLocal = DateTime.UtcNow.AddHours(3);
+
+        if (string.Equals(period, "year", StringComparison.OrdinalIgnoreCase))
+        {
+            var yearStartUtc = new DateTime(nowLocal.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-3);
+            var timestamps = await _dbContext.AccessLogs
+                .Where(x => x.ViewedAtUtc >= yearStartUtc
+                    && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+                .Select(x => x.ViewedAtUtc)
+                .ToListAsync(cancellationToken);
+
+            var byMonth = timestamps
+                .GroupBy(t => t.AddHours(3).Month)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var monthNames = new[] { "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara" };
+            var points = Enumerable.Range(1, 12)
+                .Select(month => new AccessLogTrendPointResponse
+                {
+                    Label = monthNames[month - 1],
+                    Count = byMonth.GetValueOrDefault(month)
+                })
+                .ToList();
+
+            return new AccessLogTrendResponse { Points = points };
+        }
+        else
+        {
+            var startLocalDate = nowLocal.Date.AddDays(-29);
+            var startUtc = startLocalDate.AddHours(-3);
+            var timestamps = await _dbContext.AccessLogs
+                .Where(x => x.ViewedAtUtc >= startUtc
+                    && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+                .Select(x => x.ViewedAtUtc)
+                .ToListAsync(cancellationToken);
+
+            var byDay = timestamps
+                .GroupBy(t => t.AddHours(3).Date)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var points = Enumerable.Range(0, 30)
+                .Select(offset =>
+                {
+                    var day = startLocalDate.AddDays(offset);
+                    return new AccessLogTrendPointResponse
+                    {
+                        Label = day.ToString("dd.MM"),
+                        Count = byDay.GetValueOrDefault(day)
+                    };
+                })
+                .ToList();
+
+            return new AccessLogTrendResponse { Points = points };
+        }
+    }
+
     public async Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
         CancellationToken cancellationToken = default)

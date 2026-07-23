@@ -32,6 +32,18 @@ export interface UpdateMaterialSchedulePayload {
   recurrenceDayOfMonth?: number | null;
 }
 
+export interface MaterialAccessReportPendingUser {
+  id: number;
+  userName: string;
+  dealerName: string;
+}
+
+export interface MaterialAccessReport {
+  materialId: number;
+  items: unknown[];
+  pendingUsers: MaterialAccessReportPendingUser[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class MaterialsService {
   private readonly api = inject(ApiService);
@@ -125,5 +137,9 @@ export class MaterialsService {
 
   archive(id: number) {
     return this.api.delete<void>(`/materials/${id}`);
+  }
+
+  getAccessReport(id: number) {
+    return this.api.get<MaterialAccessReport>(`/materials/${id}/access-report`);
   }
 }

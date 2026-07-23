@@ -4,7 +4,11 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { AccessLog, AccessLogService } from '../../../../../core/services/access-log.service';
+import {
+  AccessLog,
+  AccessLogService,
+  AccessLogTrendPoint,
+} from '../../../../../core/services/access-log.service';
 import { BrandService } from '../../../../../core/services/brand.service';
 import { CategoryService } from '../../../../../core/services/category.service';
 import { DealerService } from '../../../../../core/services/dealer.service';
@@ -51,6 +55,7 @@ export class AdminDashboardPage implements OnInit {
   readonly apiHealthy = signal(true);
   readonly chartPeriod = signal<'30' | 'year'>('30');
   readonly recentLogs = signal<AccessLog[]>([]);
+  readonly trendPoints = signal<AccessLogTrendPoint[]>([]);
   readonly materials = signal<Material[]>([]);
   readonly accessLogTotal = signal<number | null>(null);
   readonly loginLogTotal = signal<number | null>(null);
@@ -120,11 +125,9 @@ export class AdminDashboardPage implements OnInit {
   });
 
   readonly chartBars = computed(() => {
-    const base =
-      this.chartPeriod() === '30'
-        ? [20, 35, 25, 50, 40, 75, 65, 90]
-        : [30, 45, 55, 48, 70, 82, 78, 95, 88, 92, 85, 100];
-    return base.map((h, i) => ({ label: `${i + 1}`, height: h }));
+    const points = this.trendPoints();
+    const max = Math.max(1, ...points.map((p) => p.count));
+    return points.map((p) => ({ label: p.label, height: Math.round((p.count / max) * 100) }));
   });
 
   readonly chartLinePoints = computed(() => {
@@ -162,10 +165,19 @@ export class AdminDashboardPage implements OnInit {
 
   ngOnInit(): void {
     this.loadSummary();
+    this.loadTrend(this.chartPeriod());
   }
 
   setChartPeriod(period: '30' | 'year'): void {
     this.chartPeriod.set(period);
+    this.loadTrend(period);
+  }
+
+  private loadTrend(period: '30' | 'year'): void {
+    this.accessLogs
+      .getTrend(period)
+      .pipe(catchError(() => of({ points: [] })))
+      .subscribe((res) => this.trendPoints.set(res.points));
   }
 
   docIcon(kind: TopDocumentRow['fileKind']): string {

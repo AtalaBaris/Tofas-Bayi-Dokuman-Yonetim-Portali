@@ -36,6 +36,15 @@ export interface AccessLogQuery {
   pageSize?: number;
 }
 
+export interface AccessLogTrendPoint {
+  label: string;
+  count: number;
+}
+
+export interface AccessLogTrendResponse {
+  points: AccessLogTrendPoint[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AccessLogService {
   private readonly api = inject(ApiService);
@@ -59,5 +68,10 @@ export class AccessLogService {
 
   logLogout(): Observable<void> {
     return this.api.post<void>('/access-logs/logout', {});
+  }
+
+  getTrend(period: '30' | 'year'): Observable<AccessLogTrendResponse> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get<AccessLogTrendResponse>(`${this.api.baseUrl}/access-logs/trend`, { params });
   }
 }

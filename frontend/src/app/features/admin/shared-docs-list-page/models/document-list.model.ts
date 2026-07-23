@@ -10,6 +10,13 @@ export interface DocumentBrandTag {
   color: string;
 }
 
+export interface DocumentFileItem {
+  id: number;
+  fileName: string;
+  sizeLabel: string;
+  fileKind: DocumentFileKind;
+}
+
 export interface DocumentListItem {
   id: number;
   title: string;
@@ -26,13 +33,89 @@ export interface DocumentListItem {
   description: string;
   uploader: string;
   uploadedAt: string;
+  /** ISO tarih (YYYY-MM-DD) — yayın tarihi; tarihe göre arama/filtreleme için kullanılır. */
+  publishedAtIso: string;
   /** ISO tarih (YYYY-MM-DD); yoksa sadece yükleme tarihi geçerli. */
   expiresAt?: string | null;
   scheduledPublishAt?: string | null;
   recurrenceKind?: string;
   fileSizeDetail: string;
   version: string;
+  /** İlk dosya (geriye dönük uyumluluk için korunuyor) — tüm dosyalar için bkz. `files`. */
   fileName: string;
+  /** Bu dokümana ait tüm dosyalar (çoklu dosya desteği). */
+  files: DocumentFileItem[];
+}
+
+/** Arama metnini tarih olarak yorumlar; eşleşirse ISO tam tarih ya da yıl/ay öneki döner. */
+export function parseSearchDateQuery(raw: string): { kind: 'exact' | 'prefix'; value: string } | null {
+  const q = raw.trim();
+
+  // ISO: YYYY-MM-DD / YYYY-MM / YYYY
+  let m = q.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    return { kind: 'exact', value: q };
+  }
+  m = q.match(/^(\d{4})-(\d{2})$/);
+  if (m) {
+    return { kind: 'prefix', value: q };
+  }
+  m = q.match(/^(\d{4})$/);
+  if (m) {
+    return { kind: 'prefix', value: q };
+  }
+
+  // TR/EU: DD.MM.YYYY veya DD/MM/YYYY veya DD-MM-YYYY
+  m = q.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (m) {
+    const [, d, mo, y] = m;
+    const day = d.padStart(2, '0');
+    const month = mo.padStart(2, '0');
+    if (Number(day) >= 1 && Number(day) <= 31 && Number(month) >= 1 && Number(month) <= 12) {
+      return { kind: 'exact', value: `${y}-${month}-${day}` };
+    }
+  }
+
+  // DD.MM veya DD/MM (yıl olmadan) — herhangi bir yıldaki o gün/ay ile eşleşir
+  m = q.match(/^(\d{1,2})[./-](\d{1,2})$/);
+  if (m) {
+    const [, d, mo] = m;
+    const day = d.padStart(2, '0');
+    const month = mo.padStart(2, '0');
+    if (Number(day) >= 1 && Number(day) <= 31 && Number(month) >= 1 && Number(month) <= 12) {
+      return { kind: 'prefix', value: `-${month}-${day}` };
+    }
+  }
+
+  return null;
+}
+
+/** Arama kutusu metni: başlıkta, görünen tarih etiketinde ya da ayrıştırılmış tarihte eşleşme arar. */
+export function matchesSearchQuery(doc: DocumentListItem, rawQuery: string): boolean {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) {
+    return true;
+  }
+
+  if (doc.title.toLowerCase().includes(q)) {
+    return true;
+  }
+  if (doc.dateLabel.toLowerCase().includes(q)) {
+    return true;
+  }
+
+  const dateQuery = parseSearchDateQuery(rawQuery);
+  if (dateQuery && doc.publishedAtIso) {
+    if (dateQuery.kind === 'exact') {
+      return doc.publishedAtIso === dateQuery.value;
+    }
+    // '-MM-DD' öneki gün/ay eşleşmesi için sondan, diğerleri baştan kontrol edilir.
+    return dateQuery.value.startsWith('-')
+      ? doc.publishedAtIso.endsWith(dateQuery.value)
+      : doc.publishedAtIso.startsWith(dateQuery.value);
+  }
+
+  return false;
 }
 
 /** Örn. "1000/1200 kişi gördü" */
@@ -122,8 +205,27 @@ export function materialToDocumentListItem(material: {
   createdByName?: string;
   viewedCount?: number;
   audienceCount?: number;
+  files?: { id: number; fileName: string; mimeType: string; fileSize: number; sortOrder: number }[];
 }): DocumentListItem {
   const sizeLabel = formatBytes(material.fileSize);
+  const files: DocumentFileItem[] =
+    material.files && material.files.length > 0
+      ? [...material.files]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((f) => ({
+            id: f.id,
+            fileName: f.fileName,
+            sizeLabel: formatBytes(f.fileSize),
+            fileKind: fileKindFromMime(f.mimeType, f.fileName),
+          }))
+      : [
+          {
+            id: material.id,
+            fileName: material.fileName,
+            sizeLabel,
+            fileKind: fileKindFromMime(material.mimeType, material.fileName),
+          },
+        ];
   const scheduleIso = material.scheduledPublishAt ?? null;
   const dateLabel = formatTrDateTime(scheduleIso) !== '—'
     ? formatTrDateTime(scheduleIso)
@@ -150,12 +252,14 @@ export function materialToDocumentListItem(material: {
     description: material.description,
     uploader: material.createdByName?.trim() || '—',
     uploadedAt: formatTrDate(material.publishedAt),
+    publishedAtIso: material.publishedAt ? material.publishedAt.slice(0, 10) : '',
     expiresAt: material.expiresAt ? material.expiresAt.slice(0, 10) : null,
     scheduledPublishAt: scheduleIso,
     recurrenceKind: material.recurrenceKind ?? 'None',
     fileSizeDetail: sizeLabel,
     version: `v${version}.0`,
     fileName: material.fileName,
+    files,
   };
 }
 
@@ -221,5 +325,4 @@ export interface DocumentViewerRow {
   initials?: string;
   avatarUrl?: string;
 }
-
 

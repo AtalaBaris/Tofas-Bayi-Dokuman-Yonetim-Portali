@@ -14,10 +14,16 @@ export class DocsListFilters {
   readonly brands = input<string[]>([]);
   readonly categoryOptions = input<string[]>([]);
   readonly brandOptions = input<string[]>([]);
+  /** ISO tarih (YYYY-MM-DD) — yayın tarihi aralığının başlangıcı. */
+  readonly dateFrom = input('');
+  /** ISO tarih (YYYY-MM-DD) — yayın tarihi aralığının bitişi. */
+  readonly dateTo = input('');
 
   readonly searchChange = output<string>();
   readonly categoryChange = output<string>();
   readonly brandsChange = output<string[]>();
+  readonly dateFromChange = output<string>();
+  readonly dateToChange = output<string>();
 
   readonly brandMenuOpen = signal(false);
 
@@ -48,6 +54,11 @@ export class DocsListFilters {
 
   clearBrands(): void {
     this.brandsChange.emit([]);
+  }
+
+  clearDateRange(): void {
+    this.dateFromChange.emit('');
+    this.dateToChange.emit('');
   }
 
   @HostListener('document:click', ['$event'])

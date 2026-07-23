@@ -84,6 +84,15 @@ public sealed class MaterialService : IMaterialService
         return response;
     }
 
+    public async Task<MaterialAccessReportResponse> GetAccessReportAsync(
+        int id, CancellationToken cancellationToken = default)
+    {
+        _ = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        return await _accessLogService.GetMaterialAccessReportAsync(id, cancellationToken);
+    }
+
     private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)
     {
         var materialIds = responses.Select(r => r.Id).ToList();

@@ -9,9 +9,13 @@
         [brands]="brands()"
         [categoryOptions]="categoryOptions()"
         [brandOptions]="brandOptions()"
+        [dateFrom]="dateFrom()"
+        [dateTo]="dateTo()"
         (searchChange)="search.set($event)"
         (categoryChange)="category.set($event)"
         (brandsChange)="brands.set($event)"
+        (dateFromChange)="dateFrom.set($event)"
+        (dateToChange)="dateTo.set($event)"
       />
       <app-docs-list-tabs [active]="statusTab()" (tabChange)="statusTab.set($event)" />
     </div>
@@ -69,7 +73,8 @@
         [viewers]="viewers()"
         (closed)="closeDrawer()"
         (archive)="archiveDoc($event)"
-        (download)="downloadDoc($event)"
+        (publishNow)="publishNow($event)"
+        (downloadFile)="downloadFile($event)"
       />
     </div>
   }

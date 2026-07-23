@@ -190,6 +190,8 @@
         [viewers]="viewers()"
         (closed)="closeDetails()"
         (archive)="archiveDoc($event)"
+        (publishNow)="publishNow($event)"
+        (downloadFile)="downloadFile($event)"
       />
     </div>
   }
