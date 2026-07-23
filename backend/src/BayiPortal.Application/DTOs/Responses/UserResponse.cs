@@ -10,4 +10,7 @@ public class UserResponse
     public string? DealerName { get; set; }
     public bool IsActive { get; set; }
     public string? Phone { get; set; }
+    public bool EmailNotifications { get; set; } = true;
+    public bool DocumentAlerts { get; set; } = true;
+    public bool ExpiryReminders { get; set; } = true;
 }

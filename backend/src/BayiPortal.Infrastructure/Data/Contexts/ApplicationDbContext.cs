@@ -21,6 +21,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MaterialFile> MaterialFiles => Set<MaterialFile>();
     public DbSet<AccessLog> AccessLogs => Set<AccessLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<MaterialVersion> MaterialVersions => Set<MaterialVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

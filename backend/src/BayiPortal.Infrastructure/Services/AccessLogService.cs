@@ -97,64 +97,6 @@ public class AccessLogService : IAccessLogService
         return result;
     }
 
-    public async Task<MaterialAccessReportResponse> GetMaterialAccessReportAsync(
-        int materialId, CancellationToken cancellationToken = default)
-    {
-        var logs = await _dbContext.AccessLogs
-            .Include(x => x.User)
-            .ThenInclude(u => u!.Dealer)
-            .AsNoTracking()
-            .Where(x => x.MaterialId == materialId
-                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
-            .OrderByDescending(x => x.ViewedAtUtc)
-            .ToListAsync(cancellationToken);
-
-        var items = logs.Select(log =>
-        {
-            var localTime = log.ViewedAtUtc.AddHours(3);
-            return new MaterialAccessReportItemResponse
-            {
-                Id = log.Id,
-                UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
-                DealerName = log.User?.Dealer?.Name ?? string.Empty,
-                Action = log.Action,
-                Date = localTime.ToString("yyyy-MM-dd"),
-                Time = localTime.ToString("HH:mm:ss")
-            };
-        }).ToList();
-
-        var accessedUserIds = logs
-            .Where(x => x.UserId.HasValue)
-            .Select(x => x.UserId!.Value)
-            .Distinct()
-            .ToList();
-
-        var pendingUsers = await (
-            from mb in _dbContext.MaterialBrands
-            where mb.MaterialId == materialId
-            join db in _dbContext.DealerBrands on mb.BrandId equals db.BrandId
-            join u in _dbContext.Users on db.DealerId equals u.DealerId
-            where u.Role == RoleType.DealerUser && u.IsActive && !accessedUserIds.Contains(u.Id)
-            select new { u.Id, u.Name, DealerName = u.Dealer!.Name })
-            .Distinct()
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
-        return new MaterialAccessReportResponse
-        {
-            MaterialId = materialId,
-            Items = items,
-            PendingUsers = pendingUsers
-                .Select(p => new MaterialAccessReportPendingUserResponse
-                {
-                    Id = p.Id,
-                    UserName = p.Name,
-                    DealerName = p.DealerName
-                })
-                .ToList()
-        };
-    }
-
     public async Task<AccessLogTrendResponse> GetTrendAsync(
         string period, CancellationToken cancellationToken = default)
     {
@@ -220,6 +162,7 @@ public class AccessLogService : IAccessLogService
     {
         var dbQuery = _dbContext.AccessLogs
             .Include(x => x.User)
+                .ThenInclude(u => u!.Dealer)
             .AsNoTracking();
 
         // MaterialId filter
@@ -291,11 +234,12 @@ public class AccessLogService : IAccessLogService
             .ToListAsync(cancellationToken);
 
         var dtos = items.Select(log => {
-            // Determine UserRole & UserType
+            // Determine UserRole & UserType & DealerName
             var role = log.User?.Role.ToString() ?? "Guest";
-            var userType = "Bayi Kullanıcısı";
-            if (role == "Admin") userType = "Yönetici";
-            else if (role == "ContentManager") userType = "İçerik Yöneticisi";
+            var dealerName = log.User?.Dealer?.Name;
+            var userType = !string.IsNullOrWhiteSpace(dealerName)
+                ? dealerName
+                : (role == "Admin" ? "Yönetici" : (role == "ContentManager" ? "İçerik Yöneticisi" : "Bayi"));
 
             // Format date and time in Turkish timezone (Turkey is UTC+3)
             var localTime = log.ViewedAtUtc.AddHours(3); // Turkey timezone offset
@@ -306,6 +250,7 @@ public class AccessLogService : IAccessLogService
                 UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
                 UserRole = role,
                 UserType = userType,
+                DealerName = dealerName,
                 Action = log.Action,
                 Description = log.Description,
                 LoginStatus = log.LoginStatus ?? "N/A",

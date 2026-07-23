@@ -1,4 +1,7 @@
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,26 +22,27 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<NotificationResponse>>> GetMine(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<NotificationResponse>>> GetMyNotifications(CancellationToken cancellationToken)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _notificationService.GetMineAsync(userId, cancellationToken);
+        var result = await _notificationService.GetMyNotificationsAsync(GetUserId(), cancellationToken);
         return Ok(result);
     }
 
     [HttpPost("{id:int}/read")]
-    public async Task<IActionResult> MarkRead(int id, CancellationToken cancellationToken)
+    [HttpPut("{id:int}/read")]
+    public async Task<IActionResult> MarkAsRead(int id, CancellationToken cancellationToken)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await _notificationService.MarkReadAsync(id, userId, cancellationToken);
+        await _notificationService.MarkAsReadAsync(GetUserId(), id, cancellationToken);
         return NoContent();
     }
 
     [HttpPost("read-all")]
-    public async Task<IActionResult> MarkAllRead(CancellationToken cancellationToken)
+    [HttpPut("read-all")]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await _notificationService.MarkAllReadAsync(userId, cancellationToken);
+        await _notificationService.MarkAllAsReadAsync(GetUserId(), cancellationToken);
         return NoContent();
     }
+
+    private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

@@ -6,6 +6,7 @@ public class AccessLogResponse
     public string UserName { get; set; } = string.Empty;
     public string UserRole { get; set; } = string.Empty;
     public string UserType { get; set; } = string.Empty;
+    public string? DealerName { get; set; }
     public string Action { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string LoginStatus { get; set; } = string.Empty;

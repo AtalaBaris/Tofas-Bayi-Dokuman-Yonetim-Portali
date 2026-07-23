@@ -15,6 +15,7 @@ public sealed class MaterialService : IMaterialService
     private const int DueBatchSize = 50;
 
     private readonly IMaterialRepository _materialRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IFileStorageService _fileStorageService;
     private readonly IFileUploadPolicy _fileUploadPolicy;
     private readonly IAccessLogService _accessLogService;
@@ -22,12 +23,14 @@ public sealed class MaterialService : IMaterialService
 
     public MaterialService(
         IMaterialRepository materialRepository,
+        IUserRepository userRepository,
         IFileStorageService fileStorageService,
         IFileUploadPolicy fileUploadPolicy,
         IAccessLogService accessLogService,
         INotificationService notificationService)
     {
         _materialRepository = materialRepository;
+        _userRepository = userRepository;
         _fileStorageService = fileStorageService;
         _fileUploadPolicy = fileUploadPolicy;
         _accessLogService = accessLogService;
@@ -85,12 +88,63 @@ public sealed class MaterialService : IMaterialService
     }
 
     public async Task<MaterialAccessReportResponse> GetAccessReportAsync(
-        int id, CancellationToken cancellationToken = default)
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
     {
-        _ = await _materialRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new MaterialNotFoundException(id);
+        var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        var materialBrandIds = material.MaterialBrands.Select(mb => mb.BrandId).ToHashSet();
 
-        return await _accessLogService.GetMaterialAccessReportAsync(id, cancellationToken);
+        var logListRes = await _accessLogService.GetListAsync(new AccessLogListQuery
+        {
+            MaterialId = id,
+            PageSize = 1000
+        }, cancellationToken);
+
+        var rawLogs = logListRes.Items
+            .Where(l => l.Action == "Döküman Görüntüleme" || l.Action == "Döküman İndirme" || l.Action == "VIEW" || l.Action == "DOWNLOAD")
+            .ToList();
+
+        var viewedUserIdentifiers = rawLogs
+            .Select(l => l.UserName.ToLowerInvariant())
+            .ToHashSet();
+
+        var allUsers = await _userRepository.GetListAsync(cancellationToken);
+        var eligibleUsers = allUsers
+            .Where(u => u.IsActive && u.Role == RoleType.DealerUser && u.Dealer != null)
+            .Where(u => u.Dealer!.DealerBrands.Any(db => materialBrandIds.Contains(db.BrandId)))
+            .ToList();
+
+        var pendingUsers = eligibleUsers
+            .Where(u => !viewedUserIdentifiers.Contains(u.Email.ToLowerInvariant()) && !viewedUserIdentifiers.Contains(u.Name.ToLowerInvariant()))
+            .Select(u => new PendingUserResponse
+            {
+                UserId = u.Id,
+                UserName = u.Name,
+                Email = u.Email,
+                DealerName = u.Dealer?.Name ?? "Bayi"
+            })
+            .ToList();
+
+        var distinctViewedUserCount = eligibleUsers.Count(u => viewedUserIdentifiers.Contains(u.Email.ToLowerInvariant()) || viewedUserIdentifiers.Contains(u.Name.ToLowerInvariant()));
+        if (distinctViewedUserCount == 0 && rawLogs.Count > 0)
+        {
+            distinctViewedUserCount = rawLogs.Select(l => l.UserName.ToLowerInvariant()).Distinct().Count();
+        }
+
+        var audienceCount = eligibleUsers.Count > 0 ? eligibleUsers.Count : (distinctViewedUserCount + pendingUsers.Count);
+        var pendingCount = Math.Max(0, audienceCount - distinctViewedUserCount);
+        var engagementPercent = audienceCount > 0 ? (int)Math.Round((double)distinctViewedUserCount / audienceCount * 100) : 0;
+
+        return new MaterialAccessReportResponse
+        {
+            MaterialId = material.Id,
+            MaterialTitle = material.Title,
+            AudienceCount = audienceCount,
+            ViewedCount = distinctViewedUserCount,
+            PendingCount = pendingCount,
+            EngagementPercent = engagementPercent,
+            AccessLogs = rawLogs,
+            PendingUsers = pendingUsers
+        };
     }
 
     private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)
@@ -169,6 +223,21 @@ public sealed class MaterialService : IMaterialService
             MaterialBrands = request.BrandIds.Distinct().Select(brandId => new MaterialBrand { BrandId = brandId }).ToList(),
             Files = materialFiles
         };
+
+        material.Versions.Add(new MaterialVersion
+        {
+            VersionLabel = "v1.0",
+            VersionNumber = 1,
+            Title = material.Title,
+            ChangeNote = "İlk sürüm yüklendi.",
+            FileName = firstFile.FileName,
+            StoredFileName = firstFile.StoredFileName,
+            FilePath = firstFile.FilePath,
+            MimeType = firstFile.MimeType,
+            FileSize = firstFile.FileSize,
+            CreatedBy = requestingUser.UserId,
+            CreatedAt = now
+        });
 
         _materialRepository.Add(material);
         await _materialRepository.SaveChangesAsync(cancellationToken);
@@ -731,4 +800,139 @@ public sealed class MaterialService : IMaterialService
             SortOrder = f.SortOrder
         }).ToList()
     };
+
+    public async Task<List<MaterialVersionResponse>> GetVersionsAsync(
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        var versions = await _materialRepository.GetVersionsAsync(material.Id, cancellationToken);
+
+        if (versions.Count == 0)
+        {
+            return new List<MaterialVersionResponse>
+            {
+                new()
+                {
+                    Id = 0,
+                    MaterialId = material.Id,
+                    VersionLabel = $"v{material.Version}.0",
+                    VersionNumber = material.Version,
+                    Title = material.Title,
+                    ChangeNote = "İlk sürüm yüklendi.",
+                    FileName = material.FileName,
+                    FileSize = material.FileSize,
+                    MimeType = material.MimeType,
+                    CreatedBy = material.CreatedBy,
+                    CreatedByName = material.Creator?.Name ?? "Sistem",
+                    CreatedAt = material.CreatedAt
+                }
+            };
+        }
+
+        return versions.Select(v => new MaterialVersionResponse
+        {
+            Id = v.Id,
+            MaterialId = v.MaterialId,
+            VersionLabel = v.VersionLabel,
+            VersionNumber = v.VersionNumber,
+            Title = v.Title,
+            ChangeNote = v.ChangeNote,
+            FileName = v.FileName,
+            FileSize = v.FileSize,
+            MimeType = v.MimeType,
+            CreatedBy = v.CreatedBy,
+            CreatedByName = v.Creator?.Name ?? "Sistem",
+            CreatedAt = v.CreatedAt
+        }).ToList();
+    }
+
+    public async Task<MaterialVersionResponse> CreateVersionAsync(
+        int id, CreateMaterialVersionRequest request, UploadedFileContent file, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        EnsureManager(requestingUser);
+        var material = await _materialRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new MaterialNotFoundException(id);
+
+        _fileUploadPolicy.ValidateOrThrow(file.OriginalFileName, file.MimeType, file.FileSize);
+
+        var now = DateTime.UtcNow;
+        var (storedFileName, relativePath) = await _fileStorageService.SaveAsync(
+            file.Content, file.OriginalFileName, cancellationToken);
+
+        var existingVersions = await _materialRepository.GetVersionsAsync(id, cancellationToken);
+        var nextVersionNumber = existingVersions.Count > 0 ? existingVersions.Max(v => v.VersionNumber) + 1 : material.Version + 1;
+        var versionLabel = string.IsNullOrWhiteSpace(request.VersionLabel) ? $"v{nextVersionNumber}.0" : request.VersionLabel.Trim();
+
+        var version = new MaterialVersion
+        {
+            MaterialId = id,
+            VersionLabel = versionLabel,
+            VersionNumber = nextVersionNumber,
+            Title = material.Title,
+            ChangeNote = string.IsNullOrWhiteSpace(request.ChangeNote) ? "Yeni versiyon yüklendi." : request.ChangeNote.Trim(),
+            FileName = file.OriginalFileName,
+            StoredFileName = storedFileName,
+            FilePath = relativePath,
+            MimeType = file.MimeType,
+            FileSize = file.FileSize,
+            CreatedBy = requestingUser.UserId,
+            CreatedAt = now
+        };
+
+        _materialRepository.AddVersion(version);
+
+        material.FileName = file.OriginalFileName;
+        material.StoredFileName = storedFileName;
+        material.FilePath = relativePath;
+        material.MimeType = file.MimeType;
+        material.FileSize = file.FileSize;
+        material.Version = nextVersionNumber;
+        material.UpdatedAt = now;
+
+        await _materialRepository.SaveChangesAsync(cancellationToken);
+
+        await _accessLogService.LogAsync(
+            requestingUser.UserId, null, id, "Döküman Güncelleme",
+            $"\"{material.Title}\" dökümanı {versionLabel} sürümüne güncellendi.", "N/A", cancellationToken);
+
+        var savedVersion = await _materialRepository.GetVersionByIdAsync(id, version.Id, cancellationToken)
+            ?? version;
+
+        return new MaterialVersionResponse
+        {
+            Id = savedVersion.Id,
+            MaterialId = savedVersion.MaterialId,
+            VersionLabel = savedVersion.VersionLabel,
+            VersionNumber = savedVersion.VersionNumber,
+            Title = savedVersion.Title,
+            ChangeNote = savedVersion.ChangeNote,
+            FileName = savedVersion.FileName,
+            FileSize = savedVersion.FileSize,
+            MimeType = savedVersion.MimeType,
+            CreatedBy = savedVersion.CreatedBy,
+            CreatedByName = savedVersion.Creator?.Name ?? "Sistem",
+            CreatedAt = savedVersion.CreatedAt
+        };
+    }
+
+    public async Task<(Stream Content, string FileName, string MimeType)> GetVersionDownloadStreamAsync(
+        int id, int versionId, RequestingUser requestingUser, CancellationToken cancellationToken = default)
+    {
+        var material = await GetAuthorizedMaterialAsync(id, requestingUser, cancellationToken);
+        if (versionId == 0)
+        {
+            return await GetDownloadStreamAsync(id, requestingUser, cancellationToken);
+        }
+
+        var version = await _materialRepository.GetVersionByIdAsync(material.Id, versionId, cancellationToken)
+            ?? throw new ValidationException("Belirtilen versiyon bulunamadı.");
+
+        var stream = _fileStorageService.OpenRead(version.FilePath);
+
+        await _accessLogService.LogAsync(
+            requestingUser.UserId, null, material.Id, "Döküman İndirme",
+            $"\"{material.Title}\" dökümanının {version.VersionLabel} versiyonu indirildi.", "Başarılı", cancellationToken, null);
+
+        return (stream, version.FileName, version.MimeType);
+    }
 }

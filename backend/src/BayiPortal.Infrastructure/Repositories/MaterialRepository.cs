@@ -167,6 +167,20 @@ public sealed class MaterialRepository : IMaterialRepository
 
     public void Add(Material material) => _dbContext.Materials.Add(material);
 
+    public Task<List<MaterialVersion>> GetVersionsAsync(int materialId, CancellationToken cancellationToken = default) =>
+        _dbContext.MaterialVersions
+            .Include(v => v.Creator)
+            .Where(v => v.MaterialId == materialId)
+            .OrderByDescending(v => v.VersionNumber)
+            .ToListAsync(cancellationToken);
+
+    public Task<MaterialVersion?> GetVersionByIdAsync(int materialId, int versionId, CancellationToken cancellationToken = default) =>
+        _dbContext.MaterialVersions
+            .Include(v => v.Creator)
+            .FirstOrDefaultAsync(v => v.MaterialId == materialId && v.Id == versionId, cancellationToken);
+
+    public void AddVersion(MaterialVersion version) => _dbContext.MaterialVersions.Add(version);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _dbContext.SaveChangesAsync(cancellationToken);
 }

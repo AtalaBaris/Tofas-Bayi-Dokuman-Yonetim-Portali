@@ -8,6 +8,7 @@ export interface AccessLog {
   userName: string;
   userRole: string;
   userType: string;
+  dealerName?: string | null;
   action: string;
   description: string;
   loginStatus: 'Başarılı' | 'Başarısız' | 'N/A' | string;
