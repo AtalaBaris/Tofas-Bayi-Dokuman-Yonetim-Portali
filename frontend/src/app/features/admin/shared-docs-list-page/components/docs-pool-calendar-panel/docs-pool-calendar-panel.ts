@@ -27,6 +27,7 @@ interface ScheduleModalState {
   time: string; // HH:mm
   /** Havuzdan: yeni kopya; takvimden: mevcut kaydı taşı. */
   mode: 'create' | 'move';
+  recurrenceKind: 'None' | 'Weekly' | 'MonthlyDay';
 }
 
 const POOL_WIDTH_KEY = 'admin.poolPanelWidth';
@@ -278,12 +279,17 @@ export class DocsPoolCalendarPanel {
       dateKey: day.dateKey,
       time,
       mode,
+      recurrenceKind: 'None',
     });
   }
 
   setModalTime(time: string): void {
     this.modal.update((m) => (m ? { ...m, time } : null));
     this.modalError.set('');
+  }
+
+  setModalRecurrenceKind(kind: 'None' | 'Weekly' | 'MonthlyDay'): void {
+    this.modal.update((m) => (m ? { ...m, recurrenceKind: kind } : null));
   }
 
   closeModal(): void {
@@ -310,11 +316,17 @@ export class DocsPoolCalendarPanel {
       return;
     }
 
+    const dateObj = new Date(local);
+    const dayOfWeek = dateObj.getDay() || 7; // Sunday is 0 in JS but usually 7 in .NET, wait .NET uses Sunday=0 or 7 depending on setup, but typically we can send 1=Mon...7=Sun or just use standard. Let's send day of week from 1-7 (Mon-Sun).
+    const jsDay = dateObj.getDay();
+    const dayOfWeekToSend = jsDay === 0 ? 7 : jsDay; 
     const iso = when.toISOString();
 
     const payload = {
       scheduledPublishAt: iso,
-      recurrenceKind: 'None' as const,
+      recurrenceKind: state.recurrenceKind,
+      recurrenceDayOfWeek: state.recurrenceKind === 'Weekly' ? dayOfWeekToSend : undefined,
+      recurrenceDayOfMonth: state.recurrenceKind === 'MonthlyDay' ? dateObj.getDate() : undefined,
     };
 
     this.savingSchedule.set(true);

@@ -19,7 +19,7 @@ public interface IMaterialService
         RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<MaterialResponse> UpdateAsync(
-        int id, UpdateMaterialRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+        int id, UpdateMaterialRequest request, IReadOnlyList<UploadedFileContent>? newFiles, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Dokümana yeni dosya(lar) ekler (mevcut dosyalar silinmez) ve Version'ı artırır.

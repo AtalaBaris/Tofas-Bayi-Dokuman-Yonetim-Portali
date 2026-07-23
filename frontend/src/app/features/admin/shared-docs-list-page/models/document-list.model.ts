@@ -21,8 +21,10 @@ export interface DocumentListItem {
   id: number;
   title: string;
   dateLabel: string;
+  categoryId: number;
   category: string;
   sizeLabel: string;
+  brandIds: number[];
   brands: DocumentBrandTag[];
   /** Görüntüleyen benzersiz kişi sayısı. */
   viewedCount: number;
@@ -190,6 +192,7 @@ export function materialToDocumentListItem(material: {
   id: number;
   title: string;
   description: string;
+  categoryId: number;
   categoryName: string;
   fileName: string;
   mimeType: string;
@@ -200,6 +203,7 @@ export function materialToDocumentListItem(material: {
   expiresAt?: string | null;
   scheduledPublishAt?: string | null;
   recurrenceKind?: string;
+  brandIds: number[];
   brandNames: string[];
   brands?: { badgeLabel: string; badgeColor: string; name: string }[];
   createdByName?: string;
@@ -242,8 +246,10 @@ export function materialToDocumentListItem(material: {
     id: material.id,
     title: material.title,
     dateLabel,
+    categoryId: material.categoryId,
     category: material.categoryName,
     sizeLabel,
+    brandIds: material.brandIds,
     brands,
     viewedCount: material.viewedCount ?? 0,
     audienceCount: material.audienceCount ?? 0,
