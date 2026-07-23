@@ -329,6 +329,9 @@ export class DefinitionManagementPage {
           .create({
             name: payload.name,
             code: payload.code,
+            city: payload.city,
+            phone: payload.phone,
+            contactInfo: payload.contactInfo,
             brandIds: payload.brandIds,
             initialUser: payload.initialUser!,
           })
@@ -342,6 +345,9 @@ export class DefinitionManagementPage {
                 .update(created.id, {
                   name: payload.name,
                   code: payload.code,
+                  city: payload.city,
+                  phone: payload.phone,
+                  contactInfo: payload.contactInfo,
                   isActive: false,
                   brandIds: payload.brandIds,
                 })
@@ -354,6 +360,9 @@ export class DefinitionManagementPage {
           .update(payload.id, {
             name: payload.name,
             code: payload.code,
+            city: payload.city,
+            phone: payload.phone,
+            contactInfo: payload.contactInfo,
             isActive: payload.active,
             brandIds: payload.brandIds,
           })
@@ -472,6 +481,9 @@ export class DefinitionManagementPage {
         .update(target.item.id, {
           name: target.item.name,
           code: target.item.code ?? '',
+          city: target.item.city,
+          phone: target.item.phone,
+          contactInfo: target.item.contactInfo,
           isActive: true,
           brandIds: target.item.brandIds ?? [],
         })
@@ -563,6 +575,9 @@ export class DefinitionManagementPage {
         .update(passivate.id, {
           name: passivate.name,
           code: passivate.code ?? '',
+          city: passivate.city,
+          phone: passivate.phone,
+          contactInfo: passivate.contactInfo,
           isActive: false,
           brandIds: passivate.brandIds ?? [],
         })

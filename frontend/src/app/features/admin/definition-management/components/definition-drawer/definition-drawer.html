@@ -112,6 +112,33 @@
           (ngModelChange)="code.set($event)"
         />
       </label>
+      <label>
+        <span>Konum / Şehir <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: İstanbul, Kadıköy"
+          [ngModel]="city()"
+          (ngModelChange)="city.set($event)"
+        />
+      </label>
+      <label>
+        <span>Telefon Numarası <span class="definition-drawer__required">*</span></span>
+        <input
+          type="text"
+          placeholder="Örn: 0216 555 12 34"
+          [ngModel]="phone()"
+          (ngModelChange)="phone.set($event)"
+        />
+      </label>
+      <label>
+        <span>İletişim Bilgisi / İlgili Kişi</span>
+        <input
+          type="text"
+          placeholder="Örn: Ahmet Yılmaz (Müdür) - ahmet@marmara.com"
+          [ngModel]="contactInfo()"
+          (ngModelChange)="contactInfo.set($event)"
+        />
+      </label>
       <div class="definition-drawer__brands">
         <span>Markalar <span class="definition-drawer__required">*</span></span>
         <div class="definition-drawer__brand-list">

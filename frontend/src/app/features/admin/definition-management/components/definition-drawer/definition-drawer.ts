@@ -25,6 +25,9 @@ export interface DefinitionDrawerSavePayload {
   role: string;
   dealerId: number | null;
   code: string;
+  city: string;
+  phone: string;
+  contactInfo: string;
   description: string;
   brandIds: number[];
   active: boolean;
@@ -69,6 +72,9 @@ export class DefinitionDrawer {
   readonly role = signal('');
   readonly dealerId = signal<number | null>(null);
   readonly code = signal('');
+  readonly city = signal('');
+  readonly phone = signal('');
+  readonly contactInfo = signal('');
   readonly description = signal('');
   readonly brandIds = signal<number[]>([]);
   readonly active = signal(true);
@@ -181,6 +187,9 @@ export class DefinitionDrawer {
         this.role.set('');
         this.dealerId.set(null);
         this.code.set('');
+        this.city.set('');
+        this.phone.set('');
+        this.contactInfo.set('');
         this.description.set('');
         this.brandIds.set([]);
         this.active.set(true);
@@ -206,6 +215,9 @@ export class DefinitionDrawer {
       this.name.set(target.item.name);
       this.active.set(target.item.active);
       this.code.set(target.item.code ?? '');
+      this.city.set(target.item.city ?? '');
+      this.phone.set(target.item.phone ?? '');
+      this.contactInfo.set(target.item.contactInfo ?? '');
       this.description.set(target.item.description ?? (section === 'categories' ? target.item.detail : ''));
       this.brandIds.set([...(target.item.brandIds ?? [])]);
       this.badgeLabel.set(target.item.badgeLabel ?? '');
@@ -271,7 +283,7 @@ export class DefinitionDrawer {
         return;
       }
     } else if (section === 'dealers') {
-      if (!this.name().trim() || !this.code().trim()) {
+      if (!this.name().trim() || !this.code().trim() || !this.city().trim() || !this.phone().trim()) {
         return;
       }
       if (!edit) {
@@ -309,6 +321,9 @@ export class DefinitionDrawer {
       role: this.role(),
       dealerId: this.role() === 'DealerUser' ? this.dealerId() : null,
       code: this.code().trim(),
+      city: this.city().trim(),
+      phone: this.phone().trim(),
+      contactInfo: this.contactInfo().trim(),
       description: this.description().trim(),
       brandIds: [...this.brandIds()],
       active: this.active(),
