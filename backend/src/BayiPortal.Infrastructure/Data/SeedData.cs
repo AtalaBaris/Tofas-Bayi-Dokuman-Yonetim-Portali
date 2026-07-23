@@ -19,15 +19,26 @@ public static class SeedData
         var dealerA = await EnsureDealerAsync(dbContext, "BAYI-A", "Bayi A");
         var dealerB = await EnsureDealerAsync(dbContext, "BAYI-B", "Bayi B");
 
-        var brandA = await EnsureBrandAsync(dbContext, "MRK-A", "Marka A");
-        var brandB = await EnsureBrandAsync(dbContext, "MRK-B", "Marka B");
+        var fiat = await EnsureBrandAsync(dbContext, "FIAT", "Fiat");
+        var alfaRomeo = await EnsureBrandAsync(dbContext, "ALFAROMEO", "Alfa Romeo");
+        var jeep = await EnsureBrandAsync(dbContext, "JEEP", "Jeep");
+        var citroen = await EnsureBrandAsync(dbContext, "CITROEN", "Citroën");
+        var dsAutomobiles = await EnsureBrandAsync(dbContext, "DS", "DS Automobiles");
+        var opel = await EnsureBrandAsync(dbContext, "OPEL", "Opel");
+        var peugeot = await EnsureBrandAsync(dbContext, "PEUGEOT", "Peugeot");
 
         await EnsureCategoryAsync(dbContext, "Pazarlama Materyalleri", "Billboard, broşür, sosyal medya içerikleri");
         await EnsureCategoryAsync(dbContext, "Genel Duyuru", "Kampanya ve operasyon duyuruları");
         await EnsureCategoryAsync(dbContext, "Eğitim Dokümanı", "Uygulama ve süreç eğitim materyalleri");
 
-        await EnsureDealerBrandAsync(dbContext, dealerA, brandA);
-        await EnsureDealerBrandAsync(dbContext, dealerB, brandB);
+        // Bayi A: eski FCA markaları, Bayi B: eski PSA markaları (Stellantis'in iki atası).
+        await EnsureDealerBrandAsync(dbContext, dealerA, fiat);
+        await EnsureDealerBrandAsync(dbContext, dealerA, alfaRomeo);
+        await EnsureDealerBrandAsync(dbContext, dealerA, jeep);
+        await EnsureDealerBrandAsync(dbContext, dealerB, citroen);
+        await EnsureDealerBrandAsync(dbContext, dealerB, dsAutomobiles);
+        await EnsureDealerBrandAsync(dbContext, dealerB, opel);
+        await EnsureDealerBrandAsync(dbContext, dealerB, peugeot);
 
         await EnsureUserAsync(
             dbContext,
@@ -114,8 +125,13 @@ public static class SeedData
     private static string DefaultBadgeColorFor(string code) =>
         code.ToUpperInvariant() switch
         {
-            "MRK-A" => "#1E3A8A",
-            "MRK-B" => "#14532D",
+            "FIAT" => "#C8102E",
+            "ALFAROMEO" => "#98002E",
+            "JEEP" => "#4C6444",
+            "CITROEN" => "#B5533C",
+            "DS" => "#151515",
+            "OPEL" => "#0047AB",
+            "PEUGEOT" => "#001E50",
             _ => "#374151"
         };
 

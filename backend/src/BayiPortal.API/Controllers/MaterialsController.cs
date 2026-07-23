@@ -154,6 +154,14 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:int}/access-report")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialAccessReportResponse>> GetAccessReport(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetAccessReportAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:int}")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<IActionResult> Archive(int id, CancellationToken cancellationToken)
