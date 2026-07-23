@@ -1,5 +1,5 @@
 <!-- Admin doküman kütüphanesi: filtre + sekmeler + sayfalı liste + detay drawer. -->
-<div class="docs-page">
+<div class="docs-page" (scroll)="onListScroll($event)">
   <div class="docs-page__toolbar">
     <div class="docs-page__toolbar-inner">
       <app-docs-list-header />
@@ -21,7 +21,7 @@
     </div>
   </div>
 
-  <div class="docs-page__list" (scroll)="onListScroll($event)">
+  <div class="docs-page__list">
     <div class="docs-page__list-inner">
       @if (loading()) {
         <p class="docs-page__empty">Dokümanlar yükleniyor…</p>

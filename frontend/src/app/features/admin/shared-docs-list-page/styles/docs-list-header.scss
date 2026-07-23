@@ -1,13 +1,22 @@
 .docs-header {
   margin-bottom: 1.5rem;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    text-align: left;
+  }
 }
 
 .docs-header__row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
+
+  @media (min-width: 768px) {
+    justify-content: space-between;
+  }
 }
 
 .docs-header__actions {
@@ -15,6 +24,11 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
+  justify-content: center;
+
+  @media (min-width: 768px) {
+    justify-content: flex-end;
+  }
 }
 
 .docs-header__link {

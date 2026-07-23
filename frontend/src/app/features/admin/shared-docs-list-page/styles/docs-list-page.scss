@@ -12,32 +12,30 @@
   flex: 1;
   min-height: 0;
   position: relative;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--color-surface-container);
 }
 
 .docs-page__toolbar {
   flex-shrink: 0;
-  padding: 2rem var(--space-margin-mobile) 1rem;
+  padding: 1.5rem var(--space-margin-mobile) 0.75rem;
   border-bottom: 1px solid var(--color-outline-variant);
   background: var(--color-surface-container);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 
   @media (min-width: 768px) {
-    padding-left: var(--space-margin-desktop);
-    padding-right: var(--space-margin-desktop);
+    padding: 2rem var(--space-margin-desktop) 1rem;
   }
 }
 
 .docs-page__toolbar-inner {
   max-width: var(--layout-max-width);
   margin: 0 auto;
+  overflow: visible;
 }
 
 .docs-page__list {
-  flex: 1;
-  overflow-y: auto;
+  flex: 0 0 auto;
   background: var(--color-surface-container);
   padding: var(--space-margin-mobile);
   position: relative;
