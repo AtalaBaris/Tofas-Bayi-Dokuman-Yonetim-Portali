@@ -12,10 +12,10 @@ export class DocsListTabs {
   readonly tabChange = output<DocumentStatusTab>();
 
   readonly tabs: Array<{ id: DocumentStatusTab; label: string }> = [
-    { id: 'all', label: 'All' },
+    { id: 'all', label: 'Tümü' },
     { id: 'active', label: 'Aktif' },
-    { id: 'scheduled', label: 'Hazır / Zamanlanmış' },
+    { id: 'scheduled', label: 'Zamanlanmış' },
     { id: 'draft', label: 'Taslaklar' },
-    { id: 'archived', label: 'Arşivlenenler' },
+    { id: 'archived', label: 'Arşiv' },
   ];
 }
