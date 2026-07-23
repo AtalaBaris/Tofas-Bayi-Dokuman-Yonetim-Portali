@@ -748,6 +748,11 @@ public sealed class MaterialService : IMaterialService
         }
 
         var scheduledAt = ScheduleRecurrenceHelper.NormalizeUtc(scheduledPublishAt.Value);
+        if (scheduledAt <= DateTime.UtcNow)
+        {
+            throw new ValidationException("Yayın zamanı şu andan ileri bir tarih/saat olmalıdır.");
+        }
+
         var kind = RecurrenceKind.None;
         if (!string.IsNullOrWhiteSpace(recurrenceKindRaw)
             && Enum.TryParse<RecurrenceKind>(recurrenceKindRaw.Trim(), ignoreCase: true, out var parsedKind))
