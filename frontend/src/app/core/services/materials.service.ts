@@ -141,6 +141,13 @@ export class MaterialsService {
     });
   }
 
+  exportAccessReport(id: number, format: 'xlsx' | 'pdf') {
+    return this.http.get(`${this.api.baseUrl}/materials/${id}/access-report/export`, {
+      params: { format },
+      responseType: 'blob',
+    });
+  }
+
   create(payload: CreateMaterialPayload) {
     const form = new FormData();
     form.append('Title', payload.title);

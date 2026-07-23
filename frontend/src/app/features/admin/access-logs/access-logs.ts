@@ -32,6 +32,7 @@ export class AccessLogs {
   readonly logs = signal<AccessLog[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
+  readonly exporting = signal(false);
 
   readonly actionsList = [
     'Döküman Görüntüleme',
@@ -184,6 +185,37 @@ export class AccessLogs {
     this.startDate.set('');
     this.endDate.set('');
     this.currentPage.set(1);
+  }
+
+  exportLogs(format: 'xlsx' | 'pdf'): void {
+    this.exporting.set(true);
+    this.accessLogService
+      .exportLogs(
+        {
+          keyword: this.searchQuery().trim() || undefined,
+          role: this.selectedRole() || undefined,
+          action: this.selectedAction() || undefined,
+          status: this.selectedStatus() || undefined,
+          startDate: this.startDate() || undefined,
+          endDate: this.endDate() || undefined,
+        },
+        format
+      )
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `erisim-kayitlari.${format}`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          this.exporting.set(false);
+        },
+        error: (err) => {
+          console.error('Erişim kayıtları dışa aktarılırken hata oluştu:', err);
+          this.exporting.set(false);
+        },
+      });
   }
 
   getActionClass(action: string): string {

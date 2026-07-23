@@ -1,9 +1,31 @@
 <div class="access-logs-page">
-  <header class="access-logs-header">
-    <h1 class="access-logs-header__title">Döküman İşlem Kaydı</h1>
-    <p class="access-logs-header__subtitle">
-      Doküman görüntüleme, indirme ve içerik işlemlerini izleyin.
-    </p>
+  <header class="access-logs-header access-logs-header--row">
+    <div>
+      <h1 class="access-logs-header__title">Döküman İşlem Kaydı</h1>
+      <p class="access-logs-header__subtitle">
+        Doküman görüntüleme, indirme ve içerik işlemlerini izleyin.
+      </p>
+    </div>
+    <div class="access-logs-header__export-actions">
+      <button
+        type="button"
+        class="access-logs-header__export-btn"
+        [disabled]="exporting()"
+        (click)="exportLogs('xlsx')"
+      >
+        <span class="material-symbols-outlined">description</span>
+        Excel
+      </button>
+      <button
+        type="button"
+        class="access-logs-header__export-btn"
+        [disabled]="exporting()"
+        (click)="exportLogs('pdf')"
+      >
+        <span class="material-symbols-outlined">picture_as_pdf</span>
+        PDF
+      </button>
+    </div>
   </header>
 
   <div class="access-logs-filters">

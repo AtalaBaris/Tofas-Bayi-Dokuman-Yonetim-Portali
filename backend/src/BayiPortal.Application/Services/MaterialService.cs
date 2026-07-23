@@ -20,6 +20,7 @@ public sealed class MaterialService : IMaterialService
     private readonly IFileUploadPolicy _fileUploadPolicy;
     private readonly IAccessLogService _accessLogService;
     private readonly INotificationService _notificationService;
+    private readonly IExportService _exportService;
 
     public MaterialService(
         IMaterialRepository materialRepository,
@@ -27,7 +28,8 @@ public sealed class MaterialService : IMaterialService
         IFileStorageService fileStorageService,
         IFileUploadPolicy fileUploadPolicy,
         IAccessLogService accessLogService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IExportService exportService)
     {
         _materialRepository = materialRepository;
         _userRepository = userRepository;
@@ -35,6 +37,7 @@ public sealed class MaterialService : IMaterialService
         _fileUploadPolicy = fileUploadPolicy;
         _accessLogService = accessLogService;
         _notificationService = notificationService;
+        _exportService = exportService;
     }
 
     public async Task<List<MaterialResponse>> GetListAsync(
@@ -145,6 +148,13 @@ public sealed class MaterialService : IMaterialService
             AccessLogs = rawLogs,
             PendingUsers = pendingUsers
         };
+    }
+
+    public async Task<(byte[] Content, string FileName, string MimeType)> ExportAccessReportAsync(
+        int id, RequestingUser requestingUser, string format, CancellationToken cancellationToken = default)
+    {
+        var report = await GetAccessReportAsync(id, requestingUser, cancellationToken);
+        return _exportService.ExportAccessReport(report, format);
     }
 
     private async Task ApplyCoverageCountsAsync(List<MaterialResponse> responses, CancellationToken cancellationToken)

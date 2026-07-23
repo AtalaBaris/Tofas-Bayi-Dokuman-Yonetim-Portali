@@ -19,11 +19,16 @@ public class AccessLogService : IAccessLogService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IExportService _exportService;
 
-    public AccessLogService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+    public AccessLogService(
+        ApplicationDbContext dbContext,
+        IHttpContextAccessor httpContextAccessor,
+        IExportService exportService)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
+        _exportService = exportService;
     }
 
     public async Task LogAsync(
@@ -160,10 +165,49 @@ public class AccessLogService : IAccessLogService
         AccessLogListQuery query,
         CancellationToken cancellationToken = default)
     {
+        var dbQuery = BuildFilteredQuery(query);
+
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+
+        var items = await dbQuery
+            .OrderByDescending(x => x.ViewedAtUtc)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new AccessLogListResponse
+        {
+            Items = items.Select(MapToResponse).ToList(),
+            TotalCount = totalCount,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
+    public async Task<(byte[] Content, string FileName, string MimeType)> ExportAsync(
+        AccessLogListQuery query, string format, CancellationToken cancellationToken = default)
+    {
+        var dbQuery = BuildFilteredQuery(query);
+
+        var items = await dbQuery
+            .OrderByDescending(x => x.ViewedAtUtc)
+            .Take(ExportRowLimit)
+            .ToListAsync(cancellationToken);
+
+        var dtos = items.Select(MapToResponse).ToList();
+        return _exportService.ExportAccessLogs(dtos, format);
+    }
+
+    /// <summary>Dışa aktarımda tek seferde işlenecek azami satır sayısı (bellek/performans koruması).</summary>
+    private const int ExportRowLimit = 20000;
+
+    private IQueryable<AccessLog> BuildFilteredQuery(AccessLogListQuery query)
+    {
         var dbQuery = _dbContext.AccessLogs
             .Include(x => x.User)
                 .ThenInclude(u => u!.Dealer)
-            .AsNoTracking();
+            .AsNoTracking()
+            .AsQueryable();
 
         // MaterialId filter
         if (query.MaterialId.HasValue)
@@ -181,7 +225,7 @@ public class AccessLogService : IAccessLogService
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
             var keyword = query.Keyword.Trim().ToLower();
-            dbQuery = dbQuery.Where(x => 
+            dbQuery = dbQuery.Where(x =>
                 (x.UserName != null && x.UserName.ToLower().Contains(keyword)) ||
                 (x.User != null && x.User.Email.ToLower().Contains(keyword)));
         }
@@ -225,48 +269,35 @@ public class AccessLogService : IAccessLogService
             dbQuery = dbQuery.Where(x => x.ViewedAtUtc <= endOfDay.ToUniversalTime());
         }
 
-        var totalCount = await dbQuery.CountAsync(cancellationToken);
+        return dbQuery;
+    }
 
-        var items = await dbQuery
-            .OrderByDescending(x => x.ViewedAtUtc)
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToListAsync(cancellationToken);
+    private static AccessLogResponse MapToResponse(AccessLog log)
+    {
+        // Determine UserRole & UserType & DealerName
+        var role = log.User?.Role.ToString() ?? "Guest";
+        var dealerName = log.User?.Dealer?.Name;
+        var userType = !string.IsNullOrWhiteSpace(dealerName)
+            ? dealerName
+            : (role == "Admin" ? "Yönetici" : (role == "ContentManager" ? "İçerik Yöneticisi" : "Bayi"));
 
-        var dtos = items.Select(log => {
-            // Determine UserRole & UserType & DealerName
-            var role = log.User?.Role.ToString() ?? "Guest";
-            var dealerName = log.User?.Dealer?.Name;
-            var userType = !string.IsNullOrWhiteSpace(dealerName)
-                ? dealerName
-                : (role == "Admin" ? "Yönetici" : (role == "ContentManager" ? "İçerik Yöneticisi" : "Bayi"));
+        // Format date and time in Turkish timezone (Turkey is UTC+3)
+        var localTime = log.ViewedAtUtc.AddHours(3); // Turkey timezone offset
 
-            // Format date and time in Turkish timezone (Turkey is UTC+3)
-            var localTime = log.ViewedAtUtc.AddHours(3); // Turkey timezone offset
-            
-            return new AccessLogResponse
-            {
-                Id = log.Id,
-                UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
-                UserRole = role,
-                UserType = userType,
-                DealerName = dealerName,
-                Action = log.Action,
-                Description = log.Description,
-                LoginStatus = log.LoginStatus ?? "N/A",
-                Date = localTime.ToString("yyyy-MM-dd"),
-                Time = localTime.ToString("HH:mm:ss"),
-                IpAddress = log.IpAddress,
-                UserAgent = log.UserAgent
-            };
-        }).ToList();
-
-        return new AccessLogListResponse
+        return new AccessLogResponse
         {
-            Items = dtos,
-            TotalCount = totalCount,
-            Page = query.Page,
-            PageSize = query.PageSize
+            Id = log.Id,
+            UserName = log.UserName ?? log.User?.Email ?? "Bilinmeyen Kullanıcı",
+            UserRole = role,
+            UserType = userType,
+            DealerName = dealerName,
+            Action = log.Action,
+            Description = log.Description,
+            LoginStatus = log.LoginStatus ?? "N/A",
+            Date = localTime.ToString("yyyy-MM-dd"),
+            Time = localTime.ToString("HH:mm:ss"),
+            IpAddress = log.IpAddress,
+            UserAgent = log.UserAgent
         };
     }
 }
