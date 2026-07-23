@@ -32,6 +32,21 @@ export interface UpdateMaterialSchedulePayload {
   recurrenceDayOfMonth?: number | null;
 }
 
+export interface MaterialVersionDto {
+  id: number;
+  materialId: number;
+  versionLabel: string;
+  versionNumber: number;
+  title: string;
+  changeNote: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdBy: number;
+  createdByName: string;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MaterialsService {
   private readonly api = inject(ApiService);
@@ -63,6 +78,24 @@ export class MaterialsService {
 
   getById(id: number) {
     return this.api.get<Material>(`/materials/${id}`);
+  }
+
+  getVersions(id: number) {
+    return this.api.get<MaterialVersionDto[]>(`/materials/${id}/versions`);
+  }
+
+  createVersion(id: number, versionLabel: string, changeNote: string, file: File) {
+    const form = new FormData();
+    if (versionLabel) form.append('VersionLabel', versionLabel);
+    if (changeNote) form.append('ChangeNote', changeNote);
+    form.append('File', file, file.name);
+    return this.http.post<MaterialVersionDto>(`${this.api.baseUrl}/materials/${id}/versions`, form);
+  }
+
+  downloadVersion(materialId: number, versionId: number) {
+    return this.http.get(`${this.api.baseUrl}/materials/${materialId}/versions/${versionId}/download`, {
+      responseType: 'blob',
+    });
   }
 
   download(id: number) {

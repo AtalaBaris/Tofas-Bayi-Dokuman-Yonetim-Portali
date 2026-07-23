@@ -43,6 +43,15 @@ public interface IMaterialService
     Task<MaterialResponse> CancelScheduleAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task ProcessDueSchedulesAsync(CancellationToken cancellationToken = default);
+
+    Task<List<MaterialVersionResponse>> GetVersionsAsync(
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialVersionResponse> CreateVersionAsync(
+        int id, CreateMaterialVersionRequest request, UploadedFileContent file, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<(Stream Content, string FileName, string MimeType)> GetVersionDownloadStreamAsync(
+        int id, int versionId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 }
 
 // Controller'da JWT claim'lerinden doldurulur; brand-eşleşme ve rol kontrolleri bu bilgiye göre yapılır.

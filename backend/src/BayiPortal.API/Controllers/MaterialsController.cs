@@ -61,6 +61,50 @@ public class MaterialsController : ControllerBase
         return File(content, mimeType, fileName);
     }
 
+    [HttpGet("{id:int}/versions")]
+    public async Task<ActionResult<List<MaterialVersionResponse>>> GetVersions(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetVersionsAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/versions")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialVersionResponse>> CreateVersion(
+        int id, [FromForm] CreateMaterialVersionForm form, CancellationToken cancellationToken)
+    {
+        var file = form.File ?? Request.Form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Yeni versiyon için bir dosya yüklenmelidir." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var uploadedFile = new UploadedFileContent
+        {
+            Content = stream,
+            OriginalFileName = file.FileName,
+            MimeType = file.ContentType ?? string.Empty,
+            FileSize = file.Length
+        };
+
+        var request = new CreateMaterialVersionRequest
+        {
+            VersionLabel = form.VersionLabel,
+            ChangeNote = form.ChangeNote
+        };
+
+        var result = await _materialService.CreateVersionAsync(id, request, uploadedFile, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}/versions/{versionId:int}/download")]
+    public async Task<IActionResult> DownloadVersion(int id, int versionId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetVersionDownloadStreamAsync(id, versionId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Create(
@@ -205,4 +249,11 @@ public class CreateMaterialForm
     public int? RecurrenceDayOfWeek { get; set; }
     public int? RecurrenceDayOfMonth { get; set; }
     public List<IFormFile> Files { get; set; } = new();
+}
+
+public class CreateMaterialVersionForm
+{
+    public string VersionLabel { get; set; } = string.Empty;
+    public string ChangeNote { get; set; } = string.Empty;
+    public IFormFile? File { get; set; }
 }
