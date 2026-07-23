@@ -142,6 +142,8 @@ public class AccessLogService : IAccessLogService
         if (query.MaterialId.HasValue)
         {
             dbQuery = dbQuery.Where(x => x.MaterialId == query.MaterialId.Value);
+        }
+
         // ContentManager yetki kısıtlaması: Giriş/Çıkış loglarını göremez, sadece doküman hareketlerini görebilir
         if (query.ExcludeAuthLogs)
         {
