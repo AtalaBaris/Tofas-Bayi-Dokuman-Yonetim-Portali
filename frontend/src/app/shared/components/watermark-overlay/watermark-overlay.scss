@@ -1,0 +1,41 @@
+.watermark-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watermark-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 60px 40px;
+  width: 140%;
+  height: 140%;
+  transform: rotate(-25deg);
+  transform-origin: center;
+  align-items: center;
+  justify-items: center;
+}
+
+.watermark-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.watermark-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(220, 38, 38, 0.22);
+  text-transform: uppercase;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
+}

@@ -193,6 +193,10 @@
       </div>
     </section>
 
+    <a class="docs-drawer__edit" [routerLink]="['/admin/documents', doc().id, 'edit']">
+      <span class="material-symbols-outlined">edit</span>
+      Dokümanı Düzenle
+    </a>
     @if (doc().status === 'scheduled' || doc().status === 'draft') {
       <button type="button" class="docs-drawer__publish" (click)="publishNow.emit(doc())">
         <span class="material-symbols-outlined">publish</span>

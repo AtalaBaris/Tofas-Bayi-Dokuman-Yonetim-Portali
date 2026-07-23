@@ -1,9 +1,8 @@
-/** API hatalarını yakalar; teknik detay yerine kullanıcıya anlaşılır mesaj taşır. */
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
-import { clearStoredSession } from '../auth-storage';
+import { catchError, switchMap, throwError } from 'rxjs';
+import { clearStoredSession, readStoredRefreshToken } from '../auth-storage';
 import { AuthService } from '../services/auth.service';
 
 function resolveMessage(error: HttpErrorResponse): string {
@@ -33,20 +32,37 @@ function resolveMessage(error: HttpErrorResponse): string {
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
+  const authService = inject(AuthService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      const isLoginRequest = req.url.includes('/auth/login');
+      const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/refresh-token');
 
-      if (error.status === 401 && !isLoginRequest) {
-        // Geçersiz JWT: yerel oturumu temizle (logout API çağrısı yapmadan).
-        clearStoredSession();
-        try {
-          inject(AuthService).currentUser.set(null);
-        } catch {
-          /* DI henüz hazır değilse storage temizliği yeterli */
+      if (error.status === 401 && !isAuthEndpoint) {
+        const refreshToken = readStoredRefreshToken();
+        if (refreshToken) {
+          // Automatic seamless background token refresh & request retry
+          return authService.refreshToken().pipe(
+            switchMap((res) => {
+              const retriedReq = req.clone({
+                setHeaders: {
+                  Authorization: `Bearer ${res.token}`,
+                },
+              });
+              return next(retriedReq);
+            }),
+            catchError((refreshErr) => {
+              clearStoredSession();
+              authService.currentUser.set(null);
+              const onAdmin = router.url.startsWith('/admin');
+              void router.navigateByUrl(onAdmin ? '/admin/login' : '/login');
+              return throwError(() => refreshErr);
+            })
+          );
         }
 
+        clearStoredSession();
+        authService.currentUser.set(null);
         const onAdmin = router.url.startsWith('/admin');
         void router.navigateByUrl(onAdmin ? '/admin/login' : '/login');
       }

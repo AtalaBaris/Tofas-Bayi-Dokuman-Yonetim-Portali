@@ -88,7 +88,8 @@
             class="poolcal__day"
             [class.poolcal__day--muted]="!day.inMonth"
             [class.poolcal__day--today]="day.isToday"
-            (dragover)="onDayDragOver($event)"
+            [class.poolcal__day--past]="day.isPast"
+            (dragover)="onDayDragOver(day, $event)"
             (drop)="onDayDrop(day, $event)"
           >
             <span class="poolcal__day-num">{{ day.day }}</span>
@@ -154,12 +155,21 @@
 
         <p class="poolcal-modal__date">{{ m.dateKey }}</p>
 
+        @if (modalError() || modalScheduleInvalid()) {
+          <p class="poolcal-modal__error" role="alert">
+            {{
+              modalError() ||
+                'Yayın zamanı şu andan ileri bir tarih/saat olmalıdır.'
+            }}
+          </p>
+        }
+
         <div class="poolcal-modal__actions">
           <button type="button" class="poolcal-modal__btn" (click)="closeModal()">Vazgeç</button>
           <button
             type="button"
             class="poolcal-modal__btn poolcal-modal__btn--primary"
-            [disabled]="savingSchedule()"
+            [disabled]="savingSchedule() || modalScheduleInvalid()"
             (click)="confirmSchedule()"
           >
             {{

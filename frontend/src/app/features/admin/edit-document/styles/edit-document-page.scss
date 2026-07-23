@@ -1,0 +1,10 @@
+@use '../../add-document/styles/add-document-page';
+@use '../../add-document/styles/add-document-meta';
+@use '../../add-document/styles/add-document-header';
+@use '../../add-document/styles/add-document-actions';
+@use '../../add-document/styles/add-document-upload';
+
+.add-doc__banner:not(.add-doc__banner--error) {
+  background: var(--color-tertiary-container);
+  color: var(--color-on-tertiary-container, var(--color-on-surface));
+}

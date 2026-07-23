@@ -36,5 +36,11 @@ public interface IMaterialRepository
 
     void Add(Material material);
 
+    Task<List<MaterialVersion>> GetVersionsAsync(int materialId, CancellationToken cancellationToken = default);
+
+    Task<MaterialVersion?> GetVersionByIdAsync(int materialId, int versionId, CancellationToken cancellationToken = default);
+
+    void AddVersion(MaterialVersion version);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

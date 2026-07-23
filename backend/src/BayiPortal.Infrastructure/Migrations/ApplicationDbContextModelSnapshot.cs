@@ -352,6 +352,73 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.ToTable("MaterialFiles", (string)null);
                 });
 
+            modelBuilder.Entity("BayiPortal.Core.Entities.MaterialVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChangeNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("VersionLabel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("MaterialVersions", (string)null);
+                });
+
             modelBuilder.Entity("BayiPortal.Core.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -407,10 +474,25 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Property<int?>("DealerId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("DocumentAlerts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("EmailNotifications")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("ExpiryReminders")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -428,6 +510,12 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RefreshTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -543,6 +631,25 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Navigation("Material");
                 });
 
+            modelBuilder.Entity("BayiPortal.Core.Entities.MaterialVersion", b =>
+                {
+                    b.HasOne("BayiPortal.Core.Entities.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BayiPortal.Core.Entities.Material", "Material")
+                        .WithMany("Versions")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("BayiPortal.Core.Entities.Notification", b =>
                 {
                     b.HasOne("BayiPortal.Core.Entities.Material", "Material")
@@ -601,6 +708,8 @@ namespace BayiPortal.Infrastructure.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("ScheduleInstances");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("BayiPortal.Core.Entities.MaterialFile", b =>

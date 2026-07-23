@@ -55,12 +55,18 @@ public sealed class AuthService : IAuthService
         }
 
         var token = _jwtTokenService.GenerateToken(user);
+        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+        await _userRepository.SaveChangesAsync(cancellationToken);
 
         await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Sisteme başarıyla giriş yapıldı.", "Başarılı", cancellationToken);
 
         return new LoginResponse
         {
             Token = token,
+            RefreshToken = refreshToken,
             User = new UserResponse
             {
                 Id = user.Id,
@@ -71,6 +77,45 @@ public sealed class AuthService : IAuthService
                 DealerName = user.Dealer?.Name,
                 IsActive = user.IsActive
             }
+        };
+    }
+
+    public async Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request?.RefreshToken))
+        {
+            throw new InvalidCredentialsException();
+        }
+
+        var users = await _userRepository.GetListAsync(cancellationToken);
+        var user = users.FirstOrDefault(u =>
+            u.IsActive &&
+            u.RefreshToken == request.RefreshToken &&
+            u.RefreshTokenExpiresAt.HasValue &&
+            u.RefreshTokenExpiresAt.Value > DateTime.UtcNow);
+
+        if (user is null)
+        {
+            throw new InvalidCredentialsException();
+        }
+
+        if (user.Role == RoleType.DealerUser
+            && (user.DealerId is null || user.Dealer is null || !user.Dealer.IsActive))
+        {
+            throw new InvalidCredentialsException();
+        }
+
+        var token = _jwtTokenService.GenerateToken(user);
+        var newRefreshToken = _jwtTokenService.GenerateRefreshToken();
+
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        return new RefreshTokenResponse
+        {
+            Token = token,
+            RefreshToken = newRefreshToken
         };
     }
 }

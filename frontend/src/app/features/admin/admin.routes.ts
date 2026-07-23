@@ -50,6 +50,13 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'documents/:id/edit',
+        loadComponent: () =>
+          import('./edit-document/components/edit-document-page/edit-document-page').then(
+            (m) => m.EditDocumentPage
+          ),
+      },
+      {
         path: 'documents/:id/access-report',
         loadComponent: () =>
           import(

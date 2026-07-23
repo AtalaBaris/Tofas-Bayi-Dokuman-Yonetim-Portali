@@ -1,6 +1,7 @@
 /** İçerik listeleme/detay/indirme/oluşturma — backend yetki+marka eşleşme kuralını zaten uyguluyor. */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import type { Material, MaterialScheduleItem } from '../models/material.interface';
 
@@ -25,6 +26,14 @@ export interface CreateMaterialPayload {
   files: File[];
 }
 
+export interface UpdateMaterialPayload {
+  title: string;
+  description: string;
+  categoryId: number;
+  brandIds: number[];
+  expiresAt?: string | null;
+}
+
 export interface UpdateMaterialSchedulePayload {
   scheduledPublishAt: string;
   recurrenceKind?: 'None' | 'Weekly' | 'MonthlyDay';
@@ -32,16 +41,19 @@ export interface UpdateMaterialSchedulePayload {
   recurrenceDayOfMonth?: number | null;
 }
 
-export interface MaterialAccessReportPendingUser {
+export interface MaterialVersionDto {
   id: number;
-  userName: string;
-  dealerName: string;
-}
-
-export interface MaterialAccessReport {
   materialId: number;
-  items: unknown[];
-  pendingUsers: MaterialAccessReportPendingUser[];
+  versionLabel: string;
+  versionNumber: number;
+  title: string;
+  changeNote: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdBy: number;
+  createdByName: string;
+  createdAt: string;
 }
 
 export interface UpdateMaterialPayload {
@@ -86,10 +98,41 @@ export class MaterialsService {
     return this.api.get<Material>(`/materials/${id}`);
   }
 
+  getVersions(id: number) {
+    return this.api.get<MaterialVersionDto[]>(`/materials/${id}/versions`);
+  }
+
+  createVersion(id: number, versionLabel: string, changeNote: string, file: File) {
+    const form = new FormData();
+    if (versionLabel) form.append('VersionLabel', versionLabel);
+    if (changeNote) form.append('ChangeNote', changeNote);
+    form.append('File', file, file.name);
+    return this.http.post<MaterialVersionDto>(`${this.api.baseUrl}/materials/${id}/versions`, form);
+  }
+
+  downloadVersion(materialId: number, versionId: number) {
+    return this.http.get(`${this.api.baseUrl}/materials/${materialId}/versions/${versionId}/download`, {
+      responseType: 'blob',
+    });
+  }
+
   download(id: number) {
     return this.http.get(`${this.api.baseUrl}/materials/${id}/download`, {
       responseType: 'blob',
     });
+  }
+
+  getAccessReport(id: number): Observable<{
+    materialId: number;
+    materialTitle: string;
+    audienceCount: number;
+    viewedCount: number;
+    pendingCount: number;
+    engagementPercent: number;
+    accessLogs: any[];
+    pendingUsers: { userId: number; userName: string; email: string; dealerName: string }[];
+  }> {
+    return this.api.get(`/materials/${id}/access-report`);
   }
 
   downloadFile(materialId: number, fileId: number) {
@@ -145,6 +188,19 @@ export class MaterialsService {
       }
     }
     return this.http.put<Material>(`${this.api.baseUrl}/materials/${id}`, form);
+    return this.api.put<Material>(`/materials/${id}`, payload);
+  }
+
+  addFiles(id: number, files: File[]) {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('Files', file, file.name);
+    }
+    return this.http.post<Material>(`${this.api.baseUrl}/materials/${id}/files`, form);
+  }
+
+  deleteFile(id: number, fileId: number) {
+    return this.api.delete<Material>(`/materials/${id}/files/${fileId}`);
   }
 
   updateSchedule(id: number, payload: UpdateMaterialSchedulePayload) {
@@ -165,9 +221,5 @@ export class MaterialsService {
 
   archive(id: number) {
     return this.api.delete<void>(`/materials/${id}`);
-  }
-
-  getAccessReport(id: number) {
-    return this.api.get<MaterialAccessReport>(`/materials/${id}/access-report`);
   }
 }

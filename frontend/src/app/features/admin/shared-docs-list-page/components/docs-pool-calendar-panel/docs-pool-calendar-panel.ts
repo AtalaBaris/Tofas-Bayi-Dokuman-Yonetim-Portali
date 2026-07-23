@@ -16,6 +16,8 @@ interface CalendarDay {
   day: number;
   inMonth: boolean;
   isToday: boolean;
+  /** Bugünden önceki günler — sürükle-bırak kapalı. */
+  isPast: boolean;
 }
 
 interface ScheduleModalState {
@@ -62,7 +64,16 @@ export class DocsPoolCalendarPanel {
   readonly draggingId = signal<number | null>(null);
 
   readonly modal = signal<ScheduleModalState | null>(null);
+  readonly modalError = signal('');
   readonly savingSchedule = signal(false);
+
+  readonly modalScheduleInvalid = computed(() => {
+    const state = this.modal();
+    if (!state) {
+      return false;
+    }
+    return isScheduleInPast(state.dateKey, state.time);
+  });
 
   readonly confirmOpen = signal(false);
   readonly removeCandidateId = signal<number | null>(null);
@@ -217,7 +228,13 @@ export class DocsPoolCalendarPanel {
     this.dragSource.set(null);
   }
 
-  onDayDragOver(event: DragEvent): void {
+  onDayDragOver(day: CalendarDay, event: DragEvent): void {
+    if (day.isPast) {
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'none';
+      }
+      return;
+    }
     event.preventDefault();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = this.dragSource() === 'pool' ? 'copy' : 'move';
@@ -226,6 +243,11 @@ export class DocsPoolCalendarPanel {
 
   onDayDrop(day: CalendarDay, event: DragEvent): void {
     event.preventDefault();
+
+    if (day.isPast) {
+      this.calendarError.set('Geçmiş bir güne yayın zamanı ayarlanamaz.');
+      return;
+    }
 
     const raw = event.dataTransfer?.getData('text/plain') ?? '';
     const materialId = Number(raw);
@@ -242,14 +264,20 @@ export class DocsPoolCalendarPanel {
 
     const fromPool = this.pool().find((p) => p.id === materialId);
     const fromEvent = this.events().find((e) => e.id === materialId);
-    const existingTime = fromEvent && source === 'calendar' ? formatTimeHHmm(new Date(fromEvent.at)) : '09:00';
+    let time =
+      fromEvent && source === 'calendar' ? formatTimeHHmm(new Date(fromEvent.at)) : '09:00';
+    if (isScheduleInPast(day.dateKey, time)) {
+      time = defaultFutureTimeForDate(day.dateKey);
+    }
     const mode: 'create' | 'move' = source === 'pool' ? 'create' : 'move';
 
+    this.calendarError.set('');
+    this.modalError.set('');
     this.modal.set({
       materialId,
       title: fromPool?.title ?? fromEvent?.title ?? `Doküman #${materialId}`,
       dateKey: day.dateKey,
-      time: existingTime,
+      time,
       mode,
       recurrenceKind: 'None',
     });
@@ -257,6 +285,7 @@ export class DocsPoolCalendarPanel {
 
   setModalTime(time: string): void {
     this.modal.update((m) => (m ? { ...m, time } : null));
+    this.modalError.set('');
   }
 
   setModalRecurrenceKind(kind: 'None' | 'Weekly' | 'MonthlyDay'): void {
@@ -265,6 +294,7 @@ export class DocsPoolCalendarPanel {
 
   closeModal(): void {
     this.modal.set(null);
+    this.modalError.set('');
     this.savingSchedule.set(false);
   }
 
@@ -274,9 +304,15 @@ export class DocsPoolCalendarPanel {
       return;
     }
     const local = `${state.dateKey}T${state.time}`;
-    const iso = new Date(local).toISOString();
+    const when = new Date(local);
 
-    if (Number.isNaN(new Date(local).getTime())) {
+    if (Number.isNaN(when.getTime())) {
+      this.modalError.set('Geçersiz saat.');
+      return;
+    }
+
+    if (when.getTime() <= Date.now()) {
+      this.modalError.set('Yayın zamanı şu andan ileri bir tarih/saat olmalıdır.');
       return;
     }
 
@@ -284,6 +320,7 @@ export class DocsPoolCalendarPanel {
     const dayOfWeek = dateObj.getDay() || 7; // Sunday is 0 in JS but usually 7 in .NET, wait .NET uses Sunday=0 or 7 depending on setup, but typically we can send 1=Mon...7=Sun or just use standard. Let's send day of week from 1-7 (Mon-Sun).
     const jsDay = dateObj.getDay();
     const dayOfWeekToSend = jsDay === 0 ? 7 : jsDay; 
+    const iso = when.toISOString();
 
     const payload = {
       scheduledPublishAt: iso,
@@ -301,12 +338,13 @@ export class DocsPoolCalendarPanel {
     request$.subscribe({
       next: () => {
         this.savingSchedule.set(false);
+        this.modalError.set('');
         this.modal.set(null);
         this.reloadAll();
       },
       error: (err: { message?: string }) => {
         this.savingSchedule.set(false);
-        this.calendarError.set(err?.message ?? 'Zamanlama kaydedilemedi.');
+        this.modalError.set(err?.message ?? 'Zamanlama kaydedilemedi.');
       },
     });
   }
@@ -453,6 +491,7 @@ function buildMonthGrid(monthStart: Date): CalendarDay[] {
       day: d.getDate(),
       inMonth: d.getMonth() === month,
       isToday: dateKey === todayKey,
+      isPast: dateKey < todayKey,
     });
   }
   return days;
@@ -461,6 +500,30 @@ function buildMonthGrid(monthStart: Date): CalendarDay[] {
 function formatTimeHHmm(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function isScheduleInPast(dateKey: string, time: string): boolean {
+  const when = new Date(`${dateKey}T${time}`);
+  if (Number.isNaN(when.getTime())) {
+    return true;
+  }
+  return when.getTime() <= Date.now();
+}
+
+/** Bugün için varsayılan 09:00 geçmişse bir sonraki saate yuvarla. */
+function defaultFutureTimeForDate(dateKey: string): string {
+  const candidate = new Date(`${dateKey}T09:00`);
+  if (!Number.isNaN(candidate.getTime()) && candidate.getTime() > Date.now()) {
+    return '09:00';
+  }
+  const next = new Date();
+  next.setMinutes(0, 0, 0);
+  next.setHours(next.getHours() + 1);
+  if (toDateKey(next) !== dateKey) {
+    // Gün bitmişse yine de 23:59 öner (kayıt yine backend/FE doğrulamasında reddedilir).
+    return '23:59';
+  }
+  return formatTimeHHmm(next);
 }
 
 function readStoredPoolWidth(): number {

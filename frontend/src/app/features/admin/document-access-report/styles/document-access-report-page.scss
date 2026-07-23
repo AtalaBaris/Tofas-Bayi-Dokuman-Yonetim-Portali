@@ -615,3 +615,162 @@
     font-size: 22px;
   }
 }
+
+/* Bayi Grubu & Açılır Geçmiş Satır Stilleri */
+.access-report__dealer-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.access-report__toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary-container);
+  }
+
+  &--active {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary-container);
+  }
+
+  .material-symbols-outlined {
+    font-size: 20px !important;
+  }
+}
+
+.access-report__toggle-placeholder {
+  width: 1.85rem;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.access-report__dealer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.access-report__dealer-name {
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.access-report__dealer-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  width: fit-content;
+
+  &:hover {
+    text-decoration: underline;
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+}
+
+.access-report__when-user {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.access-report__date-text {
+  font-size: var(--font-size-body-md);
+  font-weight: 500;
+  color: var(--color-on-surface);
+}
+
+.access-report__user-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--color-surface-container);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  width: fit-content;
+
+  &--sub {
+    opacity: 0.9;
+    background: transparent;
+    padding: 0;
+  }
+}
+
+.access-report__user-name {
+  font-weight: 500;
+}
+
+.access-report__avatar--sub {
+  width: 1.35rem;
+  height: 1.35rem;
+  font-size: 9px;
+}
+
+.access-report__main-row--expanded {
+  background: color-mix(in srgb, var(--color-primary-container) 5%, transparent) !important;
+}
+
+.access-report__sub-row {
+  background: color-mix(in srgb, var(--color-surface-container-low) 85%, #fff) !important;
+  border-top: 1px dashed color-mix(in srgb, var(--color-outline-variant) 60%, transparent) !important;
+
+  td {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+    font-size: 13px !important;
+  }
+}
+
+.access-report__sub-indent {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 2.4rem;
+  color: var(--color-on-surface-variant);
+  font-size: 12px;
+  font-weight: 500;
+
+  .material-symbols-outlined {
+    font-size: 18px !important;
+    color: var(--color-outline);
+  }
+}
+
+.access-report__sub-tag {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.access-report__chip--sub {
+  transform: scale(0.92);
+  transform-origin: left center;
+}
+

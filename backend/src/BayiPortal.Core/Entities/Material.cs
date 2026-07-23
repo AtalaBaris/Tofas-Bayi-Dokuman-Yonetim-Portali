@@ -38,4 +38,5 @@ public class Material
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<MaterialFile> Files { get; set; } = new List<MaterialFile>();
+    public ICollection<MaterialVersion> Versions { get; set; } = new List<MaterialVersion>();
 }

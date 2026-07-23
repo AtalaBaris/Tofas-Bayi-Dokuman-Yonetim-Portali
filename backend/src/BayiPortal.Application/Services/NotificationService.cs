@@ -20,13 +20,13 @@ public sealed class NotificationService : INotificationService
         _materialRepository = materialRepository;
     }
 
-    public async Task<List<NotificationResponse>> GetMineAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<List<NotificationResponse>> GetMyNotificationsAsync(int userId, CancellationToken cancellationToken = default)
     {
         var items = await _notificationRepository.GetByUserIdAsync(userId, cancellationToken);
         return items.Select(ToResponse).ToList();
     }
 
-    public async Task MarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default)
+    public async Task MarkAsReadAsync(int userId, int notificationId, CancellationToken cancellationToken = default)
     {
         var notification = await _notificationRepository.GetByIdForUserAsync(notificationId, userId, cancellationToken)
             ?? throw new ValidationException("Bildirim bulunamadı.");
@@ -38,7 +38,7 @@ public sealed class NotificationService : INotificationService
         }
     }
 
-    public Task MarkAllReadAsync(int userId, CancellationToken cancellationToken = default) =>
+    public Task MarkAllAsReadAsync(int userId, CancellationToken cancellationToken = default) =>
         _notificationRepository.MarkAllReadAsync(userId, cancellationToken);
 
     public async Task NotifyDealerUsersForMaterialAsync(Material material, CancellationToken cancellationToken = default)
@@ -55,8 +55,8 @@ public sealed class NotificationService : INotificationService
         {
             UserId = userId,
             Kind = NotificationKind.Document,
-            Title = "Yeni doküman yayınlandı",
-            Body = $"\"{material.Title}\" adlı doküman yayında.",
+            Title = "Yeni Doküman Yayımlandı",
+            Body = $"\"{material.Title}\" başlıklı yeni içerik portalınıza eklendi.",
             MaterialId = material.Id,
             IsRead = false,
             CreatedAt = now

@@ -89,6 +89,7 @@
                 <a
                   class="bayi-home__icon-action"
                   [routerLink]="['/bayi/documents', doc.id]"
+                  [queryParams]="{ view: 'true' }"
                   title="Görüntüle"
                   aria-label="Görüntüle"
                 >

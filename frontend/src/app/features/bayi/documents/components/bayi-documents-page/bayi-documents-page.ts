@@ -170,12 +170,12 @@ export class BayiDocumentsPage {
   }
 
   openDetail(doc: BayiDocumentCard): void {
-    void this.router.navigate(['/bayi/documents', doc.id]);
+    void this.router.navigate(['/bayi/documents', doc.id], { queryParams: { view: 'true' } });
   }
 
   onView(doc: BayiDocumentCard, event: Event): void {
     event.stopPropagation();
-    void this.router.navigate(['/bayi/documents', doc.id]);
+    void this.router.navigate(['/bayi/documents', doc.id], { queryParams: { view: 'true' } });
   }
 
   onDownload(doc: BayiDocumentCard, event: Event): void {

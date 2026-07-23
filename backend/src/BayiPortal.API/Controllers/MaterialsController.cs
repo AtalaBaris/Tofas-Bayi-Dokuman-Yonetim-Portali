@@ -47,6 +47,13 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id:int}/access-report")]
+    public async Task<ActionResult<MaterialAccessReportResponse>> GetAccessReport(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetAccessReportAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}/download")]
     public async Task<IActionResult> Download(int id, CancellationToken cancellationToken)
     {
@@ -61,6 +68,50 @@ public class MaterialsController : ControllerBase
         return File(content, mimeType, fileName);
     }
 
+    [HttpGet("{id:int}/versions")]
+    public async Task<ActionResult<List<MaterialVersionResponse>>> GetVersions(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetVersionsAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/versions")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialVersionResponse>> CreateVersion(
+        int id, [FromForm] CreateMaterialVersionForm form, CancellationToken cancellationToken)
+    {
+        var file = form.File ?? Request.Form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Yeni versiyon için bir dosya yüklenmelidir." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var uploadedFile = new UploadedFileContent
+        {
+            Content = stream,
+            OriginalFileName = file.FileName,
+            MimeType = file.ContentType ?? string.Empty,
+            FileSize = file.Length
+        };
+
+        var request = new CreateMaterialVersionRequest
+        {
+            VersionLabel = form.VersionLabel,
+            ChangeNote = form.ChangeNote
+        };
+
+        var result = await _materialService.CreateVersionAsync(id, request, uploadedFile, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}/versions/{versionId:int}/download")]
+    public async Task<IActionResult> DownloadVersion(int id, int versionId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetVersionDownloadStreamAsync(id, versionId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Create(
@@ -68,7 +119,7 @@ public class MaterialsController : ControllerBase
     {
         // FormData alan adı (Files / File) veya model binder fark etmeksizin
         // multipart içindeki tüm dosyaları al.
-        var formFiles = ResolveUploadedFiles(form);
+        var formFiles = ResolveUploadedFiles(form.Files);
         if (formFiles.Count == 0)
         {
             return BadRequest(new { message = "En az bir dosya zorunludur." });
@@ -149,6 +200,48 @@ public class MaterialsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/files")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> AddFiles(
+        int id, [FromForm] ReplaceMaterialFilesForm form, CancellationToken cancellationToken)
+    {
+        var formFiles = ResolveUploadedFiles(form.Files);
+        if (formFiles.Count == 0)
+        {
+            return BadRequest(new { message = "En az bir dosya zorunludur." });
+        }
+
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
+
+            var result = await _materialService.AddFilesAsync(id, uploaded, GetRequestingUser(), cancellationToken);
+            return Ok(result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
+    }
+
+    [HttpDelete("{id:int}/files/{fileId:int}")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> DeleteFile(int id, int fileId, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.DeleteFileAsync(id, fileId, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPut("{id:int}/schedule")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> UpdateSchedule(
@@ -183,14 +276,6 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id:int}/access-report")]
-    [Authorize(Roles = ManagerRoles)]
-    public async Task<ActionResult<MaterialAccessReportResponse>> GetAccessReport(int id, CancellationToken cancellationToken)
-    {
-        var result = await _materialService.GetAccessReportAsync(id, cancellationToken);
-        return Ok(result);
-    }
-
     [HttpDelete("{id:int}")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<IActionResult> Archive(int id, CancellationToken cancellationToken)
@@ -212,9 +297,9 @@ public class MaterialsController : ControllerBase
     /// Model binder bazen List&lt;IFormFile&gt; için boş gelebilir; Request.Form.Files yedek.
     /// Eski istemcilerin "File" alanı da kabul edilir.
     /// </summary>
-    private List<IFormFile> ResolveUploadedFiles(CreateMaterialForm form)
+    private List<IFormFile> ResolveUploadedFiles(List<IFormFile>? modelFiles)
     {
-        var fromModel = (form.Files ?? new List<IFormFile>())
+        var fromModel = (modelFiles ?? new List<IFormFile>())
             .Where(f => f is { Length: > 0 })
             .ToList();
         if (fromModel.Count > 0)
@@ -243,6 +328,13 @@ public class MaterialsController : ControllerBase
     }
 }
 
+// Multipart/form-data binding modeli: dosya değiştirme (yeni sürüm) isteği.
+public class ReplaceMaterialFilesForm
+{
+    public List<IFormFile> Files { get; set; } = new();
+}
+
+// Multipart/form-data binding modeli (API katmanına özgü; Application katmanı IFormFile bilmez).
 public class CreateMaterialForm
 {
     public string Title { get; set; } = string.Empty;
@@ -266,4 +358,9 @@ public class UpdateMaterialForm
     public List<int> BrandIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
     public List<IFormFile> Files { get; set; } = new();
+public class CreateMaterialVersionForm
+{
+    public string VersionLabel { get; set; } = string.Empty;
+    public string ChangeNote { get; set; } = string.Empty;
+    public IFormFile? File { get; set; }
 }
