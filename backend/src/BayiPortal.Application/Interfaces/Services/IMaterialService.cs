@@ -18,6 +18,18 @@ public interface IMaterialService
     Task<MaterialResponse> UpdateAsync(
         int id, UpdateMaterialRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Dokümana yeni dosya(lar) ekler (mevcut dosyalar silinmez) ve Version'ı artırır.
+    /// </summary>
+    Task<MaterialResponse> AddFilesAsync(
+        int id, IReadOnlyList<UploadedFileContent> files, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dokümandan tek bir dosyayı kaldırır (en az bir dosya kalmalıdır) ve Version'ı artırır.
+    /// </summary>
+    Task<MaterialResponse> DeleteFileAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
     Task ArchiveAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<(Stream Content, string FileName, string MimeType)> GetDownloadStreamAsync(

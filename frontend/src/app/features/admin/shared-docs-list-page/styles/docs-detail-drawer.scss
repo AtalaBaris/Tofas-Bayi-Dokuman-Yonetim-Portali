@@ -368,7 +368,8 @@
 }
 
 .docs-drawer__archive,
-.docs-drawer__publish {
+.docs-drawer__publish,
+.docs-drawer__edit {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -383,6 +384,7 @@
   font-size: var(--font-size-label-lg);
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 
   &:hover {
@@ -397,4 +399,9 @@
 .docs-drawer__publish {
   background: var(--color-tertiary-container);
   color: #ffffff;
+}
+
+.docs-drawer__edit {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
 }
