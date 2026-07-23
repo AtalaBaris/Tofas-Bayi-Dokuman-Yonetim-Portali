@@ -90,14 +90,6 @@ export class AdminDashboardPage implements OnInit {
     return this.materials().reduce((sum, d) => sum + (d.viewedCount || 0), 0);
   });
 
-  readonly engagementTrend = computed(() => {
-    const s = this.documentStats();
-    if (s.total <= 0) {
-      return 0;
-    }
-    return Math.round((s.active / s.total) * 100);
-  });
-
   readonly statusLine = computed(() => {
     const activity = this.recentLogs().length || this.accessLogTotal() || 0;
     if (!this.apiHealthy()) {
