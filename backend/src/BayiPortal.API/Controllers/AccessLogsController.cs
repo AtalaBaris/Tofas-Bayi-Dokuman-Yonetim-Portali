@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
+using BayiPortal.Core.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -106,7 +107,7 @@ public class AccessLogsController : ControllerBase
         if (userIdClaim != null)
         {
             var userId = int.Parse(userIdClaim);
-            await _accessLogService.LogAsync(userId, emailClaim, null, "Çıkış", "Sistemden başarıyla çıkış yapıldı.", "N/A", cancellationToken);
+            await _accessLogService.LogAsync(userId, emailClaim, null, AccessAction.Logout, "Sistemden başarıyla çıkış yapıldı.", AccessResult.NotApplicable, cancellationToken);
         }
 
         return NoContent();

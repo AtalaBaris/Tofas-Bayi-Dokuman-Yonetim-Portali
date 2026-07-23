@@ -2,6 +2,7 @@ using BayiPortal.Application.Interfaces.Repositories;
 using BayiPortal.Core.Entities;
 using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
+using BayiPortal.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BayiPortal.Infrastructure.Repositories;
@@ -17,10 +18,10 @@ public sealed class UserRepository : IUserRepository
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        var normalized = email.Trim().ToLowerInvariant();
+        var normalized = email.Trim().EscapeLikePattern();
         return _dbContext.Users
             .Include(u => u.Dealer)
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == normalized, cancellationToken);
+            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, normalized, LikePatternExtensions.EscapeCharacter), cancellationToken);
     }
 
     public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
@@ -31,10 +32,10 @@ public sealed class UserRepository : IUserRepository
 
     public Task<bool> EmailExistsAsync(string email, int? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var normalized = email.Trim().ToLowerInvariant();
+        var normalized = email.Trim().EscapeLikePattern();
         return _dbContext.Users
             .Where(u => excludeId == null || u.Id != excludeId)
-            .AnyAsync(u => u.Email.ToLower() == normalized, cancellationToken);
+            .AnyAsync(u => EF.Functions.ILike(u.Email, normalized, LikePatternExtensions.EscapeCharacter), cancellationToken);
     }
 
     public Task<bool> DealerExistsAsync(int dealerId, CancellationToken cancellationToken = default) =>

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
+using BayiPortal.Core.Enums;
 
 namespace BayiPortal.Application.Interfaces.Services;
 
@@ -12,9 +13,9 @@ public interface IAccessLogService
         int? userId,
         string? userName,
         int? materialId,
-        string action,
+        AccessAction action,
         string description,
-        string? loginStatus = null,
+        AccessResult? loginStatus = null,
         CancellationToken cancellationToken = default,
         int? materialFileId = null);
 

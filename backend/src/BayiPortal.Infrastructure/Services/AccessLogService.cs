@@ -10,6 +10,7 @@ using BayiPortal.Application.Interfaces.Services;
 using BayiPortal.Core.Entities;
 using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
+using BayiPortal.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,9 +36,9 @@ public class AccessLogService : IAccessLogService
         int? userId,
         string? userName,
         int? materialId,
-        string action,
+        AccessAction action,
         string description,
-        string? loginStatus = null,
+        AccessResult? loginStatus = null,
         CancellationToken cancellationToken = default,
         int? materialFileId = null)
     {
@@ -63,7 +64,7 @@ public class AccessLogService : IAccessLogService
             MaterialFileId = materialFileId,
             Action = action,
             Description = description,
-            LoginStatus = loginStatus ?? "N/A",
+            LoginStatus = loginStatus ?? AccessResult.NotApplicable,
             ViewedAtUtc = DateTime.UtcNow,
             IpAddress = ipAddress,
             UserAgent = userAgent
@@ -85,14 +86,14 @@ public class AccessLogService : IAccessLogService
             .Where(x => x.UserId == userId
                 && x.MaterialId != null
                 && materialIds.Contains(x.MaterialId.Value)
-                && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+                && (x.Action == AccessAction.View || x.Action == AccessAction.Download))
             .Select(x => new { MaterialId = x.MaterialId!.Value, x.Action })
             .ToListAsync(cancellationToken);
 
         var result = new Dictionary<int, string>();
         foreach (var log in logs)
         {
-            var status = log.Action == "Döküman İndirme" ? "downloaded" : "viewed";
+            var status = log.Action == AccessAction.Download ? "downloaded" : "viewed";
             if (status == "downloaded" || !result.ContainsKey(log.MaterialId))
             {
                 result[log.MaterialId] = status;
@@ -112,7 +113,7 @@ public class AccessLogService : IAccessLogService
             var yearStartUtc = new DateTime(nowLocal.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-3);
             var timestamps = await _dbContext.AccessLogs
                 .Where(x => x.ViewedAtUtc >= yearStartUtc
-                    && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+                    && (x.Action == AccessAction.View || x.Action == AccessAction.Download))
                 .Select(x => x.ViewedAtUtc)
                 .ToListAsync(cancellationToken);
 
@@ -137,7 +138,7 @@ public class AccessLogService : IAccessLogService
             var startUtc = startLocalDate.AddHours(-3);
             var timestamps = await _dbContext.AccessLogs
                 .Where(x => x.ViewedAtUtc >= startUtc
-                    && (x.Action == "Döküman Görüntüleme" || x.Action == "Döküman İndirme"))
+                    && (x.Action == AccessAction.View || x.Action == AccessAction.Download))
                 .Select(x => x.ViewedAtUtc)
                 .ToListAsync(cancellationToken);
 
@@ -218,16 +219,16 @@ public class AccessLogService : IAccessLogService
         // ContentManager yetki kısıtlaması: Giriş/Çıkış loglarını göremez, sadece doküman hareketlerini görebilir
         if (query.ExcludeAuthLogs)
         {
-            dbQuery = dbQuery.Where(x => x.Action != "Giriş" && x.Action != "Çıkış" && x.Action != "Giriş Başarısız");
+            dbQuery = dbQuery.Where(x => x.Action != AccessAction.Login && x.Action != AccessAction.Logout);
         }
 
-        // Keyword filter (matches username / email)
+        // Keyword filter (matches username / email) — culture'dan bağımsız, case-insensitive (Npgsql ILIKE)
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
-            var keyword = query.Keyword.Trim().ToLower();
+            var keywordPattern = $"%{query.Keyword.Trim().EscapeLikePattern()}%";
             dbQuery = dbQuery.Where(x =>
-                (x.UserName != null && x.UserName.ToLower().Contains(keyword)) ||
-                (x.User != null && x.User.Email.ToLower().Contains(keyword)));
+                (x.UserName != null && EF.Functions.ILike(x.UserName, keywordPattern, LikePatternExtensions.EscapeCharacter)) ||
+                (x.User != null && EF.Functions.ILike(x.User.Email, keywordPattern, LikePatternExtensions.EscapeCharacter)));
         }
 
         // Role filter
@@ -236,25 +237,27 @@ public class AccessLogService : IAccessLogService
             dbQuery = dbQuery.Where(x => x.User != null && x.User.Role == roleFilter);
         }
 
-        // Action filter — tek değer veya virgülle ayrılmış liste (örn. "Giriş,Çıkış")
+        // Action filter — tek değer veya virgülle ayrılmış liste (örn. "Giriş,Çıkış"); frontend hâlâ Türkçe
+        // görünüm metnini gönderiyor, bu yüzden filtrelemeden önce AccessAction'a çevrilir.
         if (!string.IsNullOrWhiteSpace(query.Action))
         {
             var actions = query.Action
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (actions.Length == 1)
-            {
-                dbQuery = dbQuery.Where(x => x.Action == actions[0]);
-            }
-            else
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(a => AccessActionExtensions.TryParseDisplayString(a, out var parsed) ? (AccessAction?)parsed : null)
+                .Where(a => a.HasValue)
+                .Select(a => a!.Value)
+                .ToArray();
+
+            if (actions.Length > 0)
             {
                 dbQuery = dbQuery.Where(x => actions.Contains(x.Action));
             }
         }
 
-        // Status filter
-        if (!string.IsNullOrWhiteSpace(query.Status))
+        // Status filter — frontend Türkçe görünüm metni gönderiyor ("Başarılı"/"Başarısız"/"N/A")
+        if (!string.IsNullOrWhiteSpace(query.Status) && AccessResultExtensions.TryParseDisplayString(query.Status, out var statusFilter))
         {
-            dbQuery = dbQuery.Where(x => x.LoginStatus == query.Status);
+            dbQuery = dbQuery.Where(x => x.LoginStatus == statusFilter);
         }
 
         // Date range filters
@@ -291,9 +294,9 @@ public class AccessLogService : IAccessLogService
             UserRole = role,
             UserType = userType,
             DealerName = dealerName,
-            Action = log.Action,
+            Action = log.Action.ToDisplayString(),
             Description = log.Description,
-            LoginStatus = log.LoginStatus ?? "N/A",
+            LoginStatus = log.LoginStatus?.ToDisplayString() ?? "N/A",
             Date = localTime.ToString("yyyy-MM-dd"),
             Time = localTime.ToString("HH:mm:ss"),
             IpAddress = log.IpAddress,
