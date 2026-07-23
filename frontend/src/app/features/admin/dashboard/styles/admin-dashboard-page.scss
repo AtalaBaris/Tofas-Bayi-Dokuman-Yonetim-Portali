@@ -27,12 +27,28 @@
 .admin-dashboard__welcome {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1.25rem;
+  text-align: center;
 
   @media (min-width: 768px) {
     flex-direction: row;
     align-items: flex-end;
     justify-content: space-between;
+    text-align: left;
+  }
+}
+
+.admin-dashboard__welcome-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0;
   }
 }
 
@@ -61,6 +77,12 @@
 
 .admin-dashboard__meta {
   margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+
+  @media (min-width: 768px) {
+    justify-content: flex-start;
+  }
 }
 
 .admin-dashboard__badge {
@@ -76,7 +98,15 @@
 .admin-dashboard__welcome-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: auto;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
 }
 
 .admin-dashboard__btn {
@@ -148,9 +178,14 @@
   border-radius: var(--radius-lg);
   background: var(--color-surface-container-low);
   overflow: hidden;
+  text-align: center;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
+
+  @media (min-width: 768px) {
+    text-align: left;
+  }
 
   &--link {
     color: inherit;
@@ -175,9 +210,15 @@
 
 .admin-dashboard__kpi-top {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    align-items: flex-start;
+    justify-content: space-between;
+  }
 }
 
 .admin-dashboard__kpi-icon {
@@ -203,22 +244,6 @@
   }
 }
 
-.admin-dashboard__trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: var(--radius-sm);
-  background: #e8f5e9;
-  color: #1b5e20;
-  font-size: var(--font-size-label-sm);
-  font-weight: 600;
-
-  .material-symbols-outlined {
-    font-size: 14px;
-  }
-}
-
 .admin-dashboard__kpi-label {
   margin: 0 0 0.25rem;
   color: var(--color-on-surface-variant);
@@ -237,7 +262,13 @@
 .admin-dashboard__kpi-row {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+
+  @media (min-width: 768px) {
+    justify-content: flex-start;
+  }
 }
 
 .admin-dashboard__kpi-hint {

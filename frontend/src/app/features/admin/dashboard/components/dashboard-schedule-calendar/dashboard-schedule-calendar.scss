@@ -7,11 +7,31 @@
 
 .dash-cal__head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+.dash-cal__head-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .dash-cal__title {
@@ -25,6 +45,17 @@
   margin: 0;
   font-size: var(--font-size-body-md);
   color: var(--color-on-surface-variant);
+  max-width: 28rem;
+}
+
+.dash-cal__head-actions {
+  display: flex;
+  justify-content: center;
+
+  @media (min-width: 768px) {
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
 }
 
 .dash-cal__link {
@@ -40,15 +71,23 @@
 
 .dash-cal__toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: 0.75rem;
   margin-bottom: 0.85rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
 }
 
 .dash-cal__nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
 }
 
@@ -95,8 +134,13 @@
 .dash-cal__legend {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem 0.75rem;
-  margin-left: auto;
+
+  @media (min-width: 768px) {
+    margin-left: auto;
+    justify-content: flex-end;
+  }
 }
 
 .dash-cal__legend-item {
@@ -124,6 +168,65 @@
   }
 }
 
+/* Mobil: haftalık liste (7 gün, dikey) */
+.dash-cal__week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dash-cal__week-row {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.dash-cal__week-row--today {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.dash-cal__week-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding-top: 0.1rem;
+}
+
+.dash-cal__week-weekday {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.dash-cal__week-daynum {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-on-surface);
+  line-height: 1.1;
+}
+
+.dash-cal__week-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.dash-cal__week-empty {
+  font-size: 0.8rem;
+  color: var(--color-on-surface-variant);
+  padding: 0.25rem 0;
+}
+
+/* Masaüstü: ay ızgarası */
 .dash-cal__weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -185,6 +288,14 @@
   pointer-events: none;
 }
 
+.dash-cal__week-row .dash-cal__event {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
 .dash-cal__event--scheduled {
   background: #dbeafe;
   color: #1e3a8a;
@@ -198,6 +309,11 @@
 .dash-cal__event-time {
   font-size: 0.6rem;
   font-weight: 800;
+  flex-shrink: 0;
+}
+
+.dash-cal__week-row .dash-cal__event-time {
+  font-size: 0.75rem;
 }
 
 .dash-cal__event-title {
@@ -206,6 +322,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dash-cal__week-row .dash-cal__event-title {
+  font-size: 0.85rem;
+  white-space: normal;
 }
 
 .dash-cal__empty {
