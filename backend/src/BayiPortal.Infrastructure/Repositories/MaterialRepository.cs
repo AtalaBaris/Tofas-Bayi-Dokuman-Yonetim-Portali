@@ -141,7 +141,7 @@ public sealed class MaterialRepository : IMaterialRepository
     {
         var rows = await _dbContext.AccessLogs
             .Where(a => a.MaterialId != null && a.UserId != null
-                && materialIds.Contains(a.MaterialId.Value) && a.Action == "Döküman Görüntüleme")
+                && materialIds.Contains(a.MaterialId.Value) && a.Action == AccessAction.View)
             .Select(a => new { MaterialId = a.MaterialId!.Value, UserId = a.UserId!.Value })
             .Distinct()
             .ToListAsync(cancellationToken);

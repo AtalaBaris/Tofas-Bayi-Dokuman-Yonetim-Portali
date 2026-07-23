@@ -35,7 +35,7 @@ public sealed class AuthService : IAuthService
         // Kullanıcı yok / pasif / şifre yanlış — hepsi aynı genel mesajla döner (enumeration engeli).
         if (user is null || !user.IsActive)
         {
-            await _accessLogService.LogAsync(null, request.Email, null, "Giriş", "Başarısız giriş denemesi.", "Başarısız", cancellationToken);
+            await _accessLogService.LogAsync(null, request.Email, null, AccessAction.Login, "Başarısız giriş denemesi.", AccessResult.Failed, cancellationToken);
             throw new InvalidCredentialsException();
         }
 
@@ -43,14 +43,14 @@ public sealed class AuthService : IAuthService
         if (user.Role == RoleType.DealerUser
             && (user.DealerId is null || user.Dealer is null || !user.Dealer.IsActive))
         {
-            await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Pasif veya tanımsız bayi ile giriş denemesi.", "Başarısız", cancellationToken);
+            await _accessLogService.LogAsync(user.Id, user.Email, null, AccessAction.Login, "Pasif veya tanımsız bayi ile giriş denemesi.", AccessResult.Failed, cancellationToken);
             throw new InvalidCredentialsException();
         }
 
         var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verification == PasswordVerificationResult.Failed)
         {
-            await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Başarısız giriş denemesi.", "Başarısız", cancellationToken);
+            await _accessLogService.LogAsync(user.Id, user.Email, null, AccessAction.Login, "Başarısız giriş denemesi.", AccessResult.Failed, cancellationToken);
             throw new InvalidCredentialsException();
         }
 
@@ -61,7 +61,7 @@ public sealed class AuthService : IAuthService
         user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        await _accessLogService.LogAsync(user.Id, user.Email, null, "Giriş", "Sisteme başarıyla giriş yapıldı.", "Başarılı", cancellationToken);
+        await _accessLogService.LogAsync(user.Id, user.Email, null, AccessAction.Login, "Sisteme başarıyla giriş yapıldı.", AccessResult.Success, cancellationToken);
 
         return new LoginResponse
         {

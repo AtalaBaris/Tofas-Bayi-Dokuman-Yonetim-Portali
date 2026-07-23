@@ -3,6 +3,7 @@
 using BayiPortal.Core.Entities;
 using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
+using BayiPortal.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -187,7 +188,7 @@ public static class SeedData
         Dealer? dealer)
     {
         var normalized = email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalized);
+        var user = await db.Users.FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, normalized.EscapeLikePattern(), LikePatternExtensions.EscapeCharacter));
 
         if (user is null)
         {
