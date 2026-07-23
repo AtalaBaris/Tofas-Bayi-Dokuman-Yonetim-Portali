@@ -7,10 +7,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Material } from '../../../../../core/models/material.interface';
 import { AccessLog, AccessLogService } from '../../../../../core/services/access-log.service';
-import { MaterialsService } from '../../../../../core/services/materials.service';
+import {
+  MaterialAccessReportPendingUser,
+  MaterialsService,
+} from '../../../../../core/services/materials.service';
 import {
   accessActionMeta,
-  buildMockMetrics,
+  buildMetrics,
   type AccessAction,
   type AccessReportRow,
   type AccessReportTab,
@@ -36,6 +39,7 @@ export class DocumentAccessReportPage {
 
   readonly document = signal<Material | null>(null);
   readonly realLogs = signal<AccessLog[]>([]);
+  readonly pendingUsers = signal<MaterialAccessReportPendingUser[]>([]);
   readonly activeTab = signal<AccessReportTab>('viewed');
   readonly actionFilter = signal<AccessAction | ''>('');
   readonly search = signal('');
@@ -60,17 +64,30 @@ export class DocumentAccessReportPage {
       next: (res) => this.realLogs.set(res.items),
       error: () => this.realLogs.set([]),
     });
+
+    this.materialsService.getAccessReport(id).subscribe({
+      next: (res) => this.pendingUsers.set(res.pendingUsers),
+      error: () => this.pendingUsers.set([]),
+    });
   }
 
   readonly metrics = computed(() => {
     const doc = this.document();
     if (!doc) {
-      return buildMockMetrics(0, 0);
+      return buildMetrics(0, 0);
     }
-    return buildMockMetrics(doc.viewedCount || 0, doc.audienceCount || 0);
+    const metrics = buildMetrics(doc.viewedCount || 0, doc.audienceCount || 0);
+    return { ...metrics, pendingCount: this.pendingUsers().length };
   });
 
-  private readonly allRows = computed<AccessReportRow[]>(() => {
+  private static initialsOf(name: string): string {
+    const nameParts = (name || 'Kullanıcı').split(' ').filter(Boolean);
+    return nameParts.length >= 2
+      ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
+      : (name?.[0] || 'K').toUpperCase();
+  }
+
+  private readonly viewedRows = computed<AccessReportRow[]>(() => {
     const doc = this.document();
     if (!doc) {
       return [];
@@ -79,15 +96,10 @@ export class DocumentAccessReportPage {
     return logs.map((log) => {
       const lower = `${log.action} ${log.description}`.toLowerCase();
       const isDownload = lower.includes('indir') || lower.includes('download');
-      const nameParts = (log.userName || 'Kullanıcı').split(' ');
-      const initials = nameParts.length >= 2
-        ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
-        : (log.userName?.[0] || 'K').toUpperCase();
-
       return {
         id: log.id,
         userName: log.userName || 'Kullanıcı',
-        initials,
+        initials: DocumentAccessReportPage.initialsOf(log.userName),
         dealerName: log.userType || log.userRole || 'Bayi',
         documentTitle: doc.title,
         action: isDownload ? 'DOWNLOAD' : 'VIEW',
@@ -98,6 +110,29 @@ export class DocumentAccessReportPage {
       };
     });
   });
+
+  private readonly pendingRows = computed<AccessReportRow[]>(() => {
+    const doc = this.document();
+    if (!doc) {
+      return [];
+    }
+    return this.pendingUsers().map((user) => ({
+      id: user.id,
+      userName: user.userName,
+      initials: DocumentAccessReportPage.initialsOf(user.userName),
+      dealerName: user.dealerName,
+      documentTitle: doc.title,
+      action: null,
+      date: null,
+      time: null,
+      ipAddress: null,
+      userAgent: null,
+    }));
+  });
+
+  private readonly allRows = computed<AccessReportRow[]>(() =>
+    this.activeTab() === 'viewed' ? this.viewedRows() : this.pendingRows()
+  );
 
   readonly filteredRows = computed(() => {
     const q = this.search().trim().toLowerCase();

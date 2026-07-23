@@ -10,8 +10,16 @@ public class MaterialAccessReportItemResponse
     public string Time { get; set; } = string.Empty;
 }
 
+public class MaterialAccessReportPendingUserResponse
+{
+    public int Id { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string DealerName { get; set; } = string.Empty;
+}
+
 public class MaterialAccessReportResponse
 {
     public int MaterialId { get; set; }
     public List<MaterialAccessReportItemResponse> Items { get; set; } = new();
+    public List<MaterialAccessReportPendingUserResponse> PendingUsers { get; set; } = new();
 }

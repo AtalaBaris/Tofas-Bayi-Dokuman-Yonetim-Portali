@@ -56,6 +56,16 @@ public class AccessLogsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("trend")]
+    [Authorize(Roles = "Admin,ContentManager")]
+    public async Task<ActionResult<AccessLogTrendResponse>> GetTrend(
+        [FromQuery] string period = "30",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _accessLogService.GetTrendAsync(period, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("logout")]
     public async Task<IActionResult> LogLogout(CancellationToken cancellationToken)
     {
