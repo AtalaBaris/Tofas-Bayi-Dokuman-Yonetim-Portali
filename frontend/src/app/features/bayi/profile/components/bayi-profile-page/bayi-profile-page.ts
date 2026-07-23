@@ -28,6 +28,9 @@ export class BayiProfilePage {
 
   readonly dealerName = computed(() => this.auth.currentUser()?.dealerName ?? 'Bayiniz');
   readonly userId = computed(() => this.auth.currentUser()?.id ?? 0);
+  readonly dealerCity = signal<string | null>(null);
+  readonly dealerPhone = signal<string | null>(null);
+  readonly dealerContactInfo = signal<string | null>(null);
 
   get initials(): string {
     const first = this.firstName.trim();
@@ -47,6 +50,9 @@ export class BayiProfilePage {
         this.lastName = names.lastName;
         this.email = user.email;
         this.phone = user.phone ?? '';
+        this.dealerCity.set(user.dealerCity ?? null);
+        this.dealerPhone.set(user.dealerPhone ?? null);
+        this.dealerContactInfo.set(user.dealerContactInfo ?? null);
         this.loading.set(false);
       },
       error: (err) => {

@@ -31,6 +31,9 @@ export interface DealerDto {
   id: number;
   name: string;
   code: string;
+  city?: string;
+  phone?: string;
+  contactInfo?: string;
   isActive: boolean;
   brandIds: number[];
   brandNames: string[];
@@ -41,6 +44,9 @@ export interface DealerDto {
 export interface CreateDealerDto {
   name: string;
   code: string;
+  city?: string;
+  phone?: string;
+  contactInfo?: string;
   brandIds: number[];
   /** Bayi create sırasında zorunlu ilk DealerUser. */
   initialUser: {
@@ -53,6 +59,9 @@ export interface CreateDealerDto {
 export interface UpdateDealerDto {
   name: string;
   code: string;
+  city?: string;
+  phone?: string;
+  contactInfo?: string;
   isActive: boolean;
   brandIds: number[];
 }

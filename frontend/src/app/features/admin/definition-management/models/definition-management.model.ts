@@ -25,6 +25,9 @@ export interface SimpleDefinitionItem {
   detail: string;
   active: boolean;
   code?: string;
+  city?: string;
+  phone?: string;
+  contactInfo?: string;
   description?: string;
   brandIds?: number[];
   /** Bayi satırı — atanmış marka adları. */
@@ -76,6 +79,9 @@ export function mapDealer(dto: DealerDto): SimpleDefinitionItem {
     detail: `${dto.code} ${brandsLabel}`,
     active: dto.isActive,
     code: dto.code,
+    city: dto.city,
+    phone: dto.phone,
+    contactInfo: dto.contactInfo,
     brandIds: [...(dto.brandIds ?? [])],
     brandNames,
     activeUserCount,

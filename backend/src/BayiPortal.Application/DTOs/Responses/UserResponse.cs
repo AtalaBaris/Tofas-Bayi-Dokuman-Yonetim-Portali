@@ -8,6 +8,9 @@ public class UserResponse
     public string Role { get; set; } = string.Empty;
     public int? DealerId { get; set; }
     public string? DealerName { get; set; }
+    public string? DealerCity { get; set; }
+    public string? DealerPhone { get; set; }
+    public string? DealerContactInfo { get; set; }
     public bool IsActive { get; set; }
     public string? Phone { get; set; }
     public bool EmailNotifications { get; set; } = true;

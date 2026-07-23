@@ -42,6 +42,15 @@ public sealed class DealerService : IDealerService
 
     public async Task<DealerResponse> CreateAsync(CreateDealerRequest request, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(request.City))
+        {
+            throw new ValidationException("Bayi konumu/şehir zorunludur.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            throw new ValidationException("Bayi telefon numarası zorunludur.");
+        }
+
         await ValidateAsync(request.Name, request.Code, request.BrandIds, excludeId: null, cancellationToken);
         await ValidateInitialUserAsync(request.InitialUser, cancellationToken);
 
@@ -50,6 +59,9 @@ public sealed class DealerService : IDealerService
         {
             Name = request.Name.Trim(),
             Code = request.Code.Trim(),
+            City = request.City?.Trim(),
+            Phone = request.Phone?.Trim(),
+            ContactInfo = request.ContactInfo?.Trim(),
             IsActive = true,
             DealerBrands = request.BrandIds.Distinct().Select(brandId => new DealerBrand { BrandId = brandId }).ToList()
         };
@@ -76,6 +88,15 @@ public sealed class DealerService : IDealerService
 
     public async Task<DealerResponse> UpdateAsync(int id, UpdateDealerRequest request, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(request.City))
+        {
+            throw new ValidationException("Bayi konumu/şehir zorunludur.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            throw new ValidationException("Bayi telefon numarası zorunludur.");
+        }
+
         await ValidateAsync(request.Name, request.Code, request.BrandIds, excludeId: id, cancellationToken);
 
         var dealer = await _dealerRepository.GetByIdAsync(id, cancellationToken)
@@ -103,6 +124,9 @@ public sealed class DealerService : IDealerService
 
         dealer.Name = request.Name;
         dealer.Code = request.Code;
+        dealer.City = request.City?.Trim();
+        dealer.Phone = request.Phone?.Trim();
+        dealer.ContactInfo = request.ContactInfo?.Trim();
         dealer.IsActive = request.IsActive;
 
         dealer.DealerBrands.Clear();
@@ -243,6 +267,9 @@ public sealed class DealerService : IDealerService
         Id = dealer.Id,
         Name = dealer.Name,
         Code = dealer.Code,
+        City = dealer.City,
+        Phone = dealer.Phone,
+        ContactInfo = dealer.ContactInfo,
         IsActive = dealer.IsActive,
         BrandIds = dealer.DealerBrands.Select(db => db.BrandId).ToList(),
         BrandNames = dealer.DealerBrands.Select(db => db.Brand.Name).ToList(),

@@ -133,6 +133,9 @@
               </button>
             </th>
             <th>Kod</th>
+            <th>Konum</th>
+            <th>Telefon</th>
+            <th>İletişim Bilgisi</th>
             <th>Markalar</th>
             <th>Kullanıcılar</th>
             <th>
@@ -160,6 +163,9 @@
                 </div>
               </td>
               <td class="definition-table__muted">{{ item.code || '—' }}</td>
+              <td class="definition-table__muted">{{ item.city || '—' }}</td>
+              <td class="definition-table__muted">{{ item.phone || '—' }}</td>
+              <td class="definition-table__muted">{{ item.contactInfo || '—' }}</td>
               <td class="definition-table__muted definition-table__brands">
                 {{ brandNamesLabel(item) }}
               </td>
@@ -241,7 +247,7 @@
               </td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="definition-table__empty">Kayıt bulunamadı.</td></tr>
+            <tr><td colspan="9" class="definition-table__empty">Kayıt bulunamadı.</td></tr>
           }
         </tbody>
       </table>
