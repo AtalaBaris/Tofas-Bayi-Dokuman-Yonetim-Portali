@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BayiPortal.API.Controllers;
 
@@ -17,6 +20,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("LoginPolicy")]
     public async Task<ActionResult<LoginResponse>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
@@ -26,11 +30,24 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh-token")]
+    [EnableRateLimiting("LoginPolicy")]
     public async Task<ActionResult<RefreshTokenResponse>> RefreshToken(
         [FromBody] RefreshTokenRequest request,
         CancellationToken cancellationToken)
     {
         var response = await _authService.RefreshTokenAsync(request, cancellationToken);
         return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(userIdStr, out var userId))
+        {
+            await _authService.LogoutAsync(userId, cancellationToken);
+        }
+        return NoContent();
     }
 }
