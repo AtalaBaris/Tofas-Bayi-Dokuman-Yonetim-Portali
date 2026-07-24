@@ -118,4 +118,16 @@ public sealed class AuthService : IAuthService
             RefreshToken = newRefreshToken
         };
     }
+
+    public async Task LogoutAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is not null)
+        {
+            user.RefreshToken = null;
+            user.RefreshTokenExpiresAt = null;
+            await _userRepository.SaveChangesAsync(cancellationToken);
+            await _accessLogService.LogAsync(user.Id, user.Email, null, AccessAction.Logout, "Sistemden güvenli çıkış yapıldı.", AccessResult.Success, cancellationToken);
+        }
+    }
 }
