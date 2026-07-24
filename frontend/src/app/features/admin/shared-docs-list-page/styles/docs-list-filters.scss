@@ -502,4 +502,9 @@
   &--primary {
     color: var(--color-primary);
   }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }

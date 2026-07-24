@@ -1,6 +1,7 @@
 /** Arama + kategori + çoklu marka + özel tarih aralığı (native date picker taşmasın diye). */
 import { Component, computed, HostListener, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { parseIsoDate, startOfMonth, toDateKey } from '../../../../../shared/utils/calendar-date.util';
 
 type DateField = 'from' | 'to';
 
@@ -61,6 +62,19 @@ export class DocsListFilters {
   readonly calendarMonthLabel = computed(() =>
     new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(this.calendarCursor())
   );
+
+  /** "Bugün" seçimi aktif alan + mevcut aralık ile geçerli mi? (değilse buton devre dışı). */
+  readonly todayPickable = computed(() => {
+    const field = this.datePickerField();
+    const today = toDateKey(new Date());
+    if (field === 'from') {
+      return !(this.dateTo() && today > this.dateTo());
+    }
+    if (field === 'to') {
+      return !(this.dateFrom() && today < this.dateFrom());
+    }
+    return true;
+  });
 
   readonly calendarDays = computed(() => {
     const field = this.datePickerField();
@@ -124,11 +138,9 @@ export class DocsListFilters {
     }
     const field = this.datePickerField();
     if (field === 'from') {
+      // Bitiş tarihinden sonraki günler zaten devre dışı (max = dateTo),
+      // bu yüzden burada geçersiz aralık oluşamaz.
       this.dateFromChange.emit(day.dateKey);
-      const to = this.dateTo();
-      if (to && day.dateKey > to) {
-        this.dateToChange.emit('');
-      }
     } else if (field === 'to') {
       this.dateToChange.emit(day.dateKey);
     }
@@ -181,24 +193,6 @@ export class DocsListFilters {
     this.closeDatePicker();
     this.brandMenuOpen.set(false);
   }
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function toDateKey(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function parseIsoDate(iso: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    return null;
-  }
-  const [y, m, day] = iso.split('-').map(Number);
-  const d = new Date(y, m - 1, day);
-  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function formatDisplayDate(iso: string): string {

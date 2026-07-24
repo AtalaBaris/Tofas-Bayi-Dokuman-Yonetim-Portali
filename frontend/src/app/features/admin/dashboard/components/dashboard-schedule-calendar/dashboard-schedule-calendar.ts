@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { RouterLink } from '@angular/router';
 import { MaterialsService } from '../../../../../core/services/materials.service';
 import type { MaterialScheduleItem } from '../../../../../core/models/material.interface';
+import { startOfMonth, toDateKey } from '../../../../../shared/utils/calendar-date.util';
 
 interface CalendarDay {
   dateKey: string;
@@ -166,10 +167,6 @@ export class DashboardScheduleCalendar implements OnInit {
   }
 }
 
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
 function startOfWeek(d: Date): Date {
   const day = d.getDay();
   const mondayOffset = (day + 6) % 7;
@@ -182,10 +179,6 @@ function addDays(d: Date, days: number): Date {
   return next;
 }
 
-function toDateKey(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
 
 function buildWeekDays(weekStart: Date): CalendarDay[] {
   const todayKey = toDateKey(new Date());
