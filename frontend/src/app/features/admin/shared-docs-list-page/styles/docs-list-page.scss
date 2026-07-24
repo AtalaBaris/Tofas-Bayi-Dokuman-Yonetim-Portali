@@ -19,6 +19,9 @@
 
 .docs-page__toolbar {
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   padding: 1.5rem var(--space-margin-mobile) 0.75rem;
   border-bottom: 1px solid var(--color-outline-variant);
   background: var(--color-surface-container);

@@ -10,6 +10,7 @@ import type { MaterialScheduleItem } from '../../../../../core/models/material.i
 import { DocsDetailDrawer } from '../docs-detail-drawer/docs-detail-drawer';
 import { materialToDocumentListItem } from '../../models/document-list.model';
 import type { DocumentListItem, DocumentViewerRow } from '../../models/document-list.model';
+import { startOfMonth, toDateKey } from '../../../../../shared/utils/calendar-date.util';
 
 interface CalendarDay {
   dateKey: string; // YYYY-MM-DD
@@ -462,15 +463,6 @@ export class DocsPoolCalendarPanel {
     );
   }
 
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function toDateKey(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function buildMonthGrid(monthStart: Date): CalendarDay[] {

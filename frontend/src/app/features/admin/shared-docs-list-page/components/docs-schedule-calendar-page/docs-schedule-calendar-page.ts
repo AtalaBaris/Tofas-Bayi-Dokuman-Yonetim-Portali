@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { MaterialsService } from '../../../../../core/services/materials.service';
 import type { Material, MaterialScheduleItem } from '../../../../../core/models/material.interface';
+import { startOfMonth, toDateKey } from '../../../../../shared/utils/calendar-date.util';
 
 interface CalendarDay {
   dateKey: string; // YYYY-MM-DD
@@ -212,15 +213,6 @@ export class DocsScheduleCalendarPage implements OnInit {
       new Date(iso)
     );
   }
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function toDateKey(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function formatTimeLocal(d: Date): string {

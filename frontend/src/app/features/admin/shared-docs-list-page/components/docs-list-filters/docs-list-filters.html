@@ -153,7 +153,12 @@
 
       <div class="docs-date-modal__footer">
         <button type="button" class="docs-date-modal__link" (click)="clearActiveDateField()">Temizle</button>
-        <button type="button" class="docs-date-modal__link docs-date-modal__link--primary" (click)="pickToday()">
+        <button
+          type="button"
+          class="docs-date-modal__link docs-date-modal__link--primary"
+          [disabled]="!todayPickable()"
+          (click)="pickToday()"
+        >
           Bugün
         </button>
       </div>
