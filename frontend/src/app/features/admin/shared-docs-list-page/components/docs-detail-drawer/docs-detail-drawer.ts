@@ -7,6 +7,8 @@ import { CategoryService } from '../../../../../core/services/category.service';
 import { BrandService } from '../../../../../core/services/brand.service';
 import { MaterialsService, type UpdateMaterialPayload } from '../../../../../core/services/materials.service';
 import type { CategoryDto, BrandDto } from '../../../../../core/models/definition.models';
+import { validateSelectedFile } from '../../../add-document/models/add-document.model';
+import { ToastService } from '../../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-docs-detail-drawer',
@@ -27,6 +29,7 @@ export class DocsDetailDrawer {
   private readonly categoryService = inject(CategoryService);
   private readonly brandService = inject(BrandService);
   private readonly materialsService = inject(MaterialsService);
+  private readonly toastService = inject(ToastService);
 
   readonly isEditing = signal(false);
   readonly categories = signal<CategoryDto[]>([]);
@@ -42,6 +45,7 @@ export class DocsDetailDrawer {
     expiresAt: [''],
     file: [null as File | null],
   });
+
 
   constructor() {
     effect(() => {
@@ -100,7 +104,16 @@ export class DocsDetailDrawer {
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.form.patchValue({ file: input.files[0] });
+      const file = input.files[0];
+      const error = validateSelectedFile(file);
+      if (error) {
+        this.errorMessage.set(error);
+        this.form.patchValue({ file: null });
+        input.value = '';
+        this.toastService.show(error, 'error');
+        return;
+      }
+      this.form.patchValue({ file });
     } else {
       this.form.patchValue({ file: null });
     }

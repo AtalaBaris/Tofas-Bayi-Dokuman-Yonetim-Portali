@@ -1,5 +1,6 @@
 // README izin verilen türler + yapılandırılabilir max boyut (appsettings FileStorage).
 using System.Collections.Frozen;
+using System.Text.RegularExpressions;
 using BayiPortal.Application.Interfaces.Services;
 using BayiPortal.Core.Exceptions;
 using Microsoft.Extensions.Configuration;
@@ -8,10 +9,10 @@ namespace BayiPortal.Infrastructure.Storage;
 
 public sealed class FileUploadPolicy : IFileUploadPolicy
 {
-    // README: JPG, PNG, PDF, DOCX, PPTX, MP3, WAV, MP4
+    // PDF, DOCX, TXT, PPTX, JPG, JPEG, PNG, MP4, WAV
     private static readonly FrozenSet<string> AllowedExtensions = new[]
     {
-        ".jpg", ".jpeg", ".png", ".pdf", ".docx", ".pptx", ".mp3", ".wav", ".mp4"
+        ".jpg", ".jpeg", ".png", ".pdf", ".docx", ".pptx", ".txt", ".wav", ".mp4"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private static readonly FrozenSet<string> AllowedMimeTypes = new[]
@@ -21,7 +22,7 @@ public sealed class FileUploadPolicy : IFileUploadPolicy
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "audio/mpeg",
+        "text/plain",
         "audio/wav",
         "audio/wave",
         "audio/x-wav",
@@ -60,11 +61,25 @@ public sealed class FileUploadPolicy : IFileUploadPolicy
                 $"Dosya boyutu en fazla {maxMb} MB olabilir. Lütfen daha küçük bir dosya seçin.");
         }
 
+        // Dosya adı uzunluk kontrolü (maksimum 50 karakter)
+        if (originalFileName.Length > 50)
+        {
+            throw new ValidationException("Dosya adı en fazla 50 karakter olabilir.");
+        }
+
+        // Türkçe karakter, emoji ve özel karakter kontrolü
+        // Sadece İngilizce harfler, rakamlar, boşluk, nokta, tire ve alt çizgi izinli.
+        if (!Regex.IsMatch(originalFileName, @"^[a-zA-Z0-9.\-_ ]+$"))
+        {
+            throw new ValidationException(
+                "Dosya adı Türkçe karakter, emoji veya özel karakter içeremez. Sadece İngilizce harf, rakam, boşluk, nokta, tire ve alt çizgi kullanılabilir.");
+        }
+
         var extension = Path.GetExtension(originalFileName);
         if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension))
         {
             throw new ValidationException(
-                "Bu dosya türü desteklenmiyor. İzin verilen türler: JPG, PNG, PDF, DOCX, PPTX, MP3, WAV, MP4.");
+                "Bu dosya türü desteklenmiyor. İzin verilen türler: PDF, DOCX, TXT, PPTX, JPG, JPEG, PNG, MP4, WAV.");
         }
 
         if (!string.IsNullOrWhiteSpace(mimeType) && !AllowedMimeTypes.Contains(mimeType.Trim()))

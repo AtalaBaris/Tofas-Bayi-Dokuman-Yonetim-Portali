@@ -54,7 +54,7 @@ export const ALLOWED_EXTENSIONS = [
   '.pdf',
   '.docx',
   '.pptx',
-  '.mp3',
+  '.txt',
   '.wav',
   '.mp4',
 ] as const;
@@ -96,11 +96,28 @@ export function validateSelectedFile(file: File): string | null {
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return 'Dosya boyutu en fazla 25 MB olabilir.';
   }
-  const name = file.name.toLowerCase();
-  const ok = ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext));
+  
+  const name = file.name;
+  const nameLower = name.toLowerCase();
+  
+  // Dosya uzantısı kontrolü
+  const ok = ALLOWED_EXTENSIONS.some((ext) => nameLower.endsWith(ext));
   if (!ok) {
-    return 'Bu dosya türü desteklenmiyor. İzin verilen türler: JPG, PNG, PDF, DOCX, PPTX, MP3, WAV, MP4.';
+    return 'Bu dosya türü desteklenmiyor. İzin verilen türler: PDF, DOCX, TXT, PPTX, JPG, JPEG, PNG, MP4, WAV.';
   }
+
+  // Dosya adı uzunluk kontrolü (maksimum 50 karakter)
+  if (name.length > 50) {
+    return 'Dosya adı en fazla 50 karakter olabilir.';
+  }
+
+  // Türkçe karakter, emoji ve özel karakter engelleme kontrolü
+  // Sadece İngilizce harfler, rakamlar, nokta, alt çizgi, tire ve boşluk izinli.
+  const safeNameRegex = /^[a-zA-Z0-9.\-_ ]+$/;
+  if (!safeNameRegex.test(name)) {
+    return 'Dosya adı Türkçe karakter, emoji veya özel karakter içeremez. Sadece İngilizce harf, rakam, boşluk, nokta, tire ve alt çizgi kullanılabilir.';
+  }
+
   return null;
 }
 

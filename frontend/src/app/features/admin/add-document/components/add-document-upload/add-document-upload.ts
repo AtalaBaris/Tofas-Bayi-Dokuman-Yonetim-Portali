@@ -1,11 +1,12 @@
 /** Dosya sürükle-bırak / seçim alanı (çoklu dosya). */
-import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import type { SelectedFileInfo } from '../../models/add-document.model';
 import {
   detectFileKind,
   formatFileSize,
   validateSelectedFile,
 } from '../../models/add-document.model';
+import { ToastService } from '../../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-add-document-upload',
@@ -19,6 +20,7 @@ export class AddDocumentUpload {
 
   readonly dragOver = signal(false);
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly toastService = inject(ToastService);
 
   openPicker(): void {
     this.fileInput()?.nativeElement.click();
@@ -65,6 +67,7 @@ export class AddDocumentUpload {
       const error = validateSelectedFile(file);
       if (error) {
         this.fileErrorChange.emit(error);
+        this.toastService.show(error, 'error');
         return;
       }
       selectedInfos.push({
