@@ -61,10 +61,10 @@ public sealed class FileUploadPolicy : IFileUploadPolicy
                 $"Dosya boyutu en fazla {maxMb} MB olabilir. Lütfen daha küçük bir dosya seçin.");
         }
 
-        // Dosya adı uzunluk kontrolü (maksimum 50 karakter)
-        if (originalFileName.Length > 50)
+        // Dosya adı uzunluk kontrolü (maksimum 100 karakter)
+        if (originalFileName.Length > 100)
         {
-            throw new ValidationException("Dosya adı en fazla 50 karakter olabilir.");
+            throw new ValidationException("Dosya adı en fazla 100 karakter olabilir.");
         }
 
         // Türkçe karakter, emoji ve özel karakter kontrolü
