@@ -106,9 +106,9 @@ export function validateSelectedFile(file: File): string | null {
     return 'Bu dosya türü desteklenmiyor. İzin verilen türler: PDF, DOCX, TXT, PPTX, JPG, JPEG, PNG, MP4, WAV.';
   }
 
-  // Dosya adı uzunluk kontrolü (maksimum 50 karakter)
-  if (name.length > 50) {
-    return 'Dosya adı en fazla 50 karakter olabilir.';
+  // Dosya adı uzunluk kontrolü (maksimum 100 karakter)
+  if (name.length > 100) {
+    return 'Dosya adı en fazla 100 karakter olabilir.';
   }
 
   // Türkçe karakter, emoji ve özel karakter engelleme kontrolü
