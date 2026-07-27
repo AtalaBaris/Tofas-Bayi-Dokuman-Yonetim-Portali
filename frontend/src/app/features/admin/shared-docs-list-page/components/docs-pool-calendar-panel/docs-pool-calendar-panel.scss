@@ -1,3 +1,7 @@
+:host {
+  display: block;
+}
+
 .poolcal {
   margin-top: 2rem;
   padding: 1.25rem 1rem 2rem;
@@ -23,6 +27,59 @@
 
     .poolcal-split__resize-handle {
       pointer-events: auto;
+    }
+  }
+
+  /* Mobil: alt alta; takvim yalnızca açıkken görünür */
+  &--compact {
+    flex-direction: column;
+    gap: 0.85rem;
+    height: auto;
+    align-items: stretch;
+
+    .poolcal-split__left {
+      width: 100% !important;
+      max-width: none;
+      min-width: 0;
+      height: auto;
+      overflow: visible;
+      border-radius: var(--radius-lg);
+    }
+
+    .poolcal-split__left-body {
+      flex: none;
+      min-height: 0;
+      overflow: visible;
+    }
+
+    .poolcal-split__right {
+      width: 100%;
+      border-left: 1px solid var(--color-outline-variant);
+      border-radius: var(--radius-lg);
+      min-width: 0;
+      height: auto;
+      overflow: visible;
+    }
+
+    .poolcal__day {
+      min-height: 3.25rem;
+      padding: 0.25rem;
+    }
+
+    .poolcal__event-title {
+      display: none;
+    }
+
+    .poolcal__event-time {
+      font-size: 0.55rem;
+    }
+
+    .poolcal__pool-item {
+      cursor: pointer;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
     }
   }
 }
@@ -56,6 +113,18 @@
   align-items: center;
   font-weight: 900;
   color: var(--color-on-surface);
+}
+
+.poolcal-split__view-cal {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.7rem;
+  background: var(--color-surface-container-lowest);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
 }
 
 .poolcal-split__hint {
@@ -117,72 +186,6 @@
   user-select: none;
 }
 
-.poolcal__tabs {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.poolcal__tab-btn {
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-md);
-  padding: 0.55rem 0.9rem;
-  background: var(--color-surface-container-lowest);
-  font-family: inherit;
-  font-size: var(--font-size-label-lg);
-  font-weight: 700;
-  color: var(--color-on-surface-variant);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--color-surface-container);
-  }
-
-  &--active {
-    background: var(--color-primary-container);
-    color: var(--color-primary);
-  }
-}
-
-.poolcal__card {
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-container-lowest);
-  padding: 1rem;
-}
-
-.poolcal__section-head {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-}
-
-.poolcal__section-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--color-on-surface);
-}
-
-.poolcal__section-hint {
-  margin: 0;
-  color: var(--color-on-surface-variant);
-  font-size: 0.85rem;
-}
-
-.poolcal__empty {
-  margin: 0;
-  padding: 0.75rem 0;
-  text-align: center;
-  color: var(--color-on-surface-variant);
-  font-size: 0.9rem;
-}
-
-.poolcal__empty--error {
-  color: var(--color-error);
-}
-
 .poolcal__pool-list {
   display: flex;
   flex-direction: column;
@@ -202,6 +205,41 @@
 
   &:hover {
     background: var(--color-surface);
+  }
+
+  &--picking {
+    border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+  }
+}
+
+.poolcal__pool-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.poolcal__pool-add {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+
+  .material-symbols-outlined {
+    font-size: 1.35rem;
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 }
 
@@ -228,21 +266,67 @@
   color: var(--color-on-surface-variant);
 }
 
-.poolcal__calendar {
+.poolcal__empty {
+  margin: 0;
+  padding: 0.75rem 0;
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.poolcal__empty--error {
+  color: var(--color-error);
+}
+
+.poolcal__calendar-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
 }
 
 .poolcal__calendar-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 0.35rem;
+  flex: 1;
 }
 
-.poolcal__calendar-head {
-  margin-bottom: 0.85rem;
+.poolcal__close-cal {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
+  background: var(--color-surface-container);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  cursor: pointer;
+}
+
+.poolcal__pick-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary-container) 18%, transparent);
+  color: var(--color-on-surface);
+  font-size: 0.9rem;
+  line-height: 1.4;
+
+  .material-symbols-outlined {
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  strong {
+    font-weight: 800;
+  }
 }
 
 .poolcal__nav-btn {
@@ -260,9 +344,12 @@
 
 .poolcal__month-label {
   margin: 0;
+  min-width: 8rem;
+  text-align: center;
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-on-surface);
+  text-transform: capitalize;
 }
 
 .poolcal__weekdays {
@@ -308,6 +395,18 @@
   .poolcal__day-num {
     color: #9ca3af;
   }
+}
+
+.poolcal__day--selectable {
+  cursor: pointer;
+
+  &:active {
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  }
+}
+
+.poolcal__grid--pick .poolcal__day--selectable {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-outline-variant));
 }
 
 .poolcal__day-num {
@@ -360,6 +459,7 @@
 }
 
 .poolcal__remove-zone {
+  margin-top: 0.85rem;
   border: 1.5px dashed var(--color-error);
   background: color-mix(in srgb, var(--color-error-container) 30%, transparent);
   color: var(--color-on-error-container);
@@ -375,6 +475,8 @@
   z-index: 70;
   display: grid;
   place-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 .poolcal-modal__backdrop {
@@ -389,6 +491,8 @@
   position: relative;
   z-index: 1;
   width: min(26rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   padding: 1.25rem;
   border-radius: 0.75rem;
   background: var(--color-surface-container-lowest);
@@ -476,4 +580,5 @@
   z-index: 50;
   display: contents;
 }
+
 

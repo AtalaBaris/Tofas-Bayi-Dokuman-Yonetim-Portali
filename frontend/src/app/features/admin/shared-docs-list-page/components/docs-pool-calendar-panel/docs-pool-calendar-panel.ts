@@ -1,5 +1,5 @@
 /** Admin — Doküman havuzu + yayın takvimi. */
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -30,10 +30,16 @@ interface ScheduleModalState {
   recurrenceKind: 'None' | 'Weekly' | 'MonthlyDay';
 }
 
+interface MobilePickState {
+  materialId: number;
+  title: string;
+}
+
 const POOL_WIDTH_KEY = 'admin.poolPanelWidth';
 const POOL_MIN_WIDTH = 220;
 const POOL_MAX_WIDTH = 520;
 const POOL_DEFAULT_WIDTH = 320;
+const COMPACT_MQ = '(max-width: 767px)';
 
 @Component({
   selector: 'app-docs-pool-calendar-panel',
@@ -45,9 +51,15 @@ const POOL_DEFAULT_WIDTH = 320;
 export class DocsPoolCalendarPanel {
   private readonly materialsApi = inject(MaterialsService);
   private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly poolWidth = signal(readStoredPoolWidth());
   readonly resizing = signal(false);
+
+  /** Mobil: havuz + takvim alt alta; DnD yerine + / tarih seçimi. */
+  readonly compact = signal(false);
+  readonly mobileCalendarOpen = signal(false);
+  readonly mobilePick = signal<MobilePickState | null>(null);
 
   readonly pool = signal<DocumentListItem[]>([]);
   readonly poolLoading = signal(true);
@@ -78,7 +90,6 @@ export class DocsPoolCalendarPanel {
   readonly confirmOpen = signal(false);
   readonly removeCandidateId = signal<number | null>(null);
 
-  // Details drawer (DocsDetailDrawer)
   readonly detailsDoc = signal<DocumentListItem | null>(null);
   readonly viewers = signal<DocumentViewerRow[]>([]);
 
@@ -91,7 +102,6 @@ export class DocsPoolCalendarPanel {
   readonly eventsByDay = computed(() => {
     const map = new Map<string, MaterialScheduleItem[]>();
     for (const ev of this.events()) {
-      // backend may return UTC; we show by dateKey in local browser timezone
       const key = toDateKey(new Date(ev.at));
       const list = map.get(key) ?? [];
       list.push(ev);
@@ -103,10 +113,65 @@ export class DocsPoolCalendarPanel {
   readonly scheduledIdSet = computed(() => new Set(this.events().map((e) => e.id)));
 
   constructor() {
+    this.bindCompactMedia();
     void this.reloadAll();
   }
 
+  startMobileSchedule(doc: DocumentListItem, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.calendarError.set('');
+    this.mobilePick.set({ materialId: doc.id, title: doc.title });
+    this.mobileCalendarOpen.set(true);
+  }
+
+  openMobileCalendarView(): void {
+    this.mobilePick.set(null);
+    this.mobileCalendarOpen.set(true);
+  }
+
+  closeMobileCalendar(): void {
+    this.mobileCalendarOpen.set(false);
+    this.mobilePick.set(null);
+    this.calendarError.set('');
+  }
+
+  onDayTap(day: CalendarDay): void {
+    if (!this.compact() || !this.mobileCalendarOpen()) {
+      return;
+    }
+
+    const pick = this.mobilePick();
+    if (!pick) {
+      return;
+    }
+
+    if (day.isPast) {
+      this.calendarError.set('Geçmiş bir güne yayın zamanı ayarlanamaz.');
+      return;
+    }
+
+    let time = '09:00';
+    if (isScheduleInPast(day.dateKey, time)) {
+      time = defaultFutureTimeForDate(day.dateKey);
+    }
+
+    this.calendarError.set('');
+    this.modalError.set('');
+    this.modal.set({
+      materialId: pick.materialId,
+      title: pick.title,
+      dateKey: day.dateKey,
+      time,
+      mode: 'create',
+      recurrenceKind: 'None',
+    });
+  }
+
   startResize(event: PointerEvent): void {
+    if (this.compact()) {
+      return;
+    }
     event.preventDefault();
     this.resizing.set(true);
     const handle = event.currentTarget as HTMLElement;
@@ -148,8 +213,6 @@ export class DocsPoolCalendarPanel {
   reloadPool(): void {
     this.poolLoading.set(true);
     this.poolError.set('');
-    // Havuz: taslak şablonlar + eski tekil zamanlanmışlar (kopya olmayanlar).
-    // Takvim kopyaları (scheduleTemplateId dolu) havuzda gösterilmez.
     forkJoin({
       drafts: this.materialsApi.list({ status: 'Draft' }),
       scheduled: this.materialsApi.list({ status: 'Scheduled' }),
@@ -214,6 +277,10 @@ export class DocsPoolCalendarPanel {
   }
 
   onDragStart(id: number, event: DragEvent, source: 'pool' | 'calendar'): void {
+    if (this.compact()) {
+      event.preventDefault();
+      return;
+    }
     this.draggingId.set(id);
     this.dragSource.set(source);
     event.dataTransfer?.setData('text/plain', String(id));
@@ -229,6 +296,9 @@ export class DocsPoolCalendarPanel {
   }
 
   onDayDragOver(day: CalendarDay, event: DragEvent): void {
+    if (this.compact()) {
+      return;
+    }
     if (day.isPast) {
       if (event.dataTransfer) {
         event.dataTransfer.dropEffect = 'none';
@@ -242,6 +312,9 @@ export class DocsPoolCalendarPanel {
   }
 
   onDayDrop(day: CalendarDay, event: DragEvent): void {
+    if (this.compact()) {
+      return;
+    }
     event.preventDefault();
 
     if (day.isPast) {
@@ -317,9 +390,8 @@ export class DocsPoolCalendarPanel {
     }
 
     const dateObj = new Date(local);
-    const dayOfWeek = dateObj.getDay() || 7; // Sunday is 0 in JS but usually 7 in .NET, wait .NET uses Sunday=0 or 7 depending on setup, but typically we can send 1=Mon...7=Sun or just use standard. Let's send day of week from 1-7 (Mon-Sun).
     const jsDay = dateObj.getDay();
-    const dayOfWeekToSend = jsDay === 0 ? 7 : jsDay; 
+    const dayOfWeekToSend = jsDay === 0 ? 7 : jsDay;
     const iso = when.toISOString();
 
     const payload = {
@@ -340,6 +412,10 @@ export class DocsPoolCalendarPanel {
         this.savingSchedule.set(false);
         this.modalError.set('');
         this.modal.set(null);
+        this.mobilePick.set(null);
+        if (this.compact()) {
+          this.mobileCalendarOpen.set(true);
+        }
         this.reloadAll();
       },
       error: (err: { message?: string }) => {
@@ -349,12 +425,17 @@ export class DocsPoolCalendarPanel {
     });
   }
 
-  // Takvimden boş alana bırakınca “kaldır” akışı.
   onRemoveDragOver(event: DragEvent): void {
+    if (this.compact()) {
+      return;
+    }
     event.preventDefault();
   }
 
   onRemoveDrop(event: DragEvent): void {
+    if (this.compact()) {
+      return;
+    }
     event.preventDefault();
 
     const raw = event.dataTransfer?.getData('text/plain') ?? '';
@@ -364,7 +445,6 @@ export class DocsPoolCalendarPanel {
     }
 
     if (!this.scheduledIdSet().has(materialId)) {
-      // Draft/Havuzdan sürüklediyse takvimden "kaldırma" çağrısı yapılmaz.
       return;
     }
 
@@ -462,6 +542,23 @@ export class DocsPoolCalendarPanel {
     );
   }
 
+  private bindCompactMedia(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+    const mq = window.matchMedia(COMPACT_MQ);
+    const apply = (matches: boolean) => {
+      this.compact.set(matches);
+      if (!matches) {
+        this.mobileCalendarOpen.set(false);
+        this.mobilePick.set(null);
+      }
+    };
+    apply(mq.matches);
+    const onChange = (event: MediaQueryListEvent) => apply(event.matches);
+    mq.addEventListener('change', onChange);
+    this.destroyRef.onDestroy(() => mq.removeEventListener('change', onChange));
+  }
 }
 
 function startOfMonth(d: Date): Date {
@@ -477,7 +574,7 @@ function buildMonthGrid(monthStart: Date): CalendarDay[] {
   const year = monthStart.getFullYear();
   const month = monthStart.getMonth();
   const first = new Date(year, month, 1);
-  const startOffset = (first.getDay() + 6) % 7; // Monday-first
+  const startOffset = (first.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - startOffset);
   const todayKey = toDateKey(new Date());
   const days: CalendarDay[] = [];
@@ -510,7 +607,6 @@ function isScheduleInPast(dateKey: string, time: string): boolean {
   return when.getTime() <= Date.now();
 }
 
-/** Bugün için varsayılan 09:00 geçmişse bir sonraki saate yuvarla. */
 function defaultFutureTimeForDate(dateKey: string): string {
   const candidate = new Date(`${dateKey}T09:00`);
   if (!Number.isNaN(candidate.getTime()) && candidate.getTime() > Date.now()) {
@@ -520,7 +616,6 @@ function defaultFutureTimeForDate(dateKey: string): string {
   next.setMinutes(0, 0, 0);
   next.setHours(next.getHours() + 1);
   if (toDateKey(next) !== dateKey) {
-    // Gün bitmişse yine de 23:59 öner (kayıt yine backend/FE doğrulamasında reddedilir).
     return '23:59';
   }
   return formatTimeHHmm(next);
@@ -538,4 +633,3 @@ function readStoredPoolWidth(): number {
 function clampPoolWidth(width: number): number {
   return Math.min(POOL_MAX_WIDTH, Math.max(POOL_MIN_WIDTH, Math.round(width)));
 }
-
