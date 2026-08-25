@@ -29,16 +29,35 @@
 
       <h2 id="confirm-dialog-title" class="confirm-dialog__title">{{ title() }}</h2>
       <p id="confirm-dialog-message" class="confirm-dialog__message">{{ message() }}</p>
-      <p class="confirm-dialog__hint">Bu işlem geri alınamaz.</p>
+      @if (showHint()) {
+        <p class="confirm-dialog__hint">Bu işlem geri alınamaz.</p>
+      }
+
+      @if (acknowledgeLabel(); as ackLabel) {
+        <label class="confirm-dialog__ack">
+          <input
+            type="checkbox"
+            [checked]="acknowledged()"
+            (change)="onAcknowledgeChange($any($event.target).checked)"
+          />
+          <span>{{ ackLabel }}</span>
+        </label>
+      }
 
       <div class="confirm-dialog__actions">
         <button type="button" class="confirm-dialog__cancel" (click)="onCancel()">
           {{ cancelLabel() }}
         </button>
+        @if (secondaryLabel(); as secondary) {
+          <button type="button" class="confirm-dialog__secondary" (click)="onSecondary()">
+            {{ secondary }}
+          </button>
+        }
         <button
           type="button"
           class="confirm-dialog__confirm"
           [class.confirm-dialog__confirm--danger]="danger()"
+          [disabled]="!canConfirm()"
           (click)="onConfirm()"
         >
           {{ confirmLabel() }}

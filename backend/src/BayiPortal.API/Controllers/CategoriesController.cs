@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace BayiPortal.API.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize]
 [Route("api/categories")]
 public class CategoriesController : ControllerBase
 {
+    private const string ManagerRoles = "Admin,ContentManager";
+
     private readonly ICategoryService _categoryService;
 
     public CategoriesController(ICategoryService categoryService)
@@ -19,6 +21,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<List<CategoryResponse>>> GetList(CancellationToken cancellationToken)
     {
         var result = await _categoryService.GetListAsync(cancellationToken);
@@ -26,6 +29,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<CategoryResponse>> GetById(int id, CancellationToken cancellationToken)
     {
         var result = await _categoryService.GetByIdAsync(id, cancellationToken);
@@ -33,6 +37,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<CategoryResponse>> Create(
         [FromBody] CreateCategoryRequest request, CancellationToken cancellationToken)
     {
@@ -41,6 +46,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<CategoryResponse>> Update(
         int id, [FromBody] UpdateCategoryRequest request, CancellationToken cancellationToken)
     {
@@ -49,6 +55,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken)
     {
         await _categoryService.DeactivateAsync(id, cancellationToken);

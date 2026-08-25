@@ -94,18 +94,6 @@
   color: #fff;
   background: #374151;
 
-  &[data-tone='fiat'] {
-    background: #1e3a8a;
-  }
-
-  &[data-tone='jeep'] {
-    background: #14532d;
-  }
-
-  &[data-tone='all'] {
-    background: #1f2937;
-  }
-
   &--muted {
     background: var(--color-surface-variant);
     color: var(--color-on-surface-variant);
@@ -298,6 +286,20 @@
   margin-bottom: 0.5rem;
 }
 
+.docs-drawer__file-count {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.docs-drawer__file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
 .docs-drawer__file-card {
   display: flex;
   align-items: center;
@@ -365,7 +367,9 @@
   }
 }
 
-.docs-drawer__archive {
+.docs-drawer__archive,
+.docs-drawer__publish,
+.docs-drawer__edit {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,6 +384,7 @@
   font-size: var(--font-size-label-lg);
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 
   &:hover {
@@ -389,4 +394,14 @@
   .material-symbols-outlined {
     font-size: 20px;
   }
+}
+
+.docs-drawer__publish {
+  background: var(--color-tertiary-container);
+  color: #ffffff;
+}
+
+.docs-drawer__edit {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
 }

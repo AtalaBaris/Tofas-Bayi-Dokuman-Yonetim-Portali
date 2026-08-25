@@ -3,6 +3,7 @@
 using BayiPortal.Core.Entities;
 using BayiPortal.Core.Enums;
 using BayiPortal.Infrastructure.Data.Contexts;
+using BayiPortal.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,15 +20,26 @@ public static class SeedData
         var dealerA = await EnsureDealerAsync(dbContext, "BAYI-A", "Bayi A");
         var dealerB = await EnsureDealerAsync(dbContext, "BAYI-B", "Bayi B");
 
-        var brandA = await EnsureBrandAsync(dbContext, "MRK-A", "Marka A");
-        var brandB = await EnsureBrandAsync(dbContext, "MRK-B", "Marka B");
+        var fiat = await EnsureBrandAsync(dbContext, "FIAT", "Fiat");
+        var alfaRomeo = await EnsureBrandAsync(dbContext, "ALFAROMEO", "Alfa Romeo");
+        var jeep = await EnsureBrandAsync(dbContext, "JEEP", "Jeep");
+        var citroen = await EnsureBrandAsync(dbContext, "CITROEN", "Citroën");
+        var dsAutomobiles = await EnsureBrandAsync(dbContext, "DS", "DS Automobiles");
+        var opel = await EnsureBrandAsync(dbContext, "OPEL", "Opel");
+        var peugeot = await EnsureBrandAsync(dbContext, "PEUGEOT", "Peugeot");
 
         await EnsureCategoryAsync(dbContext, "Pazarlama Materyalleri", "Billboard, broşür, sosyal medya içerikleri");
         await EnsureCategoryAsync(dbContext, "Genel Duyuru", "Kampanya ve operasyon duyuruları");
         await EnsureCategoryAsync(dbContext, "Eğitim Dokümanı", "Uygulama ve süreç eğitim materyalleri");
 
-        await EnsureDealerBrandAsync(dbContext, dealerA, brandA);
-        await EnsureDealerBrandAsync(dbContext, dealerB, brandB);
+        // Bayi A: eski FCA markaları, Bayi B: eski PSA markaları (Stellantis'in iki atası).
+        await EnsureDealerBrandAsync(dbContext, dealerA, fiat);
+        await EnsureDealerBrandAsync(dbContext, dealerA, alfaRomeo);
+        await EnsureDealerBrandAsync(dbContext, dealerA, jeep);
+        await EnsureDealerBrandAsync(dbContext, dealerB, citroen);
+        await EnsureDealerBrandAsync(dbContext, dealerB, dsAutomobiles);
+        await EnsureDealerBrandAsync(dbContext, dealerB, opel);
+        await EnsureDealerBrandAsync(dbContext, dealerB, peugeot);
 
         await EnsureUserAsync(
             dbContext,
@@ -47,7 +59,7 @@ public static class SeedData
             password: "Editor123!",
             dealer: null);
 
-        await EnsureUserAsync(
+        var userA = await EnsureUserAsync(
             dbContext,
             passwordHasher,
             email: "bayi.a@bayiportal.local",
@@ -56,7 +68,7 @@ public static class SeedData
             password: "Bayi123!",
             dealer: dealerA);
 
-        await EnsureUserAsync(
+        var userB = await EnsureUserAsync(
             dbContext,
             passwordHasher,
             email: "bayi.b@bayiportal.local",
@@ -64,6 +76,12 @@ public static class SeedData
             role: RoleType.DealerUser,
             password: "Bayi123!",
             dealer: dealerB);
+
+        await dbContext.SaveChangesAsync();
+
+        await EnsureNotificationAsync(dbContext, userA.Id, NotificationKind.Document, "Yeni Doküman Yayımlandı", "Markanız için 2026 Pazarlama Kılavuzu yayımlandı.", isRead: false);
+        await EnsureNotificationAsync(dbContext, userA.Id, NotificationKind.Announcement, "Sistem Bakım Duyurusu", "Portalımız haftasonu bakım çalışmasına girecektir.", isRead: true);
+        await EnsureNotificationAsync(dbContext, userB.Id, NotificationKind.Document, "Yeni Doküman Yayımlandı", "Markanız için 2026 Satış Eğitimi dökümanı eklendi.", isRead: false);
 
         await dbContext.SaveChangesAsync();
         logger?.LogInformation(
@@ -88,13 +106,41 @@ public static class SeedData
         var existing = await db.Brands.FirstOrDefaultAsync(b => b.Code == code);
         if (existing is not null)
         {
+            if (string.IsNullOrWhiteSpace(existing.BadgeLabel))
+            {
+                existing.BadgeLabel = existing.Name;
+            }
+            if (string.IsNullOrWhiteSpace(existing.BadgeColor))
+            {
+                existing.BadgeColor = DefaultBadgeColorFor(code);
+            }
             return existing;
         }
 
-        var brand = new Brand { Name = name, Code = code, IsActive = true };
+        var brand = new Brand
+        {
+            Name = name,
+            Code = code,
+            BadgeLabel = name,
+            BadgeColor = DefaultBadgeColorFor(code),
+            IsActive = true
+        };
         db.Brands.Add(brand);
         return brand;
     }
+
+    private static string DefaultBadgeColorFor(string code) =>
+        code.ToUpperInvariant() switch
+        {
+            "FIAT" => "#C8102E",
+            "ALFAROMEO" => "#98002E",
+            "JEEP" => "#4C6444",
+            "CITROEN" => "#B5533C",
+            "DS" => "#151515",
+            "OPEL" => "#0047AB",
+            "PEUGEOT" => "#001E50",
+            _ => "#374151"
+        };
 
     private static async Task EnsureCategoryAsync(ApplicationDbContext db, string name, string description)
     {
@@ -132,7 +178,7 @@ public static class SeedData
         db.DealerBrands.Add(new DealerBrand { Dealer = dealer, Brand = brand });
     }
 
-    private static async Task EnsureUserAsync(
+    private static async Task<User> EnsureUserAsync(
         ApplicationDbContext db,
         IPasswordHasher<User> passwordHasher,
         string email,
@@ -142,7 +188,7 @@ public static class SeedData
         Dealer? dealer)
     {
         var normalized = email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalized);
+        var user = await db.Users.FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, normalized.EscapeLikePattern(), LikePatternExtensions.EscapeCharacter));
 
         if (user is null)
         {
@@ -156,7 +202,7 @@ public static class SeedData
             };
             user.PasswordHash = passwordHasher.HashPassword(user, password);
             db.Users.Add(user);
-            return;
+            return user;
         }
 
         // Demo hesap: şifre README ile her Development start'ta senkron (giriş bozulmasın).
@@ -165,5 +211,24 @@ public static class SeedData
         user.IsActive = true;
         user.Dealer = dealer;
         user.PasswordHash = passwordHasher.HashPassword(user, password);
+        return user;
+    }
+
+    private static async Task EnsureNotificationAsync(
+        ApplicationDbContext db, int userId, NotificationKind kind, string title, string body, bool isRead)
+    {
+        var exists = await db.Notifications.AnyAsync(n => n.UserId == userId && n.Title == title);
+        if (!exists)
+        {
+            db.Notifications.Add(new Notification
+            {
+                UserId = userId,
+                Kind = kind,
+                Title = title,
+                Body = body,
+                IsRead = isRead,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
     }
 }

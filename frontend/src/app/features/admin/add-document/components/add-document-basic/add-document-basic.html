@@ -26,28 +26,29 @@
       </label>
       <div class="add-basic__editor">
         <div class="add-basic__toolbar" role="toolbar" aria-label="Biçimlendirme">
-          <button type="button" class="add-basic__tool" aria-label="Kalın" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="Kalın" (click)="applyFormat('bold')">
             <span class="material-symbols-outlined">format_bold</span>
           </button>
-          <button type="button" class="add-basic__tool" aria-label="İtalik" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="İtalik" (click)="applyFormat('italic')">
             <span class="material-symbols-outlined">format_italic</span>
           </button>
-          <button type="button" class="add-basic__tool" aria-label="Altı çizili" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="Altı çizili" (click)="applyFormat('underline')">
             <span class="material-symbols-outlined">format_underlined</span>
           </button>
           <span class="add-basic__tool-sep" aria-hidden="true"></span>
-          <button type="button" class="add-basic__tool" aria-label="Madde listesi" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="Madde listesi" (click)="applyFormat('bullet')">
             <span class="material-symbols-outlined">format_list_bulleted</span>
           </button>
-          <button type="button" class="add-basic__tool" aria-label="Numaralı liste" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="Numaralı liste" (click)="applyFormat('number')">
             <span class="material-symbols-outlined">format_list_numbered</span>
           </button>
           <span class="add-basic__tool-sep" aria-hidden="true"></span>
-          <button type="button" class="add-basic__tool" aria-label="Bağlantı" tabindex="-1">
+          <button type="button" class="add-basic__tool" aria-label="Bağlantı" (click)="applyFormat('link')">
             <span class="material-symbols-outlined">link</span>
           </button>
         </div>
         <textarea
+          #descInput
           id="add-doc-description"
           class="add-basic__textarea"
           rows="5"

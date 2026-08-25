@@ -31,11 +31,36 @@ public class MaterialsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<List<MaterialScheduleItemResponse>>> GetSchedule(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetScheduleCalendarAsync(from, to, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<MaterialResponse>> GetById(int id, CancellationToken cancellationToken)
     {
         var result = await _materialService.GetByIdAsync(id, GetRequestingUser(), cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("{id:int}/access-report")]
+    public async Task<ActionResult<MaterialAccessReportResponse>> GetAccessReport(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetAccessReportAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}/access-report/export")]
+    public async Task<IActionResult> ExportAccessReport(
+        int id, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
+    {
+        var (content, fileName, mimeType) = await _materialService.ExportAccessReportAsync(
+            id, GetRequestingUser(), format, cancellationToken);
+        return File(content, mimeType, fileName);
     }
 
     [HttpGet("{id:int}/download")]
@@ -45,34 +70,218 @@ public class MaterialsController : ControllerBase
         return File(content, mimeType, fileName);
     }
 
+    [HttpGet("{id:int}/files/{fileId:int}/download")]
+    public async Task<IActionResult> DownloadFile(int id, int fileId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetFileDownloadStreamAsync(id, fileId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
+    [HttpGet("{id:int}/versions")]
+    public async Task<ActionResult<List<MaterialVersionResponse>>> GetVersions(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.GetVersionsAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/versions")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialVersionResponse>> CreateVersion(
+        int id, [FromForm] CreateMaterialVersionForm form, CancellationToken cancellationToken)
+    {
+        var file = form.File ?? Request.Form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Yeni versiyon için bir dosya yüklenmelidir." });
+        }
+
+        await using var stream = file.OpenReadStream();
+        var uploadedFile = new UploadedFileContent
+        {
+            Content = stream,
+            OriginalFileName = file.FileName,
+            MimeType = file.ContentType ?? string.Empty,
+            FileSize = file.Length
+        };
+
+        var request = new CreateMaterialVersionRequest
+        {
+            VersionLabel = form.VersionLabel,
+            ChangeNote = form.ChangeNote
+        };
+
+        var result = await _materialService.CreateVersionAsync(id, request, uploadedFile, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}/versions/{versionId:int}/download")]
+    public async Task<IActionResult> DownloadVersion(int id, int versionId, CancellationToken cancellationToken)
+    {
+        var (content, fileName, mimeType) = await _materialService.GetVersionDownloadStreamAsync(id, versionId, GetRequestingUser(), cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
     [HttpPost]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Create(
         [FromForm] CreateMaterialForm form, CancellationToken cancellationToken)
     {
+        // FormData alan adı (Files / File) veya model binder fark etmeksizin
+        // multipart içindeki tüm dosyaları al.
+        var formFiles = ResolveUploadedFiles(form.Files);
+        if (formFiles.Count == 0)
+        {
+            return BadRequest(new { message = "En az bir dosya zorunludur." });
+        }
+
         var request = new CreateMaterialRequest
         {
             Title = form.Title,
             Description = form.Description,
             CategoryId = form.CategoryId,
-            BrandIds = form.BrandIds,
-            ExpiresAt = form.ExpiresAt
+            BrandIds = form.BrandIds ?? new List<int>(),
+            ExpiresAt = form.ExpiresAt,
+            Status = form.Status,
+            ScheduledPublishAt = form.ScheduledPublishAt,
+            RecurrenceKind = form.RecurrenceKind,
+            RecurrenceDayOfWeek = form.RecurrenceDayOfWeek,
+            RecurrenceDayOfMonth = form.RecurrenceDayOfMonth
         };
 
-        await using var stream = form.File.OpenReadStream();
-        var result = await _materialService.CreateAsync(
-            request, stream, form.File.FileName, form.File.ContentType, form.File.Length,
-            GetRequestingUser(), cancellationToken);
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            var result = await _materialService.CreateAsync(request, uploaded, GetRequestingUser(), cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
     }
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = ManagerRoles)]
     public async Task<ActionResult<MaterialResponse>> Update(
-        int id, [FromBody] UpdateMaterialRequest request, CancellationToken cancellationToken)
+        int id, [FromForm] UpdateMaterialForm form, CancellationToken cancellationToken)
     {
-        var result = await _materialService.UpdateAsync(id, request, GetRequestingUser(), cancellationToken);
+        var formFiles = ResolveUploadedFilesForUpdate(form);
+        var request = new UpdateMaterialRequest
+        {
+            Title = form.Title,
+            Description = form.Description,
+            CategoryId = form.CategoryId,
+            BrandIds = form.BrandIds ?? new List<int>(),
+            ExpiresAt = form.ExpiresAt
+        };
+
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
+
+            var result = await _materialService.UpdateAsync(id, request, uploaded.Count > 0 ? uploaded : null, GetRequestingUser(), cancellationToken);
+            return Ok(result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
+    }
+
+    [HttpPost("{id:int}/files")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> AddFiles(
+        int id, [FromForm] ReplaceMaterialFilesForm form, CancellationToken cancellationToken)
+    {
+        var formFiles = ResolveUploadedFiles(form.Files);
+        if (formFiles.Count == 0)
+        {
+            return BadRequest(new { message = "En az bir dosya zorunludur." });
+        }
+
+        var streams = formFiles.Select(f => f.OpenReadStream()).ToList();
+        try
+        {
+            var uploaded = formFiles.Zip(streams, (f, s) => new UploadedFileContent
+            {
+                Content = s,
+                OriginalFileName = f.FileName,
+                MimeType = f.ContentType ?? string.Empty,
+                FileSize = f.Length
+            }).ToList();
+
+            var result = await _materialService.AddFilesAsync(id, uploaded, GetRequestingUser(), cancellationToken);
+            return Ok(result);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
+    }
+
+    [HttpDelete("{id:int}/files/{fileId:int}")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> DeleteFile(int id, int fileId, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.DeleteFileAsync(id, fileId, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("{id:int}/schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> UpdateSchedule(
+        int id, [FromBody] UpdateMaterialScheduleRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.UpdateScheduleAsync(id, request, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/schedule-copies")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> CreateScheduledCopy(
+        int id, [FromBody] UpdateMaterialScheduleRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.CreateScheduledCopyAsync(id, request, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/publish-now")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> PublishNow(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.PublishNowAsync(id, GetRequestingUser(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:int}/cancel-schedule")]
+    [Authorize(Roles = ManagerRoles)]
+    public async Task<ActionResult<MaterialResponse>> CancelSchedule(int id, CancellationToken cancellationToken)
+    {
+        var result = await _materialService.CancelScheduleAsync(id, GetRequestingUser(), cancellationToken);
         return Ok(result);
     }
 
@@ -92,6 +301,46 @@ public class MaterialsController : ControllerBase
         var dealerId = dealerIdClaim is null ? (int?)null : int.Parse(dealerIdClaim);
         return new RequestingUser(userId, role, dealerId);
     }
+
+    /// <summary>
+    /// Model binder bazen List&lt;IFormFile&gt; için boş gelebilir; Request.Form.Files yedek.
+    /// Eski istemcilerin "File" alanı da kabul edilir.
+    /// </summary>
+    private List<IFormFile> ResolveUploadedFiles(List<IFormFile>? modelFiles)
+    {
+        var fromModel = (modelFiles ?? new List<IFormFile>())
+            .Where(f => f is { Length: > 0 })
+            .ToList();
+        if (fromModel.Count > 0)
+        {
+            return fromModel;
+        }
+
+        return Request.Form.Files
+            .Where(f => f.Length > 0)
+            .ToList();
+    }
+
+    private List<IFormFile> ResolveUploadedFilesForUpdate(UpdateMaterialForm form)
+    {
+        var fromModel = (form.Files ?? new List<IFormFile>())
+            .Where(f => f is { Length: > 0 })
+            .ToList();
+        if (fromModel.Count > 0)
+        {
+            return fromModel;
+        }
+
+        return Request.Form.Files
+            .Where(f => f.Length > 0)
+            .ToList();
+    }
+}
+
+// Multipart/form-data binding modeli: dosya değiştirme (yeni sürüm) isteği.
+public class ReplaceMaterialFilesForm
+{
+    public List<IFormFile> Files { get; set; } = new();
 }
 
 // Multipart/form-data binding modeli (API katmanına özgü; Application katmanı IFormFile bilmez).
@@ -102,5 +351,27 @@ public class CreateMaterialForm
     public int CategoryId { get; set; }
     public List<int> BrandIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
-    public IFormFile File { get; set; } = null!;
+    public string? Status { get; set; }
+    public DateTime? ScheduledPublishAt { get; set; }
+    public string? RecurrenceKind { get; set; }
+    public int? RecurrenceDayOfWeek { get; set; }
+    public int? RecurrenceDayOfMonth { get; set; }
+    public List<IFormFile> Files { get; set; } = new();
+}
+
+public class UpdateMaterialForm
+{
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int CategoryId { get; set; }
+    public List<int> BrandIds { get; set; } = new();
+    public DateTime? ExpiresAt { get; set; }
+    public List<IFormFile> Files { get; set; } = new();
+}
+
+public class CreateMaterialVersionForm
+{
+    public string VersionLabel { get; set; } = string.Empty;
+    public string ChangeNote { get; set; } = string.Empty;
+    public IFormFile? File { get; set; }
 }

@@ -1,0 +1,11 @@
+.poolcal-page {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 1.25rem var(--space-margin-mobile) 2rem;
+
+  @media (min-width: 768px) {
+    padding-left: var(--space-margin-desktop);
+    padding-right: var(--space-margin-desktop);
+  }
+}
+

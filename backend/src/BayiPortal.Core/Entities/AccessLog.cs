@@ -1,4 +1,6 @@
 // AccessLogs: VIEW/DOWNLOAD denetim izi (UserId, MaterialId, UTC, IP, UserAgent).
+using BayiPortal.Core.Enums;
+
 namespace BayiPortal.Core.Entities;
 
 public class AccessLog
@@ -7,13 +9,15 @@ public class AccessLog
     public int? UserId { get; set; }
     public string? UserName { get; set; }
     public int? MaterialId { get; set; }
-    public string Action { get; set; } = string.Empty;
+    public int? MaterialFileId { get; set; }
+    public AccessAction Action { get; set; }
     public string Description { get; set; } = string.Empty;
-    public string? LoginStatus { get; set; }
+    public AccessResult? LoginStatus { get; set; }
     public DateTime ViewedAtUtc { get; set; }
     public string IpAddress { get; set; } = string.Empty;
     public string? UserAgent { get; set; }
 
     public User? User { get; set; }
     public Material? Material { get; set; }
+    public MaterialFile? MaterialFile { get; set; }
 }

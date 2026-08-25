@@ -4,7 +4,7 @@
     <input
       class="docs-filters__input"
       type="search"
-      placeholder="Dokümanlarda ara..."
+      placeholder="Dokümanlarda ara... (başlık veya tarih: 12.06.2023)"
       [ngModel]="search()"
       (ngModelChange)="searchChange.emit($event)"
     />
@@ -18,12 +18,9 @@
         (ngModelChange)="categoryChange.emit($event)"
       >
         <option value="">Kategori</option>
-        <option value="Pazarlama">Pazarlama</option>
-        <option value="Satış">Satış</option>
-        <option value="Teknik">Teknik</option>
-        <option value="Kurumsal">Kurumsal</option>
-        <option value="Strateji">Strateji</option>
-        <option value="Hukuk">Hukuk</option>
+        @for (opt of categoryOptions(); track opt) {
+          <option [value]="opt">{{ opt }}</option>
+        }
       </select>
       <span class="material-symbols-outlined docs-filters__caret">arrow_drop_down</span>
     </div>
@@ -36,7 +33,7 @@
         [attr.aria-expanded]="brandMenuOpen()"
         (click)="toggleBrandMenu(); $event.stopPropagation()"
       >
-        <span>{{ brandTriggerLabel() }}</span>
+        <span class="docs-filters__brand-label">{{ brandTriggerLabel() }}</span>
         <span class="material-symbols-outlined">arrow_drop_down</span>
       </button>
 
@@ -50,7 +47,7 @@
               </button>
             }
           </div>
-          @for (option of brandOptions; track option) {
+          @for (option of brandOptions(); track option) {
             <label class="docs-filters__brand-option">
               <input
                 type="checkbox"
@@ -61,8 +58,110 @@
               <span>{{ option }}</span>
             </label>
           }
+          @if (brandOptions().length === 0) {
+            <p class="docs-filters__brand-empty">Marka yok</p>
+          }
         </div>
+      }
+    </div>
+
+    <div class="docs-filters__date-range">
+      <button
+        type="button"
+        class="docs-filters__date-btn"
+        [class.docs-filters__date-btn--active]="!!dateFrom()"
+        [class.docs-filters__date-btn--open]="datePickerField() === 'from'"
+        aria-label="Başlangıç tarihi"
+        (click)="openDatePicker('from', $event)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+        <span class="docs-filters__date-btn-label">{{ dateFromLabel() }}</span>
+      </button>
+      <span class="docs-filters__date-sep">–</span>
+      <button
+        type="button"
+        class="docs-filters__date-btn"
+        [class.docs-filters__date-btn--active]="!!dateTo()"
+        [class.docs-filters__date-btn--open]="datePickerField() === 'to'"
+        aria-label="Bitiş tarihi"
+        (click)="openDatePicker('to', $event)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+        <span class="docs-filters__date-btn-label">{{ dateToLabel() }}</span>
+      </button>
+      @if (dateFrom() || dateTo()) {
+        <button
+          type="button"
+          class="docs-filters__date-clear"
+          aria-label="Tarih filtresini temizle"
+          (click)="clearDateRange()"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
       }
     </div>
   </div>
 </div>
+
+@if (datePickerField(); as field) {
+  <div class="docs-date-modal" role="dialog" aria-modal="true" [attr.aria-label]="datePickerTitle()">
+    <button
+      type="button"
+      class="docs-date-modal__backdrop"
+      aria-label="Kapat"
+      (click)="closeDatePicker()"
+    ></button>
+    <div class="docs-date-modal__card" (click)="$event.stopPropagation()">
+      <div class="docs-date-modal__head">
+        <h3 class="docs-date-modal__title">{{ datePickerTitle() }}</h3>
+        <button type="button" class="docs-date-modal__close" aria-label="Kapat" (click)="closeDatePicker()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="docs-date-modal__nav">
+        <button type="button" class="docs-date-modal__nav-btn" aria-label="Önceki ay" (click)="prevCalendarMonth()">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <span class="docs-date-modal__month">{{ calendarMonthLabel() }}</span>
+        <button type="button" class="docs-date-modal__nav-btn" aria-label="Sonraki ay" (click)="nextCalendarMonth()">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="docs-date-modal__weekdays">
+        @for (label of ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; track label) {
+          <span>{{ label }}</span>
+        }
+      </div>
+
+      <div class="docs-date-modal__grid">
+        @for (day of calendarDays(); track day.dateKey) {
+          <button
+            type="button"
+            class="docs-date-modal__day"
+            [class.docs-date-modal__day--muted]="!day.inMonth"
+            [class.docs-date-modal__day--today]="day.isToday"
+            [class.docs-date-modal__day--selected]="day.isSelected"
+            [disabled]="day.isDisabled"
+            (click)="selectCalendarDay(day)"
+          >
+            {{ day.day }}
+          </button>
+        }
+      </div>
+
+      <div class="docs-date-modal__footer">
+        <button type="button" class="docs-date-modal__link" (click)="clearActiveDateField()">Temizle</button>
+        <button
+          type="button"
+          class="docs-date-modal__link docs-date-modal__link--primary"
+          [disabled]="!todayPickable()"
+          (click)="pickToday()"
+        >
+          Bugün
+        </button>
+      </div>
+    </div>
+  </div>
+}

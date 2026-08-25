@@ -31,6 +31,32 @@ export const ADMIN_ROUTES: Routes = [
           ),
       },
       {
+        path: 'documents/schedule',
+        redirectTo: 'documents/pool-calendar',
+        pathMatch: 'full',
+      },
+      {
+        path: 'documents/pool-calendar',
+        loadComponent: () =>
+          import(
+            './shared-docs-list-page/components/docs-pool-calendar-page/docs-pool-calendar-page'
+          ).then((m) => m.DocsPoolCalendarPage),
+      },
+      {
+        path: 'documents/new',
+        loadComponent: () =>
+          import('./add-document/components/add-document-page/add-document-page').then(
+            (m) => m.AddDocumentPage
+          ),
+      },
+      {
+        path: 'documents/:id/edit',
+        loadComponent: () =>
+          import('./edit-document/components/edit-document-page/edit-document-page').then(
+            (m) => m.EditDocumentPage
+          ),
+      },
+      {
         path: 'documents/:id/access-report',
         loadComponent: () =>
           import(
@@ -47,7 +73,7 @@ export const ADMIN_ROUTES: Routes = [
       },
       {
         path: 'access-logs',
-        canActivate: [adminRoleGuard(['Admin'])],
+        canActivate: [adminRoleGuard(['Admin', 'ContentManager'])],
         loadComponent: () =>
           import('./access-logs/access-logs').then((m) => m.AccessLogs),
       },
@@ -64,13 +90,6 @@ export const ADMIN_ROUTES: Routes = [
               ).then((m) => m.DefinitionManagementPage),
           },
         ],
-      },
-      {
-        path: 'documents/new',
-        loadComponent: () =>
-          import('./add-document/components/add-document-page/add-document-page').then(
-            (m) => m.AddDocumentPage
-          ),
       },
       {
         path: 'materials/new',

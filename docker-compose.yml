@@ -17,5 +17,36 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bayi-portal-api
+    # Development: container başlarken migration + idempotent seed data çalışır
+    # (admin/editor/bayi.a/bayi.b hesapları) ve Swagger açık kalır — ekip arkadaşları
+    # docker compose up sonrası doğrudan login olup deneyebilsin diye.
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=BayiPortalDb;Username=bayi;Password=bayi123"
+      FileStorage__RootPath: /app/uploads
+    ports:
+      - "8080:8080"
+    volumes:
+      - bayi_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bayi-portal-web
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
 volumes:
   bayi_pgdata:
+  bayi_uploads:

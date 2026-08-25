@@ -1,0 +1,205 @@
+<!-- Doküman düzenleme: başlık/açıklama/kategori/marka/bitiş tarihi (PUT) + dosya ekleme/kaldırma (ayrı aksiyonlar). -->
+<div class="add-doc">
+  <div class="add-doc__scroll">
+    <div class="add-doc__inner">
+      <nav class="add-doc-header" aria-label="Sayfa konumu">
+        <ol class="add-doc-header__crumbs">
+          <li class="add-doc-header__crumb">
+            <button type="button" class="add-doc-header__link" (click)="cancel()">
+              Kütüphane
+            </button>
+          </li>
+          <li class="add-doc-header__crumb">
+            <span class="material-symbols-outlined add-doc-header__sep">chevron_right</span>
+            <span class="add-doc-header__current">Düzenle</span>
+          </li>
+        </ol>
+        <h1 class="add-doc-header__title">Dokümanı Düzenle</h1>
+        <p class="add-doc-header__subtitle">
+          Başlık, açıklama, kategori, marka ve bitiş tarihini güncelleyin.
+        </p>
+      </nav>
+
+      @if (loadError()) {
+        <p class="add-doc__banner add-doc__banner--error" role="alert">{{ loadError() }}</p>
+      }
+
+      @if (submitError()) {
+        <p class="add-doc__banner add-doc__banner--error" role="alert">{{ submitError() }}</p>
+      }
+
+      @if (loading()) {
+        <p class="add-doc__meta-loading">Doküman bilgileri yükleniyor…</p>
+      } @else {
+        <div class="add-doc__grid">
+          <div class="add-doc__main">
+            <app-add-document-basic
+              [title]="title()"
+              [description]="description()"
+              [showErrors]="showErrors()"
+              (titleChange)="title.set($event)"
+              (descriptionChange)="description.set($event)"
+            />
+
+            <div class="add-doc__card">
+              <h2 class="add-doc__card-title">Mevcut Dosyalar (v{{ version() }})</h2>
+              @if (currentFiles().length === 0) {
+                <p class="add-doc__meta-loading">Bu dokümana ait dosya bulunamadı.</p>
+              } @else {
+                @for (file of currentFiles(); track file.id) {
+                  <div class="add-upload__file">
+                    <span class="material-symbols-outlined add-upload__file-icon">description</span>
+                    <div class="add-upload__file-meta">
+                      <p class="add-upload__file-name">{{ file.fileName }}</p>
+                      <p class="add-upload__file-size">{{ formatFileSize(file.fileSize) }}</p>
+                    </div>
+                    <button
+                      type="button"
+                      class="add-upload__remove"
+                      aria-label="İndir"
+                      [disabled]="deletingFileId() === file.id"
+                      (click)="downloadCurrentFile(file)"
+                    >
+                      <span class="material-symbols-outlined">download</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="add-upload__remove"
+                      aria-label="Dosyayı kaldır"
+                      [disabled]="currentFiles().length <= 1 || deletingFileId() === file.id"
+                      (click)="deleteFile(file)"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+
+            @if (fileError()) {
+              <p class="add-doc__banner add-doc__banner--error" role="alert">{{ fileError() }}</p>
+            }
+            @if (fileSuccess()) {
+              <p class="add-doc__banner">{{ fileSuccess() }}</p>
+            }
+
+            <app-add-document-upload
+              [files]="pendingFiles()"
+              (filesChange)="pendingFiles.set($event); fileError.set('')"
+              (fileErrorChange)="fileError.set($event)"
+            />
+            <p class="add-doc__meta-loading">
+              Seçtiğiniz dosyalar mevcut dosyaların yanına eklenir (mevcut dosyalar silinmez).
+            </p>
+            <button
+              type="button"
+              class="add-actions__save"
+              [disabled]="pendingFiles().length === 0 || addingFiles()"
+              (click)="addFiles()"
+            >
+              <span class="material-symbols-outlined">upload</span>
+              Dosyaları Ekle
+            </button>
+          </div>
+
+          <div class="add-doc__side">
+            <div class="add-doc__card">
+              <h2 class="add-doc__card-title">Sınıflandırma</h2>
+
+              <div class="add-meta">
+                <div class="add-meta__field">
+                  <label class="add-meta__label" for="edit-doc-category">Kategori</label>
+                  <div class="add-meta__select-wrap">
+                    <select
+                      id="edit-doc-category"
+                      class="add-meta__select"
+                      [class.add-meta__select--invalid]="showErrors() && !category()"
+                      [ngModel]="category()"
+                      (ngModelChange)="category.set($event)"
+                    >
+                      <option disabled value="">Kategori Seçiniz</option>
+                      @for (opt of categoryOptions(); track opt.value) {
+                        <option [value]="opt.value">{{ opt.label }}</option>
+                      }
+                    </select>
+                    <span class="material-symbols-outlined add-meta__caret">expand_more</span>
+                  </div>
+                  @if (showErrors() && !category()) {
+                    <p class="add-meta__error">Kategori zorunludur.</p>
+                  }
+                </div>
+
+                <div class="add-meta__field">
+                  <span class="add-meta__label">Markalar</span>
+                  <div class="add-meta__brands">
+                    @for (brand of selectedBrands; track brand.id) {
+                      <button type="button" class="add-meta__pill" (click)="removeBrand(brand.id)">
+                        {{ brand.label }}
+                        <span class="material-symbols-outlined">close</span>
+                      </button>
+                    }
+
+                    <div class="add-meta__brand-menu-wrap">
+                      <button
+                        type="button"
+                        class="add-meta__pill-add"
+                        [disabled]="availableBrands.length === 0"
+                        (click)="toggleBrandMenu(); $event.stopPropagation()"
+                      >
+                        <span class="material-symbols-outlined">add</span>
+                        Ekle
+                      </button>
+
+                      @if (brandMenuOpen()) {
+                        <div class="add-meta__brand-menu">
+                          @for (opt of availableBrands; track opt.id) {
+                            <button
+                              type="button"
+                              class="add-meta__brand-option"
+                              (click)="addBrand(opt.id)"
+                            >
+                              {{ opt.label }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  @if (showErrors() && brandIds().length === 0) {
+                    <p class="add-meta__error">En az bir marka seçilmelidir.</p>
+                  }
+                </div>
+
+                <hr class="add-meta__divider" />
+
+                <div class="add-meta__field">
+                  <label class="add-meta__label" for="edit-doc-expires">Bitiş Tarihi</label>
+                  <div class="add-meta__date-wrap">
+                    <span class="material-symbols-outlined add-meta__date-icon">event_busy</span>
+                    <input
+                      id="edit-doc-expires"
+                      class="add-meta__date"
+                      type="date"
+                      [ngModel]="expiresAt()"
+                      (ngModelChange)="expiresAt.set($event)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="add-actions">
+    <button type="button" class="add-actions__draft" [disabled]="saving()" (click)="cancel()">
+      Vazgeç
+    </button>
+    <button type="button" class="add-actions__save" [disabled]="saving() || loading()" (click)="save()">
+      <span class="material-symbols-outlined">save</span>
+      Kaydet
+    </button>
+  </div>
+</div>

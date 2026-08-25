@@ -234,3 +234,13 @@
     box-shadow: 0 1px 2px rgb(31 27 27 / 6%);
   }
 }
+
+.add-meta__error {
+  margin: 0.35rem 0 0;
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+.add-meta__select--invalid {
+  border-color: var(--color-error);
+}

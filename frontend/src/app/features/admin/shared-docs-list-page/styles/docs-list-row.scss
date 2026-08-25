@@ -147,6 +147,11 @@
     background: #e7e5e4;
     color: #44403c;
   }
+
+  &[data-status='scheduled'] {
+    background: #dbeafe;
+    color: #1e40af;
+  }
 }
 
 .docs-row__meta {
@@ -181,18 +186,6 @@
   text-transform: uppercase;
   color: #fff;
   background: #374151;
-
-  &[data-tone='fiat'] {
-    background: #1e3a8a;
-  }
-
-  &[data-tone='jeep'] {
-    background: #14532d;
-  }
-
-  &[data-tone='all'] {
-    background: #1f2937;
-  }
 }
 
 .docs-row__remaining {

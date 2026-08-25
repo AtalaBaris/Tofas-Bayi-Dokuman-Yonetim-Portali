@@ -25,9 +25,20 @@ export interface DefinitionDrawerSavePayload {
   role: string;
   dealerId: number | null;
   code: string;
+  city: string;
+  phone: string;
+  contactInfo: string;
   description: string;
   brandIds: number[];
   active: boolean;
+  badgeLabel: string;
+  badgeColor: string;
+  /** Yalnızca yeni bayi oluştururken dolu. */
+  initialUser: {
+    name: string;
+    email: string;
+    password: string;
+  } | null;
 }
 
 export type DefinitionEditTarget =
@@ -44,6 +55,8 @@ export type DefinitionEditTarget =
 export class DefinitionDrawer {
   readonly section = input.required<DefinitionSection>();
   readonly editTarget = input<DefinitionEditTarget>(null);
+  /** Yeni kullanıcı formu açılırken rol/bayi ön seçimi (ör. kullanıcıssız bayi kurtarma). */
+  readonly createPreset = input<{ role: string; dealerId: number } | null>(null);
   readonly dealers = input<DealerDto[]>([]);
   readonly brands = input<BrandDto[]>([]);
   readonly saving = input(false);
@@ -59,10 +72,32 @@ export class DefinitionDrawer {
   readonly role = signal('');
   readonly dealerId = signal<number | null>(null);
   readonly code = signal('');
+  readonly city = signal('');
+  readonly phone = signal('');
+  readonly contactInfo = signal('');
   readonly description = signal('');
   readonly brandIds = signal<number[]>([]);
   readonly active = signal(true);
   readonly showErrors = signal(false);
+  readonly badgeLabel = signal('');
+  readonly badgeColor = signal('#374151');
+
+  readonly badgeColorPresets = [
+    '#1E3A8A',
+    '#14532D',
+    '#7C2D12',
+    '#9F1239',
+    '#6B21A8',
+    '#0F766E',
+    '#374151',
+    '#1F2937',
+  ] as const;
+
+  /** Yeni bayi oluştururken zorunlu ilk kullanıcı. */
+  readonly initialUserName = signal('');
+  readonly initialUserEmail = signal('');
+  readonly initialUserPassword = signal('');
+  readonly initialUserPasswordConfirm = signal('');
 
   readonly roleOptions = ROLE_OPTIONS;
   readonly isEdit = computed(() => this.editTarget() !== null);
@@ -92,13 +127,59 @@ export class DefinitionDrawer {
     return null;
   });
 
+  readonly initialUserPasswordsMatch = computed(() => {
+    const password = this.initialUserPassword();
+    const confirm = this.initialUserPasswordConfirm();
+    if (!password && !confirm) {
+      return true;
+    }
+    return password.length > 0 && password === confirm;
+  });
+
+  readonly initialUserPasswordError = computed(() => {
+    if (this.section() !== 'dealers' || this.isEdit() || !this.showErrors()) {
+      return null;
+    }
+    if (!this.initialUserPassword().trim()) {
+      return 'Şifre zorunludur.';
+    }
+    if (this.initialUserPassword().trim().length < 6) {
+      return 'Şifre en az 6 karakter olmalıdır.';
+    }
+    if (!this.initialUserPasswordConfirm().trim()) {
+      return 'Şifre tekrarını giriniz.';
+    }
+    if (!this.initialUserPasswordsMatch()) {
+      return 'Şifreler eşleşmiyor.';
+    }
+    return null;
+  });
+
+  readonly initialUserError = computed(() => {
+    if (this.section() !== 'dealers' || this.isEdit() || !this.showErrors()) {
+      return null;
+    }
+    if (!this.initialUserName().trim()) {
+      return 'Kullanıcı adı zorunludur.';
+    }
+    if (!this.initialUserEmail().trim()) {
+      return 'E-posta zorunludur.';
+    }
+    return this.initialUserPasswordError();
+  });
+
   constructor() {
     effect(() => {
       const target = this.editTarget();
       const section = this.section();
+      const preset = this.createPreset();
       this.showErrors.set(false);
       this.password.set('');
       this.passwordConfirm.set('');
+      this.initialUserName.set('');
+      this.initialUserEmail.set('');
+      this.initialUserPassword.set('');
+      this.initialUserPasswordConfirm.set('');
 
       if (!target) {
         this.name.set('');
@@ -106,9 +187,19 @@ export class DefinitionDrawer {
         this.role.set('');
         this.dealerId.set(null);
         this.code.set('');
+        this.city.set('');
+        this.phone.set('');
+        this.contactInfo.set('');
         this.description.set('');
         this.brandIds.set([]);
         this.active.set(true);
+        this.badgeLabel.set('');
+        this.badgeColor.set('#374151');
+
+        if (preset && section === 'users') {
+          this.role.set(preset.role);
+          this.dealerId.set(preset.dealerId);
+        }
         return;
       }
 
@@ -124,9 +215,23 @@ export class DefinitionDrawer {
       this.name.set(target.item.name);
       this.active.set(target.item.active);
       this.code.set(target.item.code ?? '');
+      this.city.set(target.item.city ?? '');
+      this.phone.set(target.item.phone ?? '');
+      this.contactInfo.set(target.item.contactInfo ?? '');
       this.description.set(target.item.description ?? (section === 'categories' ? target.item.detail : ''));
       this.brandIds.set([...(target.item.brandIds ?? [])]);
+      this.badgeLabel.set(target.item.badgeLabel ?? '');
+      this.badgeColor.set(target.item.badgeColor ?? '#374151');
     });
+  }
+
+  readonly badgePreviewLabel = computed(() => {
+    const custom = this.badgeLabel().trim();
+    return custom || this.name().trim() || 'Önizleme';
+  });
+
+  setBadgeColor(color: string): void {
+    this.badgeColor.set(color);
   }
 
   title(): string {
@@ -178,8 +283,16 @@ export class DefinitionDrawer {
         return;
       }
     } else if (section === 'dealers') {
-      if (!this.name().trim() || !this.code().trim()) {
+      if (!this.name().trim() || !this.code().trim() || !this.city().trim() || !this.phone().trim()) {
         return;
+      }
+      if (!edit) {
+        if (this.brandIds().length === 0) {
+          return;
+        }
+        if (!!this.initialUserError()) {
+          return;
+        }
       }
     } else if (section === 'brands') {
       if (!this.name().trim() || !this.code().trim()) {
@@ -190,6 +303,15 @@ export class DefinitionDrawer {
     }
 
     const target = this.editTarget();
+    const initialUser =
+      section === 'dealers' && !edit
+        ? {
+            name: this.initialUserName().trim(),
+            email: this.initialUserEmail().trim(),
+            password: this.initialUserPassword(),
+          }
+        : null;
+
     this.saved.emit({
       section,
       id: target?.item.id ?? null,
@@ -199,9 +321,15 @@ export class DefinitionDrawer {
       role: this.role(),
       dealerId: this.role() === 'DealerUser' ? this.dealerId() : null,
       code: this.code().trim(),
+      city: this.city().trim(),
+      phone: this.phone().trim(),
+      contactInfo: this.contactInfo().trim(),
       description: this.description().trim(),
       brandIds: [...this.brandIds()],
       active: this.active(),
+      badgeLabel: this.badgeLabel().trim(),
+      badgeColor: this.badgeColor().trim() || '#374151',
+      initialUser,
     });
   }
 }

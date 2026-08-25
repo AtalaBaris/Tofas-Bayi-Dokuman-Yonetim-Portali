@@ -6,4 +6,7 @@ public class UpdateOwnProfileRequest
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public bool? EmailNotifications { get; set; }
+    public bool? DocumentAlerts { get; set; }
+    public bool? ExpiryReminders { get; set; }
 }

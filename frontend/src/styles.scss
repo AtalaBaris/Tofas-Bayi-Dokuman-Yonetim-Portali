@@ -123,3 +123,38 @@ body {
   font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
 }
+
+/* Toast Notifications */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-md);
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  
+  &--success {
+    background: rgba(46, 125, 50, 0.95);
+  }
+  
+  &--error {
+    background: rgba(186, 26, 26, 0.95);
+  }
+  
+  &__icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  
+  &__message {
+    flex-grow: 1;
+    line-height: 1.4;
+  }
+}
+

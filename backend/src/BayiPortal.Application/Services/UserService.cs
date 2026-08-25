@@ -11,6 +11,9 @@ namespace BayiPortal.Application.Services;
 
 public sealed class UserService : IUserService
 {
+    private const string LastUserMessage =
+        "Bu bayinin son aktif kullanıcısını tek başına kaldıramazsınız. Yeni bir kullanıcı ekleyin veya bayiyi (bağlı kullanıcılarıyla birlikte) pasife alın.";
+
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher<User> _passwordHasher;
 
@@ -61,6 +64,8 @@ public sealed class UserService : IUserService
 
         var user = await _userRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new UserNotFoundException(id);
+
+        await EnsureDealerKeepsActiveUserAsync(user, request, cancellationToken);
 
         user.Name = request.Name;
         user.Role = Enum.Parse<RoleType>(request.Role);
@@ -114,6 +119,10 @@ public sealed class UserService : IUserService
         user.Email = email;
         user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
 
+        if (request.EmailNotifications.HasValue) user.EmailNotifications = request.EmailNotifications.Value;
+        if (request.DocumentAlerts.HasValue) user.DocumentAlerts = request.DocumentAlerts.Value;
+        if (request.ExpiryReminders.HasValue) user.ExpiryReminders = request.ExpiryReminders.Value;
+
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         var saved = await _userRepository.GetByIdAsync(userId, cancellationToken)
@@ -121,13 +130,75 @@ public sealed class UserService : IUserService
         return ToResponse(saved);
     }
 
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new UserNotFoundException(id);
+
+        if (user.IsActive && user.Role == RoleType.DealerUser && user.DealerId.HasValue)
+        {
+            var remaining = await _userRepository.CountActiveDealerUsersAsync(
+                user.DealerId.Value, excludeUserId: user.Id, cancellationToken);
+            if (remaining == 0)
+            {
+                throw new ValidationException(LastUserMessage);
+            }
+        }
+
+        if (await _userRepository.AnyMaterialsCreatedByAsync([user.Id], cancellationToken))
+        {
+            throw new ValidationException(
+                "Bu kullanıcı sistemde içerik oluşturduğu için kalıcı silinemez. Bunun yerine pasife alabilirsiniz.");
+        }
+
+        _userRepository.Remove(user);
+        await _userRepository.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeactivateAsync(int id, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new UserNotFoundException(id);
 
+        if (user.IsActive && user.Role == RoleType.DealerUser && user.DealerId.HasValue)
+        {
+            var remaining = await _userRepository.CountActiveDealerUsersAsync(
+                user.DealerId.Value, excludeUserId: user.Id, cancellationToken);
+            if (remaining == 0)
+            {
+                throw new ValidationException(LastUserMessage);
+            }
+        }
+
         user.IsActive = false;
         await _userRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureDealerKeepsActiveUserAsync(
+        User current, UpdateUserRequest request, CancellationToken cancellationToken)
+    {
+        if (!current.IsActive || current.Role != RoleType.DealerUser || !current.DealerId.HasValue)
+        {
+            return;
+        }
+
+        var newRole = Enum.Parse<RoleType>(request.Role);
+        var leavesDealer =
+            !request.IsActive
+            || newRole != RoleType.DealerUser
+            || request.DealerId != current.DealerId;
+
+        if (!leavesDealer)
+        {
+            return;
+        }
+
+        var remaining = await _userRepository.CountActiveDealerUsersAsync(
+            current.DealerId.Value, excludeUserId: current.Id, cancellationToken);
+        if (remaining == 0)
+        {
+            throw new ValidationException(LastUserMessage);
+        }
     }
 
     private async Task ValidateAsync(
@@ -187,7 +258,13 @@ public sealed class UserService : IUserService
         Role = user.Role.ToString(),
         DealerId = user.DealerId,
         DealerName = user.Dealer?.Name,
+        DealerCity = user.Dealer?.City,
+        DealerPhone = user.Dealer?.Phone,
+        DealerContactInfo = user.Dealer?.ContactInfo,
         IsActive = user.IsActive,
-        Phone = user.Phone
+        Phone = user.Phone,
+        EmailNotifications = user.EmailNotifications,
+        DocumentAlerts = user.DocumentAlerts,
+        ExpiryReminders = user.ExpiryReminders
     };
 }

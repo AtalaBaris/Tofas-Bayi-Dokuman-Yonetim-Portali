@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
+using BayiPortal.Core.Enums;
 
 namespace BayiPortal.Application.Interfaces.Services;
 
@@ -12,13 +13,23 @@ public interface IAccessLogService
         int? userId,
         string? userName,
         int? materialId,
-        string action,
+        AccessAction action,
         string description,
-        string? loginStatus = null,
-        CancellationToken cancellationToken = default);
+        AccessResult? loginStatus = null,
+        CancellationToken cancellationToken = default,
+        int? materialFileId = null);
 
     Task<AccessLogListResponse> GetListAsync(
         AccessLogListQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// GetListAsync ile aynı filtreleri uygular ancak sayfalama yapmadan (azami satır sınırına kadar)
+    /// tüm eşleşen kayıtları Excel/PDF dosyası olarak üretir.
+    /// </summary>
+    Task<(byte[] Content, string FileName, string MimeType)> ExportAsync(
+        AccessLogListQuery query,
+        string format,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -29,5 +40,13 @@ public interface IAccessLogService
     Task<Dictionary<int, string>> GetAccessStatusesAsync(
         int userId,
         IReadOnlyCollection<int> materialIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "30" için son 30 günün günlük, "year" için içinde bulunulan yılın aylık
+    /// görüntüleme/indirme sayaçlarını döner (dashboard trend grafiği).
+    /// </summary>
+    Task<AccessLogTrendResponse> GetTrendAsync(
+        string period,
         CancellationToken cancellationToken = default);
 }

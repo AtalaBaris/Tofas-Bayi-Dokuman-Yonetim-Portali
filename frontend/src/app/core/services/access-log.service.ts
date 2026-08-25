@@ -8,6 +8,7 @@ export interface AccessLog {
   userName: string;
   userRole: string;
   userType: string;
+  dealerName?: string | null;
   action: string;
   description: string;
   loginStatus: 'Başarılı' | 'Başarısız' | 'N/A' | string;
@@ -25,6 +26,7 @@ export interface AccessLogListResponse {
 }
 
 export interface AccessLogQuery {
+  materialId?: number;
   keyword?: string;
   role?: string;
   action?: string;
@@ -35,6 +37,15 @@ export interface AccessLogQuery {
   pageSize?: number;
 }
 
+export interface AccessLogTrendPoint {
+  label: string;
+  count: number;
+}
+
+export interface AccessLogTrendResponse {
+  points: AccessLogTrendPoint[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AccessLogService {
   private readonly api = inject(ApiService);
@@ -43,6 +54,7 @@ export class AccessLogService {
   getLogs(query: AccessLogQuery): Observable<AccessLogListResponse> {
     let params = new HttpParams();
 
+    if (query.materialId != null) params = params.set('materialId', query.materialId.toString());
     if (query.keyword) params = params.set('keyword', query.keyword);
     if (query.role) params = params.set('role', query.role);
     if (query.action) params = params.set('action', query.action);
@@ -57,5 +69,24 @@ export class AccessLogService {
 
   logLogout(): Observable<void> {
     return this.api.post<void>('/access-logs/logout', {});
+  }
+
+  getTrend(period: '30' | 'year'): Observable<AccessLogTrendResponse> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get<AccessLogTrendResponse>(`${this.api.baseUrl}/access-logs/trend`, { params });
+  }
+
+  exportLogs(query: Omit<AccessLogQuery, 'page' | 'pageSize'>, format: 'xlsx' | 'pdf'): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+
+    if (query.materialId != null) params = params.set('materialId', query.materialId.toString());
+    if (query.keyword) params = params.set('keyword', query.keyword);
+    if (query.role) params = params.set('role', query.role);
+    if (query.action) params = params.set('action', query.action);
+    if (query.status) params = params.set('status', query.status);
+    if (query.startDate) params = params.set('startDate', query.startDate);
+    if (query.endDate) params = params.set('endDate', query.endDate);
+
+    return this.http.get(`${this.api.baseUrl}/access-logs/export`, { params, responseType: 'blob' });
   }
 }

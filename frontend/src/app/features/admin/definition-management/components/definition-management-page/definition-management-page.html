@@ -11,6 +11,9 @@
     @if (listError()) {
       <p class="definitions-page__error">{{ listError() }}</p>
     }
+    @if (listSuccess()) {
+      <p class="definitions-page__success">{{ listSuccess() }}</p>
+    }
     @if (loading()) {
       <p class="definitions-page__loading">Yükleniyor…</p>
     }
@@ -26,21 +29,23 @@
       (editClick)="onEdit($event)"
       (deleteClick)="onDeleteRequest($event)"
       (toggleActiveClick)="onToggleActive($event)"
+      (addUserForDealerClick)="openAddUserForDealer($event)"
+      (dealerUsersClick)="openDealerUsers($event)"
     />
   </main>
 
   @if (drawerOpen()) {
     <button
       type="button"
-      class="definitions-page__overlay"
+      class="definitions-page__overlay definitions-page__overlay--fade"
       aria-label="Formu kapat"
-      @fade
       (click)="closeDrawer()"
     ></button>
     <div @drawer>
       <app-definition-drawer
-        [section]="section()"
+        [section]="drawerSection()"
         [editTarget]="editTarget()"
+        [createPreset]="userCreatePreset()"
         [dealers]="dealerOptions()"
         [brands]="brandOptions()"
         [saving]="saving()"
@@ -51,14 +56,62 @@
     </div>
   }
 
+  @if (dealerUsersTarget(); as dealer) {
+    <button
+      type="button"
+      class="definitions-page__overlay definitions-page__overlay--fade"
+      aria-label="Kullanıcı panelini kapat"
+      (click)="closeDealerUsers()"
+    ></button>
+    <aside class="dealer-users-panel" role="dialog" aria-modal="true">
+      <header class="dealer-users-panel__header">
+        <div>
+          <span class="dealer-users-panel__eyebrow">Bayi kullanıcıları</span>
+          <h2>{{ dealer.name }}</h2>
+          <p>{{ dealerUsersPanelUsers().length }} kullanıcı</p>
+        </div>
+        <button type="button" aria-label="Kapat" (click)="closeDealerUsers()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="dealer-users-panel__body">
+        @for (user of dealerUsersPanelUsers(); track user.id) {
+          <article class="dealer-users-panel__card">
+            <span class="dealer-users-panel__avatar">{{ initials(user.name) }}</span>
+            <div class="dealer-users-panel__info">
+              <strong>{{ user.name }}</strong>
+              <span>{{ user.email }}</span>
+              <span
+                class="dealer-users-panel__status"
+                [class.dealer-users-panel__status--inactive]="!user.active"
+              >{{ user.active ? 'Aktif' : 'Pasif' }}</span>
+            </div>
+          </article>
+        } @empty {
+          <p class="dealer-users-panel__empty">
+            Bu bayiye ait kullanıcı yok.
+            <button type="button" (click)="closeDealerUsers(); openAddUserForDealer(dealer)">
+              Kullanıcı Ekle
+            </button>
+          </p>
+        }
+      </div>
+    </aside>
+  }
+
   <app-confirm-dialog
     [open]="confirmOpen()"
     [title]="confirmTitle()"
     [message]="confirmMessage()"
-    confirmLabel="Pasife Al"
+    [confirmLabel]="confirmLabel()"
+    [secondaryLabel]="confirmSecondaryLabel()"
+    [acknowledgeLabel]="confirmAcknowledgeLabel()"
     cancelLabel="Vazgeç"
-    [danger]="true"
+    [danger]="confirmDanger()"
+    [showHint]="confirmShowHint()"
     (confirmed)="confirmDelete()"
+    (secondaryConfirmed)="confirmSecondary()"
     (cancelled)="closeConfirm()"
   />
 </div>

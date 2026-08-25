@@ -15,5 +15,7 @@ public interface IDealerRepository
 
     void Add(Dealer dealer);
 
+    void Remove(Dealer dealer);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

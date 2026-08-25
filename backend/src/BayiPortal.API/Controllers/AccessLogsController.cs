@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BayiPortal.Application.DTOs.Requests;
 using BayiPortal.Application.DTOs.Responses;
 using BayiPortal.Application.Interfaces.Services;
+using BayiPortal.Core.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,8 +24,9 @@ public class AccessLogsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ContentManager")]
     public async Task<ActionResult<AccessLogListResponse>> GetList(
+        [FromQuery] int? materialId,
         [FromQuery] string? keyword,
         [FromQuery] string? role,
         [FromQuery] string? action,
@@ -35,8 +37,11 @@ public class AccessLogsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var isContentManagerOnly = User.IsInRole("ContentManager") && !User.IsInRole("Admin");
+
         var query = new AccessLogListQuery
         {
+            MaterialId = materialId,
             Keyword = keyword,
             Role = role,
             Action = action,
@@ -44,10 +49,52 @@ public class AccessLogsController : ControllerBase
             StartDate = startDate,
             EndDate = endDate,
             Page = page,
-            PageSize = pageSize
+            PageSize = pageSize,
+            ExcludeAuthLogs = isContentManagerOnly
         };
 
         var result = await _accessLogService.GetListAsync(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,ContentManager")]
+    public async Task<IActionResult> Export(
+        [FromQuery] int? materialId,
+        [FromQuery] string? keyword,
+        [FromQuery] string? role,
+        [FromQuery] string? action,
+        [FromQuery] string? status,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] string format = "xlsx",
+        CancellationToken cancellationToken = default)
+    {
+        var isContentManagerOnly = User.IsInRole("ContentManager") && !User.IsInRole("Admin");
+
+        var query = new AccessLogListQuery
+        {
+            MaterialId = materialId,
+            Keyword = keyword,
+            Role = role,
+            Action = action,
+            Status = status,
+            StartDate = startDate,
+            EndDate = endDate,
+            ExcludeAuthLogs = isContentManagerOnly
+        };
+
+        var (content, fileName, mimeType) = await _accessLogService.ExportAsync(query, format, cancellationToken);
+        return File(content, mimeType, fileName);
+    }
+
+    [HttpGet("trend")]
+    [Authorize(Roles = "Admin,ContentManager")]
+    public async Task<ActionResult<AccessLogTrendResponse>> GetTrend(
+        [FromQuery] string period = "30",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _accessLogService.GetTrendAsync(period, cancellationToken);
         return Ok(result);
     }
 
@@ -60,7 +107,7 @@ public class AccessLogsController : ControllerBase
         if (userIdClaim != null)
         {
             var userId = int.Parse(userIdClaim);
-            await _accessLogService.LogAsync(userId, emailClaim, null, "Çıkış", "Sistemden başarıyla çıkış yapıldı.", "N/A", cancellationToken);
+            await _accessLogService.LogAsync(userId, emailClaim, null, AccessAction.Logout, "Sistemden başarıyla çıkış yapıldı.", AccessResult.NotApplicable, cancellationToken);
         }
 
         return NoContent();

@@ -1,6 +1,7 @@
 using BayiPortal.Application.Interfaces.Repositories;
 using BayiPortal.Core.Entities;
 using BayiPortal.Infrastructure.Data.Contexts;
+using BayiPortal.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BayiPortal.Infrastructure.Repositories;
@@ -22,10 +23,10 @@ public sealed class BrandRepository : IBrandRepository
 
     public Task<bool> CodeExistsAsync(string code, int? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var normalized = code.Trim().ToLowerInvariant();
+        var normalized = code.Trim().EscapeLikePattern();
         return _dbContext.Brands
             .Where(b => excludeId == null || b.Id != excludeId)
-            .AnyAsync(b => b.Code.ToLower() == normalized, cancellationToken);
+            .AnyAsync(b => EF.Functions.ILike(b.Code, normalized, LikePatternExtensions.EscapeCharacter), cancellationToken);
     }
 
     public void Add(Brand brand) => _dbContext.Brands.Add(brand);

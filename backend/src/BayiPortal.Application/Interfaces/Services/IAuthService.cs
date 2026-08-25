@@ -6,4 +6,6 @@ namespace BayiPortal.Application.Interfaces.Services;
 public interface IAuthService
 {
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default);
+    Task LogoutAsync(int userId, CancellationToken cancellationToken = default);
 }

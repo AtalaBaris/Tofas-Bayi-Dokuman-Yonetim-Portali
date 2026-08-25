@@ -17,6 +17,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.Phone).HasMaxLength(30);
+        builder.Property(x => x.EmailNotifications).HasDefaultValue(true);
+        builder.Property(x => x.DocumentAlerts).HasDefaultValue(true);
+        builder.Property(x => x.ExpiryReminders).HasDefaultValue(true);
 
         builder.HasOne(x => x.Dealer)
             .WithMany(d => d.Users)

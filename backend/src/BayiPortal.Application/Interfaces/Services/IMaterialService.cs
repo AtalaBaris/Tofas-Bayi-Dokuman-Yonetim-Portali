@@ -11,17 +11,65 @@ public interface IMaterialService
     Task<MaterialResponse> GetByIdAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
+    Task<MaterialAccessReportResponse> GetAccessReportAsync(
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<(byte[] Content, string FileName, string MimeType)> ExportAccessReportAsync(
+        int id, RequestingUser requestingUser, string format, CancellationToken cancellationToken = default);
+
     Task<MaterialResponse> CreateAsync(
-        CreateMaterialRequest request, Stream fileContent, string originalFileName, string mimeType, long fileSize,
+        CreateMaterialRequest request, IReadOnlyList<UploadedFileContent> files,
         RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<MaterialResponse> UpdateAsync(
-        int id, UpdateMaterialRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+        int id, UpdateMaterialRequest request, IReadOnlyList<UploadedFileContent>? newFiles, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dokümana yeni dosya(lar) ekler (mevcut dosyalar silinmez) ve Version'ı artırır.
+    /// </summary>
+    Task<MaterialResponse> AddFilesAsync(
+        int id, IReadOnlyList<UploadedFileContent> files, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Dokümandan tek bir dosyayı kaldırır (en az bir dosya kalmalıdır) ve Version'ı artırır.
+    /// </summary>
+    Task<MaterialResponse> DeleteFileAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task ArchiveAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 
     Task<(Stream Content, string FileName, string MimeType)> GetDownloadStreamAsync(
         int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<(Stream Content, string FileName, string MimeType)> GetFileDownloadStreamAsync(
+        int id, int fileId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<List<MaterialScheduleItemResponse>> GetScheduleCalendarAsync(
+        DateTime fromUtc, DateTime toUtc, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> UpdateScheduleAsync(
+        int id, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Havuzdaki kaynaktan yeni bir zamanlanmış kopya üretir; kaynak (taslak) havuzda kalır.
+    /// </summary>
+    Task<MaterialResponse> CreateScheduledCopyAsync(
+        int sourceId, UpdateMaterialScheduleRequest request, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> PublishNowAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialResponse> CancelScheduleAsync(int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task ProcessDueSchedulesAsync(CancellationToken cancellationToken = default);
+
+    Task<List<MaterialVersionResponse>> GetVersionsAsync(
+        int id, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<MaterialVersionResponse> CreateVersionAsync(
+        int id, CreateMaterialVersionRequest request, UploadedFileContent file, RequestingUser requestingUser, CancellationToken cancellationToken = default);
+
+    Task<(Stream Content, string FileName, string MimeType)> GetVersionDownloadStreamAsync(
+        int id, int versionId, RequestingUser requestingUser, CancellationToken cancellationToken = default);
 }
 
 // Controller'da JWT claim'lerinden doldurulur; brand-eşleşme ve rol kontrolleri bu bilgiye göre yapılır.

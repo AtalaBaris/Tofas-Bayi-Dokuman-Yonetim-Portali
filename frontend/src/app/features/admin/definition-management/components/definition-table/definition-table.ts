@@ -26,6 +26,10 @@ export class DefinitionTable {
   readonly editClick = output<DefinitionRowTarget>();
   readonly deleteClick = output<DefinitionRowTarget>();
   readonly toggleActiveClick = output<DefinitionRowTarget>();
+  /** Kullanıcısız bayi için hızlı kullanıcı ekleme. */
+  readonly addUserForDealerClick = output<SimpleDefinitionItem>();
+  /** Bayi satırındaki kullanıcı sayısına tıklanınca. */
+  readonly dealerUsersClick = output<SimpleDefinitionItem>();
 
   readonly initials = initials;
   readonly sortKey = signal<'name' | 'status' | null>(null);
@@ -136,6 +140,34 @@ export class DefinitionTable {
     event.stopPropagation();
     this.openMenuKey.set(null);
     this.toggleActiveClick.emit(target);
+  }
+
+  onAddUserForDealer(item: SimpleDefinitionItem, event: Event): void {
+    event.stopPropagation();
+    this.openMenuKey.set(null);
+    this.addUserForDealerClick.emit(item);
+  }
+
+  onDealerUsersClick(item: SimpleDefinitionItem, event: Event): void {
+    event.stopPropagation();
+    this.openMenuKey.set(null);
+    this.dealerUsersClick.emit(item);
+  }
+
+  isOrphanDealer(item: SimpleDefinitionItem): boolean {
+    return this.section() === 'dealers' && (item.activeUserCount ?? 0) === 0;
+  }
+
+  /** Bayiye bağlı tüm kullanıcı sayısı (aktif + pasif). */
+  dealerUserCount(item: SimpleDefinitionItem): number {
+    return this.users().filter(
+      (user) => user.dealerId === item.id && user.role === 'DealerUser'
+    ).length;
+  }
+
+  brandNamesLabel(item: SimpleDefinitionItem): string {
+    const names = item.brandNames ?? [];
+    return names.length ? names.join(', ') : '—';
   }
 
   @HostListener('document:click')

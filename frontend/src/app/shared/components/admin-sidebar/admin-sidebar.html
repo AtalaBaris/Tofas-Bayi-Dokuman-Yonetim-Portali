@@ -48,57 +48,105 @@
       <button
         type="button"
         class="admin-sidebar__link admin-sidebar__group-trigger"
-        [class.admin-sidebar__link--active]="usersMenuOpen()"
-        [attr.aria-expanded]="usersMenuOpen()"
-        aria-controls="admin-users-submenu"
-        (click)="toggleUsersMenu()"
+        [class.admin-sidebar__link--active]="documentsMenuOpen()"
+        [attr.aria-expanded]="documentsMenuOpen()"
+        aria-controls="admin-documents-submenu"
+        (click)="toggleDocumentsMenu()"
       >
-        <span class="material-symbols-outlined">group</span>
-        <span>Kullanıcılar</span>
+        <span class="material-symbols-outlined">description</span>
+        <span>Dokümanlar</span>
         <span
           class="material-symbols-outlined admin-sidebar__chevron"
-          [class.admin-sidebar__chevron--open]="usersMenuOpen()"
-        >expand_more</span>
+          [class.admin-sidebar__chevron--open]="documentsMenuOpen()"
+        >
+          expand_more
+        </span>
       </button>
 
-      @if (usersMenuOpen()) {
-        <div id="admin-users-submenu" class="admin-sidebar__submenu">
+      @if (documentsMenuOpen()) {
+        <div id="admin-documents-submenu" class="admin-sidebar__submenu">
           <a
             class="admin-sidebar__sublink"
-            routerLink="/admin/definitions/dealers"
+            routerLink="/admin/documents"
             routerLinkActive="admin-sidebar__sublink--active"
             (click)="onNavClick()"
-          >Bayiler</a>
+          >
+            Döküman Listeleme
+          </a>
           <a
             class="admin-sidebar__sublink"
-            routerLink="/admin/definitions/brands"
+            routerLink="/admin/documents/pool-calendar"
             routerLinkActive="admin-sidebar__sublink--active"
             (click)="onNavClick()"
-          >Markalar</a>
-          <a
-            class="admin-sidebar__sublink"
-            routerLink="/admin/definitions/categories"
-            routerLinkActive="admin-sidebar__sublink--active"
-            (click)="onNavClick()"
-          >Kategoriler</a>
+          >
+            Havuz &amp; Takvim
+          </a>
         </div>
       }
     </div>
 
+    @if (isAdmin()) {
+      <div class="admin-sidebar__group">
+        <button
+          type="button"
+          class="admin-sidebar__link admin-sidebar__group-trigger"
+          [class.admin-sidebar__link--active]="usersMenuOpen()"
+          [attr.aria-expanded]="usersMenuOpen()"
+          aria-controls="admin-users-submenu"
+          (click)="toggleUsersMenu()"
+        >
+          <span class="material-symbols-outlined">group</span>
+          <span>Kullanıcılar</span>
+          <span
+            class="material-symbols-outlined admin-sidebar__chevron"
+            [class.admin-sidebar__chevron--open]="usersMenuOpen()"
+          >expand_more</span>
+        </button>
+
+        @if (usersMenuOpen()) {
+          <div id="admin-users-submenu" class="admin-sidebar__submenu">
+            <a
+              class="admin-sidebar__sublink"
+              routerLink="/admin/definitions/dealers"
+              routerLinkActive="admin-sidebar__sublink--active"
+              (click)="onNavClick()"
+            >Bayiler</a>
+            <a
+              class="admin-sidebar__sublink"
+              routerLink="/admin/definitions/brands"
+              routerLinkActive="admin-sidebar__sublink--active"
+              (click)="onNavClick()"
+            >Markalar</a>
+            <a
+              class="admin-sidebar__sublink"
+              routerLink="/admin/definitions/categories"
+              routerLinkActive="admin-sidebar__sublink--active"
+              (click)="onNavClick()"
+            >Kategoriler</a>
+          </div>
+        }
+      </div>
+
+      <a
+        class="admin-sidebar__link"
+        routerLink="/admin/login-activity"
+        routerLinkActive="admin-sidebar__link--active"
+        (click)="onNavClick()"
+      >
+        <span class="material-symbols-outlined">login</span>
+        <span>Giriş Kayıtları</span>
+      </a>
+    }
+
     <a
       class="admin-sidebar__link"
-      routerLink="/admin/login-activity"
+      routerLink="/admin/access-logs"
       routerLinkActive="admin-sidebar__link--active"
       (click)="onNavClick()"
     >
-      <span class="material-symbols-outlined">login</span>
-      <span>Giriş Kayıtları</span>
-    </a>
-
-    <span class="admin-sidebar__link admin-sidebar__link--disabled" title="Yakında">
       <span class="material-symbols-outlined">terminal</span>
       <span>Döküman İşlem Kaydı</span>
-    </span>
+    </a>
   </nav>
 
   <div class="admin-sidebar__footer">

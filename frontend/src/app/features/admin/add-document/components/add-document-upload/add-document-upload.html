@@ -17,7 +17,7 @@
       <span class="material-symbols-outlined">cloud_upload</span>
     </div>
     <h3 class="add-upload__title">Dosyaları buraya sürükleyin veya seçin</h3>
-    <p class="add-upload__hint">PDF, MP4, JPG kabul edilir</p>
+    <p class="add-upload__hint">JPG, PNG, PDF, DOCX, PPTX, MP3, WAV, MP4 — en fazla 25 MB</p>
     <button type="button" class="add-upload__browse" (click)="openPicker(); $event.stopPropagation()">
       Dosya Seç
     </button>
@@ -25,12 +25,13 @@
       #fileInput
       class="add-upload__input"
       type="file"
-      accept=".pdf,.mp4,.jpg,.jpeg,.png,application/pdf,video/mp4,image/jpeg,image/png"
+      multiple
+      accept=".jpg,.jpeg,.png,.pdf,.docx,.pptx,.mp3,.wav,.mp4"
       (change)="onFilePicked($event)"
     />
   </div>
 
-  @if (file(); as selected) {
+  @for (selected of files(); track selected.name + selected.sizeBytes; let i = $index) {
     <div class="add-upload__file">
       <span class="material-symbols-outlined add-upload__file-icon">
         @switch (selected.kind) {
@@ -48,7 +49,7 @@
         type="button"
         class="add-upload__remove"
         aria-label="Dosyayı kaldır"
-        (click)="clearFile($event)"
+        (click)="removeFile($event, i)"
       >
         <span class="material-symbols-outlined">close</span>
       </button>

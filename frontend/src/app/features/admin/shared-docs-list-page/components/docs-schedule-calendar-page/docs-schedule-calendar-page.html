@@ -1,0 +1,119 @@
+<div class="cal-page">
+  <header class="cal-page__header">
+    <div>
+      <h1 class="cal-page__title">Yayın Takvimi</h1>
+      <p class="cal-page__subtitle">
+        Dokümanları günlere sürükleyin, saat seçin; zamanlanmış ve yayımlananlar burada görünür.
+      </p>
+    </div>
+    <div class="cal-page__actions">
+      <a routerLink="/admin/documents" class="cal-page__link">Listeye dön</a>
+      <a routerLink="/admin/documents/new" class="cal-page__btn">Yeni doküman</a>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="cal-page__error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="cal-page__layout">
+    <aside class="cal-pool">
+      <h2 class="cal-pool__title">Havuz</h2>
+      <p class="cal-pool__hint">Taslak veya zamanlanmış dokümanları takvime sürükleyin.</p>
+      @if (loading()) {
+        <p class="cal-pool__empty">Yükleniyor…</p>
+      } @else {
+        @for (item of pool(); track item.id) {
+          <div
+            class="cal-pool__item"
+            draggable="true"
+            (dragstart)="onDragStart(item.id, $event)"
+            (dragend)="onDragEnd()"
+          >
+            <span class="cal-pool__badge" [attr.data-status]="item.status.toLowerCase()">
+              {{ item.status === 'Draft' ? 'Taslak' : 'Zamanlanmış' }}
+            </span>
+            <span class="cal-pool__name">{{ item.title }}</span>
+          </div>
+        } @empty {
+          <p class="cal-pool__empty">Havuzda doküman yok.</p>
+        }
+      }
+    </aside>
+
+    <section class="cal-board">
+      <div class="cal-board__nav">
+        <button type="button" class="cal-board__nav-btn" (click)="prevMonth()" aria-label="Önceki ay">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <h2 class="cal-board__month">{{ monthLabel() }}</h2>
+        <button type="button" class="cal-board__nav-btn" (click)="nextMonth()" aria-label="Sonraki ay">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="cal-board__weekdays">
+        @for (label of ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; track label) {
+          <span>{{ label }}</span>
+        }
+      </div>
+
+      <div class="cal-board__grid">
+        @for (day of days(); track day.dateKey) {
+          <div
+            class="cal-day"
+            [class.cal-day--muted]="!day.inMonth"
+            [class.cal-day--today]="day.isToday"
+            (dragover)="onDayDragOver($event)"
+            (drop)="onDayDrop(day, $event)"
+          >
+            <span class="cal-day__num">{{ day.day }}</span>
+            <div class="cal-day__events">
+              @for (ev of eventsFor(day); track ev.id) {
+                <button
+                  type="button"
+                  class="cal-event"
+                  [class]="statusClass(ev.status)"
+                  (click)="openEvent(ev)"
+                >
+                  <span class="cal-event__time">{{ timeLabel(ev.at) }}</span>
+                  <span class="cal-event__title">{{ ev.title }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  @if (modal(); as m) {
+    <div class="cal-modal" role="dialog" aria-modal="true">
+      <button type="button" class="cal-modal__backdrop" aria-label="Kapat" (click)="closeModal()"></button>
+      <div class="cal-modal__card">
+        <h3 class="cal-modal__title">Yayın zamanı</h3>
+        <p class="cal-modal__doc">{{ m.title }}</p>
+        <label class="cal-modal__label" for="cal-time">Saat</label>
+        <input
+          id="cal-time"
+          class="cal-modal__input"
+          type="time"
+          [ngModel]="m.time"
+          (ngModelChange)="updateModalTime($event)"
+        />
+        <p class="cal-modal__date">{{ m.dateKey }}</p>
+        <div class="cal-modal__actions">
+          <button type="button" class="cal-page__link" (click)="closeModal()">Vazgeç</button>
+          <button
+            type="button"
+            class="cal-page__btn"
+            [disabled]="saving()"
+            (click)="confirmSchedule()"
+          >
+            {{ saving() ? 'Kaydediliyor…' : 'Kaydet' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

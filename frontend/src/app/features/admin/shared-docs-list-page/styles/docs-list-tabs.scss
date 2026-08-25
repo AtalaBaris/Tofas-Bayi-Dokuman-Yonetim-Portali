@@ -1,17 +1,35 @@
 .docs-tabs {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) 50%, transparent);
+  margin: 0 calc(-1 * var(--space-margin-mobile));
+  padding: 0 var(--space-margin-mobile);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    gap: 2rem;
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
+  }
 }
 
 .docs-tabs__tab {
-  padding: 0 0.25rem 0.75rem;
+  flex: 0 0 auto;
+  padding: 0 0.15rem 0.75rem;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   font-family: inherit;
   font-size: var(--font-size-label-lg);
   font-weight: 600;
+  white-space: nowrap;
   color: var(--color-on-surface-variant);
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;

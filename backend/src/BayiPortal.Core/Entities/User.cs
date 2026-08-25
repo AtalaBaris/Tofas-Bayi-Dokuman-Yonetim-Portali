@@ -13,8 +13,14 @@ public class User
     public int? DealerId { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Phone { get; set; }
+    public bool EmailNotifications { get; set; } = true;
+    public bool DocumentAlerts { get; set; } = true;
+    public bool ExpiryReminders { get; set; } = true;
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiresAt { get; set; }
 
     public Dealer? Dealer { get; set; }
     public ICollection<Material> CreatedMaterials { get; set; } = new List<Material>();
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

@@ -1,4 +1,4 @@
-/** Sağ detay drawer. */
+/** Sağ detay drawer. Düzenleme ayrı ekranda: /admin/documents/:id/edit */
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { DocumentListItem, DocumentViewerRow } from '../../models/document-list.model';
@@ -14,15 +14,14 @@ export class DocsDetailDrawer {
   readonly viewers = input<DocumentViewerRow[]>([]);
   readonly closed = output<void>();
   readonly archive = output<DocumentListItem>();
+  readonly publishNow = output<DocumentListItem>();
+  readonly downloadFile = output<{ materialId: number; fileId: number; fileName: string }>();
 
   iconFor(kind: DocumentListItem['fileKind']): string {
     switch (kind) {
-      case 'pdf':
-        return 'picture_as_pdf';
-      case 'video':
-        return 'movie';
-      default:
-        return 'description';
+      case 'pdf': return 'picture_as_pdf';
+      case 'video': return 'movie';
+      default: return 'description';
     }
   }
 }

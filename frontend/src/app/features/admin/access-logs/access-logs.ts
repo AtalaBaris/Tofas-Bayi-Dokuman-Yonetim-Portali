@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccessLog, AccessLogService } from '../../../core/services/access-log.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-access-logs',
@@ -11,6 +12,9 @@ import { AccessLog, AccessLogService } from '../../../core/services/access-log.s
 })
 export class AccessLogs {
   private readonly accessLogService = inject(AccessLogService);
+  private readonly auth = inject(AuthService);
+
+  readonly isContentManager = computed(() => this.auth.currentUser()?.role === 'ContentManager');
 
   // Filtreler
   readonly searchQuery = signal('');
@@ -28,11 +32,14 @@ export class AccessLogs {
   readonly logs = signal<AccessLog[]>([]);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
+  readonly exporting = signal(false);
 
   readonly actionsList = [
     'Döküman Görüntüleme',
     'Döküman İndirme',
     'Döküman Yükleme',
+    'Döküman Güncelleme',
+    'Döküman Arşivleme',
     'Kategori Oluşturma',
     'Kategori Güncelleme',
     'Kategori Silme',
@@ -46,6 +53,13 @@ export class AccessLogs {
     'Kullanıcı Güncellendi',
     'Şifre Değiştirildi',
   ];
+
+  readonly filteredActionsList = computed(() => {
+    if (this.isContentManager()) {
+      return ['Döküman Görüntüleme', 'Döküman İndirme', 'Döküman Yükleme', 'Döküman Güncelleme', 'Döküman Arşivleme'];
+    }
+    return this.actionsList;
+  });
 
   constructor() {
     // Filtreler veya sayfa numarası değiştiğinde otomatik olarak API'den verileri yükle
@@ -171,6 +185,37 @@ export class AccessLogs {
     this.startDate.set('');
     this.endDate.set('');
     this.currentPage.set(1);
+  }
+
+  exportLogs(format: 'xlsx' | 'pdf'): void {
+    this.exporting.set(true);
+    this.accessLogService
+      .exportLogs(
+        {
+          keyword: this.searchQuery().trim() || undefined,
+          role: this.selectedRole() || undefined,
+          action: this.selectedAction() || undefined,
+          status: this.selectedStatus() || undefined,
+          startDate: this.startDate() || undefined,
+          endDate: this.endDate() || undefined,
+        },
+        format
+      )
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `erisim-kayitlari.${format}`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          this.exporting.set(false);
+        },
+        error: (err) => {
+          console.error('Erişim kayıtları dışa aktarılırken hata oluştu:', err);
+          this.exporting.set(false);
+        },
+      });
   }
 
   getActionClass(action: string): string {

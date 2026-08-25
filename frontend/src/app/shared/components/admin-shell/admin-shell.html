@@ -21,10 +21,11 @@
       <button
         type="button"
         class="admin-shell__menu-btn"
-        aria-label="Menüyü aç"
+        [attr.aria-expanded]="mobileNavOpen()"
+        [attr.aria-label]="mobileNavOpen() ? 'Menüyü kapat' : 'Menüyü aç'"
         (click)="toggleMobileNav()"
       >
-        <span class="material-symbols-outlined">menu</span>
+        <span class="material-symbols-outlined">{{ mobileNavOpen() ? 'close' : 'menu' }}</span>
       </button>
     </header>
 

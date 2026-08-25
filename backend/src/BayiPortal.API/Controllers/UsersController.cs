@@ -49,9 +49,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        await _userService.DeactivateAsync(id, cancellationToken);
+        await _userService.DeleteAsync(id, cancellationToken);
         return NoContent();
     }
 }
